@@ -1,7 +1,5 @@
 // MusicSpace Prototype - HTML + JavaScript
 
-const traceCanvas = document.getElementById("trace");
-const traceCtx = traceCanvas.getContext("2d");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 800;
@@ -191,12 +189,6 @@ const sources = [
   new SoundSource(400, 200, "B"),
   new SoundSource(350, 300, "C")
 ];
-
-// Initialize previous position for tracing
-sources.forEach(s => {
-  s.prevX = s.x;
-  s.prevY = s.y;
-});
 const constraints = [
   new AngleConstraint(listener, sources[0], sources[1]),
   new SumConstraint(listener, sources)
@@ -241,14 +233,6 @@ canvas.addEventListener("mousemove", (e) => {
   }
 
   drawAll();
-});
-
-function saveTrace() {
-  const link = document.createElement('a');
-  link.download = 'musicspace_drawing.png';
-  link.href = traceCanvas.toDataURL();
-  link.click();
-}
 
 // Animate one source with smooth random walk
 let vx = 0, vy = 0;
@@ -260,30 +244,19 @@ function animate() {
   vy += (Math.random() - 0.5) * 0.5;
 
   // Limit speed
-  const maxSpeed = 2;
+  const maxSpeed = 1;
   const speed = Math.hypot(vx, vy);
   if (speed > maxSpeed) {
     vx *= maxSpeed / speed;
     vy *= maxSpeed / speed;
   }
 
-  // Update position
-  const newX = source.x + vx;
-  const newY = source.y + vy;
+  source.x += vx;
+  source.y += vy;
 
-  // Draw trace line
-  traceCtx.beginPath();
-  traceCtx.moveTo(source.prevX, source.prevY);
-  traceCtx.lineTo(newX, newY);
-  traceCtx.strokeStyle = "rgba(0,0,0,0.6)";
-  traceCtx.lineWidth = 2;
-  traceCtx.stroke();
-
-  // Apply position
-  source.x = Math.max(0, Math.min(canvas.width, newX));
-  source.y = Math.max(0, Math.min(canvas.height, newY));
-  source.prevX = source.x;
-  source.prevY = source.y;
+  // Keep within bounds
+  source.x = Math.max(0, Math.min(canvas.width, source.x));
+  source.y = Math.max(0, Math.min(canvas.height, source.y));
 
   for (let c of constraints) {
     c.enforce(source);
@@ -294,6 +267,9 @@ function animate() {
 }
 
 animate();
+
+animate();
+});
 
 canvas.addEventListener("mouseup", () => {
   dragged = null;
