@@ -36,6 +36,7 @@ npm run check
 
 - `musicspace.html` contains the static page structure and styling.
 - `musicspace.js` contains the canvas entities, constraints, drawing, interaction, and animation logic.
+- `TODO.md` tracks likely next steps for the prototype.
 - `LICENSE` contains the MIT license.
 
 ## Background
