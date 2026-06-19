@@ -293,7 +293,7 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-animate();
+//animate();
 
 canvas.addEventListener("mouseup", () => {
   dragged = null;

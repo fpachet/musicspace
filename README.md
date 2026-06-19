@@ -14,7 +14,7 @@ A constraint propagation algorithm propagates movements of sources so as to enfo
 - Delerue, O. and Pachet, F. MidiSpace, un spatialisateur Midi interactif. JIM 98, Agelonde, France, 1998
 - Pachet, F. and Delerue, O. Constraint-Based Spatialization. First COST-G6 Workshop on Digital Audio Effects (DAFX98), pages 71-75, Barcelona, Spain, November 1998
 - Delerue, O. and Pachet, F. MidiSpace: a Temporal Constraint-Based Music Spatializer. Workshop on Constraints for Artistic Applications, ECAI’98, Brighton, UK., 1998
-- Delerue, O. Spatialisation du son et programmation par contraintes : le système MusicSpace, Ph. D Université Pierre et Marie Curie, 2004
+- Delerue, O. Spatialisation du son et programmation par contraintes : le système MusicSpace, Ph.D. Université Pierre et Marie Curie, 2004
 
 
 ## Features
