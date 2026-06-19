@@ -1,57 +1,39 @@
-// MusicSpace Prototype - HTML + JavaScript
+// MusicSpace prototype: draggable sources and constraint nodes on a 2D canvas.
+
+const WIDTH = 800;
+const HEIGHT = 600;
 
 const traceCanvas = document.getElementById("trace");
 const traceCtx = traceCanvas.getContext("2d");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 800;
-canvas.height = 600;
 
-const icons = {
-  listener: new Image(),
-  source: new Image(),
-  angle: new Image(),
-  sum: new Image()
-};
-icons.listener.src = "https://img.icons8.com/ios-filled/50/ear.png";
-icons.source.src = "https://img.icons8.com/ios-filled/50/musical-notes.png";
-icons.angle.src = "https://img.icons8.com/ios-filled/50/angle.png";
-icons.sum.src = "https://img.icons8.com/ios-filled/50/sigma.png";
+const animationToggle = document.getElementById("animation-toggle");
+const clearTraceButton = document.getElementById("clear-trace");
+const resetButton = document.getElementById("reset");
+const saveTraceButton = document.getElementById("save-trace");
 
-// drawAll will be called after setup at the end
-
-function drawAll() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let c of constraints) {
-    if (typeof c.draw === 'function') c.draw(ctx);
-  }
-  listener.draw(ctx);
-  for (let s of sources) {
-    s.draw(ctx);
-  }
-}
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+traceCanvas.width = WIDTH;
+traceCanvas.height = HEIGHT;
 
 class Entity {
-  constructor(x, y, color = "blue") {
+  constructor(x, y, color = "#2563eb") {
     this.x = x;
     this.y = y;
-    this.radius = 10;
+    this.radius = 13;
     this.color = color;
   }
 
-  draw(ctx, icon = null) {
-    if (icon && icon.naturalWidth > 0) {
-      try {
-        ctx.drawImage(icon, this.x - 10, this.y - 10, 20, 20);
-        return;
-      } catch (e) {
-        console.warn("Icon draw failed:", e);
-      }
-    }
+  draw(ctx) {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   isInside(px, py) {
@@ -61,38 +43,52 @@ class Entity {
 
 class Listener extends Entity {
   constructor(x, y) {
-    super(x, y, "black");
+    super(x, y, "#111827");
   }
 
   draw(ctx) {
-    super.draw(ctx, icons.listener);
+    super.draw(ctx);
+    drawListenerGlyph(ctx, this.x, this.y);
   }
 }
 
 class SoundSource extends Entity {
   constructor(x, y, name) {
-    super(x, y, "red");
+    super(x, y, "#dc2626");
     this.name = name;
+    this.prevX = x;
+    this.prevY = y;
   }
 
   draw(ctx) {
-    super.draw(ctx, icons.source);
+    super.draw(ctx);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.name, this.x, this.y);
   }
 }
 
 class ConstraintNode extends Entity {
-  constructor(x, y, label, iconKey, color = "orange") {
+  constructor(x, y, label, color = "#d97706") {
     super(x, y, color);
     this.label = label;
-    this.iconKey = iconKey;
+    this.isManual = false;
   }
 
   draw(ctx) {
-    super.draw(ctx, icons[this.iconKey]);
-    ctx.fillStyle = "black";
+    super.draw(ctx);
+    ctx.fillStyle = "#111827";
     ctx.font = "12px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(this.label, this.x, this.y - 15);
+    ctx.textBaseline = "bottom";
+    ctx.fillText(this.label, this.x, this.y - 18);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 11px sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.label[0], this.x, this.y);
   }
 }
 
@@ -102,16 +98,18 @@ class AngleConstraint {
     this.a = a;
     this.b = b;
     this.angle = this.computeAngle();
-    this.node = new ConstraintNode((a.x + b.x) / 2, (a.y + b.y) / 2, "Angle", "angle");
+    this.node = new ConstraintNode((a.x + b.x) / 2, (a.y + b.y) / 2, "Angle", "#2563eb");
   }
 
   computeAngle() {
     return Math.atan2(this.b.y - this.listener.y, this.b.x - this.listener.x) -
-           Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
+      Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
   }
 
   enforce(moved) {
-    if (moved !== this.a && moved !== this.b && moved !== this.listener && moved !== this.node) return;
+    if (moved !== this.a && moved !== this.b && moved !== this.listener && moved !== this.node) {
+      return;
+    }
 
     const baseAngle = Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
     const newAngle = baseAngle + this.angle;
@@ -120,7 +118,6 @@ class AngleConstraint {
     this.b.x = this.listener.x + dist * Math.cos(newAngle);
     this.b.y = this.listener.y + dist * Math.sin(newAngle);
 
-    // Only update the node position if it's not being dragged and hasn't been manually moved
     if (moved !== this.node && !this.node.isManual) {
       this.node.x = (this.a.x + this.b.x) / 2;
       this.node.y = (this.a.y + this.b.y) / 2;
@@ -128,15 +125,9 @@ class AngleConstraint {
   }
 
   draw(ctx) {
-    ctx.strokeStyle = "blue";
-    ctx.beginPath();
-    ctx.moveTo(this.node.x, this.node.y);
-    ctx.lineTo(this.a.x, this.a.y);
-    ctx.moveTo(this.node.x, this.node.y);
-    ctx.lineTo(this.b.x, this.b.y);
-    ctx.moveTo(this.node.x, this.node.y);
-    ctx.lineTo(this.listener.x, this.listener.y);
-    ctx.stroke();
+    drawConnector(ctx, this.node, this.a, "#2563eb");
+    drawConnector(ctx, this.node, this.b, "#2563eb");
+    drawConnector(ctx, this.node, this.listener, "#2563eb");
     this.node.draw(ctx);
   }
 }
@@ -146,11 +137,11 @@ class SumConstraint {
     this.listener = listener;
     this.sources = sources;
     this.totalDistance = this.computeTotalDistance();
-    this.node = new ConstraintNode(listener.x + 80, listener.y, "Sum", "sum");
+    this.node = new ConstraintNode(listener.x + 90, listener.y, "Sum", "#059669");
   }
 
   computeTotalDistance() {
-    return this.sources.reduce((sum, s) => sum + this.distanceToListener(s), 0);
+    return this.sources.reduce((sum, source) => sum + this.distanceToListener(source), 0);
   }
 
   distanceToListener(source) {
@@ -158,145 +149,263 @@ class SumConstraint {
   }
 
   enforce(moved) {
-    if (moved !== this.listener && this.sources.includes(moved)) {
-      const others = this.sources.filter(s => s !== moved);
-      const remaining = this.totalDistance - this.distanceToListener(moved);
-      const share = remaining / others.length;
+    if (moved === this.listener || !this.sources.includes(moved)) {
+      return;
+    }
 
-      for (let s of others) {
-        const angle = Math.atan2(s.y - this.listener.y, s.x - this.listener.x);
-        s.x = this.listener.x + share * Math.cos(angle);
-        s.y = this.listener.y + share * Math.sin(angle);
-      }
+    const others = this.sources.filter((source) => source !== moved);
+    const remaining = this.totalDistance - this.distanceToListener(moved);
+    const share = remaining / others.length;
+
+    for (const source of others) {
+      const angle = Math.atan2(source.y - this.listener.y, source.x - this.listener.x);
+      source.x = this.listener.x + share * Math.cos(angle);
+      source.y = this.listener.y + share * Math.sin(angle);
     }
   }
 
   draw(ctx) {
-    ctx.strokeStyle = "green";
-    ctx.beginPath();
-    for (let s of this.sources) {
-      ctx.moveTo(this.node.x, this.node.y);
-      ctx.lineTo(s.x, s.y);
+    for (const source of this.sources) {
+      drawConnector(ctx, this.node, source, "#059669");
     }
-    ctx.moveTo(this.node.x, this.node.y);
-    ctx.lineTo(this.listener.x, this.listener.y);
-    ctx.stroke();
+    drawConnector(ctx, this.node, this.listener, "#059669");
     this.node.draw(ctx);
   }
 }
 
-const listener = new Listener(canvas.width / 2, canvas.height / 2);
-const sources = [
-  new SoundSource(300, 200, "A"),
-  new SoundSource(400, 200, "B"),
-  new SoundSource(350, 300, "C")
-];
-
-// Initialize previous position for tracing
-sources.forEach(s => {
-  s.prevX = s.x;
-  s.prevY = s.y;
-});
-const constraints = [
-  new AngleConstraint(listener, sources[0], sources[1]),
-  new SumConstraint(listener, sources)
-];
-
+let listener;
+let sources;
+let constraints;
 let dragged = null;
+let isAnimating = false;
+let animationFrame = null;
+let velocity = { x: 0, y: 0 };
 
-canvas.addEventListener("mousedown", (e) => {
+function resetScene() {
+  listener = new Listener(WIDTH / 2, HEIGHT / 2);
+  sources = [
+    new SoundSource(300, 200, "A"),
+    new SoundSource(400, 200, "B"),
+    new SoundSource(350, 300, "C")
+  ];
+  constraints = [
+    new AngleConstraint(listener, sources[0], sources[1]),
+    new SumConstraint(listener, sources)
+  ];
+  dragged = null;
+  velocity = { x: 0, y: 0 };
+  clearTrace();
+  drawAll();
+}
+
+function drawAll() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  drawGrid(ctx);
+
+  for (const constraint of constraints) {
+    constraint.draw(ctx);
+  }
+
+  listener.draw(ctx);
+  for (const source of sources) {
+    source.draw(ctx);
+  }
+}
+
+function drawGrid(ctx) {
+  ctx.fillStyle = "#fbfbf8";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 1;
+
+  for (let x = 40; x < WIDTH; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, HEIGHT);
+    ctx.stroke();
+  }
+
+  for (let y = 40; y < HEIGHT; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(WIDTH, y);
+    ctx.stroke();
+  }
+}
+
+function drawConnector(ctx, from, to, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+function drawListenerGlyph(ctx, x, y) {
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, 6, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x - 2, y, 3, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+}
+
+function enforceConstraints(moved) {
+  for (const constraint of constraints) {
+    constraint.enforce(moved);
+  }
+}
+
+function getPointerPosition(event) {
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * WIDTH,
+    y: ((event.clientY - rect.top) / rect.height) * HEIGHT
+  };
+}
 
+function findEntityAt(x, y) {
   if (listener.isInside(x, y)) {
-    dragged = listener;
+    return listener;
+  }
+
+  for (const source of sources) {
+    if (source.isInside(x, y)) {
+      return source;
+    }
+  }
+
+  for (const constraint of constraints) {
+    if (constraint.node.isInside(x, y)) {
+      constraint.node.isManual = true;
+      return constraint.node;
+    }
+  }
+
+  return null;
+}
+
+function moveEntity(entity, x, y) {
+  entity.x = clamp(x, 0, WIDTH);
+  entity.y = clamp(y, 0, HEIGHT);
+  enforceConstraints(entity);
+  syncTracePositions();
+  drawAll();
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function syncTracePositions() {
+  for (const source of sources) {
+    source.prevX = source.x;
+    source.prevY = source.y;
+  }
+}
+
+function animate() {
+  if (!isAnimating) {
     return;
   }
 
-  for (let s of sources) {
-    if (s.isInside(x, y)) {
-      dragged = s;
-      return;
-    }
-  }
+  const source = sources[0];
+  velocity.x += (Math.random() - 0.5) * 0.5;
+  velocity.y += (Math.random() - 0.5) * 0.5;
 
-  for (let c of constraints) {
-    if (c.node.isInside(x, y)) {
-    dragged = c.node;
-    c.node.isManual = true;
-      return;
-    }
-  }
-});
-
-canvas.addEventListener("mousemove", (e) => {
-  if (!dragged) return;
-  const rect = canvas.getBoundingClientRect();
-  dragged.x = e.clientX - rect.left;
-  dragged.y = e.clientY - rect.top;
-
-  for (let c of constraints) {
-    c.enforce(dragged);
-  }
-
-  drawAll();
-});
-
-function saveTrace() {
-  const link = document.createElement('a');
-  link.download = 'musicspace_drawing.png';
-  link.href = traceCanvas.toDataURL();
-  link.click();
-}
-
-// Animate one source with smooth random walk
-let vx = 0, vy = 0;
-function animate() {
-  const source = sources[0]; // source A
-
-  // Slightly change velocity
-  vx += (Math.random() - 0.5) * 0.5;
-  vy += (Math.random() - 0.5) * 0.5;
-
-  // Limit speed
   const maxSpeed = 2;
-  const speed = Math.hypot(vx, vy);
+  const speed = Math.hypot(velocity.x, velocity.y);
   if (speed > maxSpeed) {
-    vx *= maxSpeed / speed;
-    vy *= maxSpeed / speed;
+    velocity.x *= maxSpeed / speed;
+    velocity.y *= maxSpeed / speed;
   }
 
-  // Update position
-  const newX = source.x + vx;
-  const newY = source.y + vy;
+  const nextX = clamp(source.x + velocity.x, 0, WIDTH);
+  const nextY = clamp(source.y + velocity.y, 0, HEIGHT);
 
-  // Draw trace line
   traceCtx.beginPath();
   traceCtx.moveTo(source.prevX, source.prevY);
-  traceCtx.lineTo(newX, newY);
-  traceCtx.strokeStyle = "rgba(0,0,0,0.6)";
+  traceCtx.lineTo(nextX, nextY);
+  traceCtx.strokeStyle = "rgba(17, 24, 39, 0.55)";
   traceCtx.lineWidth = 2;
   traceCtx.stroke();
 
-  // Apply position
-  source.x = Math.max(0, Math.min(canvas.width, newX));
-  source.y = Math.max(0, Math.min(canvas.height, newY));
-  source.prevX = source.x;
-  source.prevY = source.y;
+  source.x = nextX;
+  source.y = nextY;
+  source.prevX = nextX;
+  source.prevY = nextY;
 
-  for (let c of constraints) {
-    c.enforce(source);
-  }
-
+  enforceConstraints(source);
   drawAll();
-  requestAnimationFrame(animate);
+  animationFrame = requestAnimationFrame(animate);
 }
 
-//animate();
+function startAnimation() {
+  if (isAnimating) {
+    return;
+  }
 
-canvas.addEventListener("mouseup", () => {
+  isAnimating = true;
+  animationToggle.textContent = "Stop";
+  syncTracePositions();
+  animationFrame = requestAnimationFrame(animate);
+}
+
+function stopAnimation() {
+  isAnimating = false;
+  animationToggle.textContent = "Start";
+
+  if (animationFrame !== null) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+  }
+}
+
+function clearTrace() {
+  traceCtx.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
+function saveTrace() {
+  const link = document.createElement("a");
+  link.download = "musicspace_trace.png";
+  link.href = traceCanvas.toDataURL("image/png");
+  link.click();
+}
+
+canvas.addEventListener("mousedown", (event) => {
+  const { x, y } = getPointerPosition(event);
+  dragged = findEntityAt(x, y);
+});
+
+canvas.addEventListener("mousemove", (event) => {
+  if (!dragged) {
+    return;
+  }
+
+  const { x, y } = getPointerPosition(event);
+  moveEntity(dragged, x, y);
+});
+
+window.addEventListener("mouseup", () => {
   dragged = null;
 });
 
-drawAll();
+animationToggle.addEventListener("click", () => {
+  if (isAnimating) {
+    stopAnimation();
+  } else {
+    startAnimation();
+  }
+});
+
+clearTraceButton.addEventListener("click", clearTrace);
+saveTraceButton.addEventListener("click", saveTrace);
+resetButton.addEventListener("click", () => {
+  stopAnimation();
+  resetScene();
+});
+
+resetScene();
