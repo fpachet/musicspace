@@ -4,6 +4,8 @@ A JavaScript prototype of the MusicSpace interface idea: sources are represented
 
 The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
+Live demo: <https://fpachet.github.io/musicspace/>
+
 ## Running
 
 Open `musicspace.html` directly in a browser.
