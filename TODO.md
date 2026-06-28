@@ -38,10 +38,10 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Audio and MIDI
 
-- Decide the first real output target: Web Audio spatialization, MIDI control, OSC, or another control stream.
+- Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Map source positions to useful audio parameters such as pan, gain, distance attenuation, or reverb send.
 - Add a generic mapping layer so source, handle, trajectory, and constraint values can drive arbitrary parameters, including Faust patch parameters.
-- Add an optional demo sound source so the spatialization behavior can be heard.
+- Expand the optional demo sound source into spatialized audio with pan, gain, distance attenuation, and reverb send.
 - Consider Web MIDI support for controlling external devices or software.
 
 ## Project Hygiene

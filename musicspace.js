@@ -19,6 +19,12 @@ const patchFileInput = document.getElementById("patch-file");
 const clearTraceButton = document.getElementById("clear-trace");
 const resetButton = document.getElementById("reset");
 const saveTraceButton = document.getElementById("save-trace");
+const audioToggleButton = document.getElementById("audio-toggle");
+const audioPanel = document.getElementById("audio-panel");
+const audioFreqOutput = document.getElementById("audio-freq");
+const audioCutoffOutput = document.getElementById("audio-cutoff");
+const audioQOutput = document.getElementById("audio-q");
+const audioGainOutput = document.getElementById("audio-gain");
 const constraintStatus = document.getElementById("constraint-status");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
@@ -49,6 +55,18 @@ const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
 const TOOL_SELECT = "select";
 const FRAMES_PER_SECOND = 60;
+const AUDIO_DEFAULTS = {
+  "/osc/freq": 220,
+  "/filter/frequency": 1600,
+  "/filter/q": 2,
+  "/output/gain": 0.12
+};
+const AUDIO_OUTPUTS = {
+  "/osc/freq": { element: audioFreqOutput, suffix: " Hz", digits: 0 },
+  "/filter/frequency": { element: audioCutoffOutput, suffix: " Hz", digits: 0 },
+  "/filter/q": { element: audioQOutput, suffix: "", digits: 2 },
+  "/output/gain": { element: audioGainOutput, suffix: "", digits: 2 }
+};
 
 const BUILT_IN_PATCHES = [
   {
@@ -360,6 +378,114 @@ const BUILT_IN_PATCHES = [
       { type: "solid", carrier: "Shuttle", attached: "Bass" },
       { type: "angle", sources: ["Voice", "Drums"] },
       { type: "sum", sources: ["Voice", "Bass", "Drums"] }
+    ]
+  },
+  {
+    key: "faust-control-study",
+    name: "Faust Control Study",
+    listener: { x: 400, y: 300 },
+    sources: [
+      { name: "Freq", x: 250, y: 230, drawTrace: true },
+      { name: "Cutoff", x: 570, y: 260, drawTrace: true },
+      { name: "Q", x: 530, y: 385, drawTrace: true },
+      { name: "Gain", x: 325, y: 405 }
+    ],
+    movingObjects: [
+      {
+        name: "Sweep",
+        x: 250,
+        y: 230,
+        drawTrace: true,
+        trajectory: {
+          type: "shuttle",
+          ax: 210,
+          ay: 210,
+          bx: 610,
+          by: 250,
+          phase: 0.1,
+          speed: 0.0045,
+          direction: 1,
+          showPath: true
+        }
+      },
+      {
+        name: "Orbit",
+        x: 520,
+        y: 340,
+        trajectory: {
+          type: "rotation",
+          centerX: 400,
+          centerY: 300,
+          radius: 135,
+          phase: 0.3,
+          angularSpeed: 0.009
+        }
+      },
+      {
+        name: "ResoSpin",
+        x: 520,
+        y: 340,
+        trajectory: {
+          type: "rotator",
+          running: true,
+          periodSeconds: 7,
+          direction: -1,
+          displacementInducesRotation: true,
+          phase: 0,
+          rotationDelta: 0
+        }
+      }
+    ],
+    constraints: [
+      { type: "solid", carrier: "Sweep", attached: "Freq" },
+      { type: "solid", carrier: "Orbit", attached: "ResoSpin" },
+      { type: "solid", carrier: "ResoSpin", attached: "Q" },
+      { type: "fixedDistance", anchor: "Freq", target: "Gain", distance: 190 },
+      { type: "distanceRatio", sources: ["Cutoff", "Q"], ratio: 1.35 },
+      { type: "radialLimit", source: "Q", minDistance: 75, maxDistance: 185 },
+      { type: "sum", sources: ["Freq", "Cutoff", "Gain"] }
+    ],
+    audioMappings: [
+      {
+        source: "Freq",
+        feature: "x",
+        target: "/osc/freq",
+        inputMin: 180,
+        inputMax: 640,
+        outputMin: 110,
+        outputMax: 880,
+        curve: "exp"
+      },
+      {
+        source: "Cutoff",
+        feature: "distance",
+        target: "/filter/frequency",
+        inputMin: 70,
+        inputMax: 260,
+        outputMin: 250,
+        outputMax: 4200,
+        curve: "exp"
+      },
+      {
+        source: "Q",
+        feature: "distance",
+        target: "/filter/q",
+        inputMin: 70,
+        inputMax: 190,
+        outputMin: 0.5,
+        outputMax: 18,
+        curve: "linear"
+      },
+      {
+        source: "Gain",
+        feature: "y",
+        target: "/output/gain",
+        inputMin: 500,
+        inputMax: 150,
+        outputMin: 0.03,
+        outputMax: 0.22,
+        curve: "linear"
+      }
     ]
   }
 ];
@@ -1115,6 +1241,10 @@ let isAnimating = false;
 let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = clonePatch(BUILT_IN_PATCHES[0]);
+let audioMappings = [];
+let audioParamValues = { ...AUDIO_DEFAULTS };
+let audioEngine = null;
+let audioEnabled = false;
 
 function resetScene() {
   pushUndoSnapshot("reset");
@@ -1172,6 +1302,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   constraints = (patch.constraints || [])
     .map((constraint) => createConstraintFromSpec(constraint, objectByName))
     .filter(Boolean);
+  audioMappings = normalizeAudioMappings(patch.audioMappings || []);
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -1183,6 +1314,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   velocity = { x: 0, y: 0 };
   setConstraintStatus("");
   clearTrace();
+  updateAudioMappings({ immediate: true });
   drawAll();
 }
 
@@ -1393,7 +1525,8 @@ function serializePatch() {
       drawTrace: mover.drawTrace,
       trajectory: mover.trajectory
     })),
-    constraints: constraints.map(serializeConstraint).filter(Boolean)
+    constraints: constraints.map(serializeConstraint).filter(Boolean),
+    audioMappings: audioMappings.map((mapping) => ({ ...mapping }))
   };
 }
 
@@ -1489,14 +1622,204 @@ function serializeConstraint(constraint) {
   return null;
 }
 
+function normalizeAudioMappings(mappings) {
+  return mappings
+    .filter((mapping) => mapping && mapping.source && mapping.target && mapping.feature)
+    .map((mapping) => ({
+      source: mapping.source,
+      feature: mapping.feature,
+      target: mapping.target,
+      inputMin: Number(mapping.inputMin),
+      inputMax: Number(mapping.inputMax),
+      outputMin: Number(mapping.outputMin),
+      outputMax: Number(mapping.outputMax),
+      curve: mapping.curve === "exp" ? "exp" : "linear"
+    }))
+    .filter((mapping) =>
+      Number.isFinite(mapping.inputMin) &&
+      Number.isFinite(mapping.inputMax) &&
+      Number.isFinite(mapping.outputMin) &&
+      Number.isFinite(mapping.outputMax) &&
+      AUDIO_DEFAULTS[mapping.target] !== undefined
+    );
+}
+
+function updateAudioMappings({ immediate = false } = {}) {
+  audioParamValues = { ...AUDIO_DEFAULTS };
+
+  for (const mapping of audioMappings) {
+    const entity = getObjectByName(mapping.source);
+    if (!entity) {
+      continue;
+    }
+
+    audioParamValues[mapping.target] = valueFromAudioMapping(mapping, entity);
+  }
+
+  updateAudioPanel();
+  applyAudioParamValues(immediate);
+}
+
+function valueFromAudioMapping(mapping, entity) {
+  const rawValue = audioFeatureValue(mapping.feature, entity);
+  const inputSpan = mapping.inputMax - mapping.inputMin;
+  const normalized = inputSpan === 0
+    ? 0
+    : clamp((rawValue - mapping.inputMin) / inputSpan, 0, 1);
+
+  if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
+    return mapping.outputMin * ((mapping.outputMax / mapping.outputMin) ** normalized);
+  }
+
+  return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * normalized;
+}
+
+function audioFeatureValue(feature, entity) {
+  if (feature === "x") {
+    return entity.x;
+  }
+
+  if (feature === "y") {
+    return entity.y;
+  }
+
+  if (feature === "angle") {
+    return Math.atan2(entity.y - listener.y, entity.x - listener.x);
+  }
+
+  return distanceBetween(entity, listener);
+}
+
+function updateAudioPanel() {
+  audioPanel.hidden = audioMappings.length === 0;
+
+  for (const [target, config] of Object.entries(AUDIO_OUTPUTS)) {
+    const value = audioParamValues[target] ?? AUDIO_DEFAULTS[target];
+    config.element.value = `${value.toFixed(config.digits)}${config.suffix}`;
+  }
+}
+
+function ensureAudioEngine() {
+  if (audioEngine) {
+    return audioEngine;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    setConstraintStatus("Web Audio is not available in this browser.");
+    return null;
+  }
+
+  const context = new AudioContextClass();
+  const oscillator = context.createOscillator();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+
+  oscillator.type = "sawtooth";
+  filter.type = "lowpass";
+  gain.gain.value = 0;
+  oscillator.connect(filter);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start();
+
+  audioEngine = { context, oscillator, filter, gain };
+  applyAudioParamValues(true);
+  return audioEngine;
+}
+
+async function toggleAudio() {
+  const engine = ensureAudioEngine();
+  if (!engine) {
+    return;
+  }
+
+  audioEnabled = !audioEnabled;
+  updateAudioToggle();
+  applyAudioParamValues(true);
+
+  if (audioEnabled) {
+    try {
+      await engine.context.resume();
+    } catch (error) {
+      audioEnabled = false;
+      updateAudioToggle();
+      applyAudioParamValues(true);
+      setConstraintStatus("The browser blocked audio start.");
+    }
+  } else {
+    await engine.context.suspend();
+  }
+}
+
+function updateAudioToggle() {
+  audioToggleButton.textContent = audioEnabled ? "Sound On" : "Sound Off";
+  audioToggleButton.setAttribute("aria-pressed", String(audioEnabled));
+}
+
+function applyAudioParamValues(immediate = false) {
+  if (!audioEngine) {
+    return;
+  }
+
+  const { context, oscillator, filter, gain } = audioEngine;
+  const time = context.currentTime;
+  const rampTime = immediate ? 0.005 : 0.035;
+  const outputGain = audioEnabled ? audioParamValues["/output/gain"] : 0;
+
+  setAudioParam(oscillator.frequency, audioParamValues["/osc/freq"], time, rampTime);
+  setAudioParam(filter.frequency, audioParamValues["/filter/frequency"], time, rampTime);
+  setAudioParam(filter.Q, audioParamValues["/filter/q"], time, rampTime);
+  setAudioParam(gain.gain, outputGain, time, rampTime);
+}
+
+function setAudioParam(param, value, time, rampTime) {
+  param.cancelScheduledValues(time);
+  param.setTargetAtTime(value, time, rampTime);
+}
+
+function drawAudioMappingCues(ctx) {
+  if (audioMappings.length === 0) {
+    return;
+  }
+
+  ctx.save();
+  ctx.setLineDash([4, 5]);
+  ctx.strokeStyle = "rgba(217, 119, 6, 0.5)";
+  ctx.fillStyle = "#92400e";
+  ctx.font = "700 11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+
+  const drawnSources = new Set();
+  for (const mapping of audioMappings) {
+    const entity = getObjectByName(mapping.source);
+    if (!entity || drawnSources.has(entity)) {
+      continue;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(listener.x, listener.y);
+    ctx.lineTo(entity.x, entity.y);
+    ctx.stroke();
+    ctx.fillText("DSP", entity.x, entity.y + entity.radius + 6);
+    drawnSources.add(entity);
+  }
+
+  ctx.restore();
+}
+
 function drawAll() {
   updateTraceSelectedButton();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
+  updateAudioMappings();
 
   for (const constraint of constraints) {
     constraint.draw(ctx);
   }
+
+  drawAudioMappingCues(ctx);
 
   for (const mover of movingObjects) {
     drawMoverTrajectory(ctx, mover);
@@ -2845,6 +3168,9 @@ animationToggle.addEventListener("click", () => {
     startAnimation();
   }
 });
+audioToggleButton.addEventListener("click", () => {
+  toggleAudio();
+});
 undoButton.addEventListener("click", undoLastEdit);
 traceSelectedButton.addEventListener("click", toggleSelectedTrace);
 
@@ -2880,4 +3206,5 @@ shuttleCloseButton.addEventListener("click", closeShuttleEditor);
 populatePatchSelect();
 setActiveTool(TOOL_SELECT);
 setListenerMode(LISTENER_MODE_RETARGET);
+updateAudioToggle();
 resetScene();

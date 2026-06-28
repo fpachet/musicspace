@@ -232,6 +232,51 @@
       margin-top: 12px;
     }
 
+    .audio-panel {
+      width: min(100%, 800px);
+      margin: 12px auto 0;
+      padding: 12px;
+      border: 1px solid #b9c1c9;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
+    }
+
+    .audio-panel[hidden] {
+      display: none;
+    }
+
+    .audio-panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .audio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+
+    .audio-param {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+      min-height: 32px;
+      padding: 7px 9px;
+      border: 1px solid #d4dae1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .audio-param output {
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+    }
+
     @media (max-width: 720px) {
       main {
         padding: 16px;
@@ -271,6 +316,7 @@
           <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
         </div>
         <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
+        <button id="audio-toggle" type="button" aria-pressed="false">Sound Off</button>
         <button id="undo" type="button" title="Undo last edit">Undo</button>
         <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
         <button id="reset" type="button">Reset</button>
@@ -309,6 +355,15 @@
         role="application"
         aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
     </div>
+    <section id="audio-panel" class="audio-panel" aria-label="Audio parameter monitor" hidden>
+      <h2>Faust Patch Control</h2>
+      <div class="audio-grid">
+        <div class="audio-param"><span>/osc/freq</span><output id="audio-freq">--</output></div>
+        <div class="audio-param"><span>/filter/frequency</span><output id="audio-cutoff">--</output></div>
+        <div class="audio-param"><span>/filter/q</span><output id="audio-q">--</output></div>
+        <div class="audio-param"><span>/output/gain</span><output id="audio-gain">--</output></div>
+      </div>
+    </section>
     <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
       <h2>Rotative Constraint Editor</h2>
       <div class="editor-grid">

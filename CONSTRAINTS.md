@@ -14,6 +14,7 @@ This file lists constraint, trajectory, and mapping types to implement once the 
 - Per-object drawing toggle so listeners, sources, movers, and constraint nodes can leave traces while moving.
 - Patch serialization for moving objects, trajectories, and the new constraint types.
 - Built-in Beatles trajectory study patch that sketches the remixing-with-trajectories use case.
+- Built-in Faust-style control study patch with serialized audio mappings from source features to Web Audio synth parameters.
 
 ## Paper-Backed Core Constraints
 
@@ -187,7 +188,8 @@ Sources should not only be visual points. Their positions, trajectories, and con
 
 - **Acts on:** source and browser audio graph.
 - **Goal:** use browser-native audio to make the prototype audible.
-- **Implementation note:** start with `PannerNode`, gain, and stereo pan. Later support multichannel or custom spatializers.
+- **Current status:** the demo includes a simple Web Audio oscillator through a resonant low-pass filter, controlled by Faust-style parameter paths.
+- **Implementation note:** extend this from scalar synth parameters to `PannerNode`, gain, stereo pan, and later multichannel or custom spatializers.
 
 ### MIDI / OSC Mapping
 
@@ -200,7 +202,8 @@ Sources should not only be visual points. Their positions, trajectories, and con
 - **Acts on:** source, handle, constraint, trajectory, or derived feature.
 - **Goal:** drive arbitrary parameters of a Faust patch.
 - **Examples:** x controls filter cutoff, distance controls reverb send, angle controls modulation index, trace speed controls delay feedback.
-- **Implementation note:** each mapping needs source expression, target parameter path, range transform, smoothing, and update rate. Treat Faust as one target backend in a generic parameter-mapping system.
+- **Current status:** the patch schema can serialize mappings from source features to Faust-style paths, and the demo applies them to a local Web Audio synth.
+- **Implementation note:** each mapping needs source expression, target parameter path, range transform, smoothing, and update rate. Treat compiled Faust DSP as one target backend in a generic parameter-mapping system.
 
 ### Derived Feature Mapping
 

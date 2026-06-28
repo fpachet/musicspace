@@ -2,7 +2,7 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, a Web Audio-backed Faust-style control patch, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -44,6 +44,7 @@ npm run check
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
+- Use **Sound Off** / **Sound On** to enable the browser synth when a patch exposes audio mappings.
 - Use **Clear Trace** to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
@@ -59,6 +60,7 @@ npm run check
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
+- **Faust Control Study** maps constrained source motion to Faust-style parameters: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The current backend is a self-contained Web Audio oscillator and resonant low-pass filter, so it runs without a Faust compiler.
 
 ## Repository Layout
 
@@ -91,6 +93,7 @@ npm run check
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
+- Built-in Faust-style parameter mapping example with live Web Audio output.
 - Trace export for animated source and mover motion.
 - A compact codebase intended for experimentation with spatialization controls.
 
