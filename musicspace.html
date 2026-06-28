@@ -61,6 +61,15 @@
       overflow: hidden;
     }
 
+    .tool-palette {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      width: min(100%, 800px);
+      margin: 0 auto 12px;
+    }
+
     .mode-label {
       align-self: stretch;
       display: inline-flex;
@@ -99,6 +108,13 @@
     button[aria-pressed="true"] {
       background: #111827;
       color: #ffffff;
+    }
+
+    .tool-palette button {
+      min-width: 42px;
+      padding: 0 9px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     button:hover {
@@ -163,6 +179,59 @@
       pointer-events: none;
     }
 
+    .editor-panel {
+      width: min(100%, 800px);
+      margin: 12px auto 0;
+      padding: 12px;
+      border: 1px solid #b9c1c9;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
+    }
+
+    .editor-panel[hidden] {
+      display: none;
+    }
+
+    .editor-panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .editor-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .editor-grid input,
+    .editor-grid select {
+      width: 100%;
+    }
+
+    .editor-check {
+      flex-direction: row !important;
+      align-items: center;
+      color: #1f2933 !important;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
     @media (max-width: 720px) {
       main {
         padding: 16px;
@@ -202,11 +271,32 @@
           <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
         </div>
         <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
+        <button id="undo" type="button" title="Undo last edit">Undo</button>
         <button id="reset" type="button">Reset</button>
         <button id="clear-trace" type="button">Clear Trace</button>
         <button id="save-trace" type="button">Save Trace</button>
       </div>
     </header>
+    <div class="tool-palette" aria-label="Creation tools">
+      <button type="button" data-tool="select" aria-pressed="true" title="Select and drag">Select</button>
+      <button type="button" data-tool="source" title="Create source">Src</button>
+      <button type="button" data-tool="mover" title="Create moving object">Mover</button>
+      <button type="button" data-tool="angle" title="Create angle constraint">Angle</button>
+      <button type="button" data-tool="sum" title="Create balance/sum constraint">Sum</button>
+      <button type="button" data-tool="product" title="Create product constraint">Prod</button>
+      <button type="button" data-tool="radialLimit" title="Create radial limit">Limit</button>
+      <button type="button" data-tool="fixedDistance" title="Create fixed distance constraint">Dist</button>
+      <button type="button" data-tool="distanceRatio" title="Create distance ratio constraint">Ratio</button>
+      <button type="button" data-tool="pin" title="Pin object">Pin</button>
+      <button type="button" data-tool="solid" title="Create solid attachment">Link</button>
+      <button type="button" data-tool="separation" title="Create minimum separation">Sep</button>
+      <button type="button" data-tool="angleSector" title="Create angle sector">Sector</button>
+      <button type="button" data-tool="translateTrajectory" title="Assign translation trajectory">Move</button>
+      <button type="button" data-tool="rotateTrajectory" title="Assign orbital trajectory around the listener">Orbit</button>
+      <button type="button" data-tool="rotatorTrajectory" title="Create/edit rotative object">Spin</button>
+      <button type="button" data-tool="shuttleTrajectory" title="Assign shuttle trajectory">Shuttle</button>
+      <button type="button" data-tool="bounceTrajectory" title="Assign bounce trajectory">Bounce</button>
+    </div>
     <p id="constraint-status" class="status" aria-live="polite"></p>
     <div id="stage" class="stage">
       <canvas id="trace" width="800" height="600"></canvas>
@@ -218,6 +308,71 @@
         role="application"
         aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
     </div>
+    <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
+      <h2>Rotative Constraint Editor</h2>
+      <div class="editor-grid">
+        <label class="editor-check">
+          <input id="rotation-running" type="checkbox">
+          Start
+        </label>
+        <label class="editor-check">
+          <input id="rotation-displacement" type="checkbox">
+          Displacement induces rotation
+        </label>
+        <label>
+          Revolution period (seconds)
+          <input id="rotation-period" type="number" min="0.5" step="0.5" value="20">
+        </label>
+        <label>
+          Direction
+          <select id="rotation-direction">
+            <option value="1">Positive</option>
+            <option value="-1">Negative</option>
+          </select>
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button id="rotation-apply" type="button">Apply</button>
+        <button id="rotation-close" type="button">Close</button>
+      </div>
+    </section>
+    <section id="shuttle-editor" class="editor-panel" aria-label="Shuttle trajectory editor" hidden>
+      <h2>Shuttle Trajectory Editor</h2>
+      <div class="editor-grid">
+        <label>
+          Start endpoint
+          <select id="shuttle-start-ref"></select>
+        </label>
+        <label>
+          End endpoint
+          <select id="shuttle-end-ref"></select>
+        </label>
+        <label>
+          Fixed start X
+          <input id="shuttle-start-x" type="number" step="1">
+        </label>
+        <label>
+          Fixed start Y
+          <input id="shuttle-start-y" type="number" step="1">
+        </label>
+        <label>
+          Fixed end X
+          <input id="shuttle-end-x" type="number" step="1">
+        </label>
+        <label>
+          Fixed end Y
+          <input id="shuttle-end-y" type="number" step="1">
+        </label>
+        <label>
+          Speed
+          <input id="shuttle-speed" type="number" min="0.001" step="0.001">
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button id="shuttle-apply" type="button">Apply</button>
+        <button id="shuttle-close" type="button">Close</button>
+      </div>
+    </section>
   </main>
   <script src="musicspace.js"></script>
 </body>

@@ -2,7 +2,7 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, sound sources, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing for an animated source, and several prototype constraints including angle, balance/sum, product, and radial limits.
+The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 ## Running
 
@@ -26,14 +26,21 @@ npm run check
 
 ## Controls
 
-- Use the patch menu to load a built-in scene such as **Angle + Balance**, **Product + Limit**, or **Open Trio**.
+- Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Save Patch** / **Load Patch** to export and import scene JSON.
+- Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
+- Use **Orbit** when the mover itself should travel around the listener.
+- Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
+- Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
+- Double-click a shuttle mover to edit its endpoints. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
   - **Re-anchor** moves the listener and retargets constraints to the new geometry.
   - **Preserve** moves the listener while preserving active constraints.
-- Drag the listener, sources, or constraint nodes on the canvas.
+- Drag the listener, sources, movers, or constraint nodes on the canvas.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
-- Use **Start** / **Stop** to animate source A with a smooth random walk.
+- Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
+- Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
+- Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
 - Use **Clear Trace** to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
@@ -43,6 +50,12 @@ npm run check
 - **Angle + Balance** shows a two-source angle relation plus a group balance/sum relation.
 - **Product + Limit** demonstrates bounded deterministic backoff: a product constraint propagates multiplicatively, but once source B reaches its radial limit, the product correction is propagated to the remaining source.
 - **Open Trio** is a simpler three-source balance scene for experimenting with listener and source motion.
+- **Simple Rotator** has one rotative object carrying several sources.
+- **Nested Rotators** links one rotative object to another, producing epicycle-like compound motion.
+- **Cycloid Rotator** carries a rotative object around an orbital mover, producing cycloid-like traces.
+- **Shuttle Spin** carries a rotative object between two draggable source endpoints.
+- **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
+- **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 
 ## Repository Layout
 
@@ -71,8 +84,11 @@ npm run check
 - Static browser demo with no runtime dependencies.
 - Simple implementation of visual constraint propagation.
 - JSON patch loading and saving.
+- Canvas palette for creating sources, movers, constraints, and trajectory assignments.
+- Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
-- Trace export for animated source motion.
+- Built-in rotative-object + solid-link example for trajectory-driven remixing.
+- Trace export for animated source and mover motion.
 - A compact codebase intended for experimentation with spatialization controls.
 
 ## Authors
