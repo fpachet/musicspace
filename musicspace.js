@@ -11,6 +11,7 @@ const stage = document.getElementById("stage");
 
 const animationToggle = document.getElementById("animation-toggle");
 const undoButton = document.getElementById("undo");
+const traceSelectedButton = document.getElementById("trace-selected");
 const patchSelect = document.getElementById("patch-select");
 const savePatchButton = document.getElementById("save-patch");
 const loadPatchButton = document.getElementById("load-patch");
@@ -37,6 +38,7 @@ const shuttleStartYInput = document.getElementById("shuttle-start-y");
 const shuttleEndXInput = document.getElementById("shuttle-end-x");
 const shuttleEndYInput = document.getElementById("shuttle-end-y");
 const shuttleSpeedInput = document.getElementById("shuttle-speed");
+const shuttleShowPathInput = document.getElementById("shuttle-show-path");
 const shuttleApplyButton = document.getElementById("shuttle-apply");
 const shuttleCloseButton = document.getElementById("shuttle-close");
 
@@ -174,15 +176,16 @@ const BUILT_IN_PATCHES = [
     name: "Cycloid Rotator",
     listener: { x: 400, y: 300 },
     sources: [
-      { name: "A", x: 580, y: 300 },
-      { name: "B", x: 520, y: 360 },
-      { name: "C", x: 460, y: 300 }
+      { name: "A", x: 580, y: 300, drawTrace: true },
+      { name: "B", x: 520, y: 360, drawTrace: true },
+      { name: "C", x: 460, y: 300, drawTrace: true }
     ],
     movingObjects: [
       {
         name: "Orbit",
         x: 520,
         y: 300,
+        drawTrace: true,
         trajectory: {
           type: "rotation",
           centerX: 400,
@@ -372,6 +375,9 @@ class Entity {
     this.y = y;
     this.radius = 13;
     this.color = color;
+    this.prevX = x;
+    this.prevY = y;
+    this.drawTrace = false;
   }
 
   draw(ctx) {
@@ -1150,9 +1156,18 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   }
 
   listener = new Listener(patch.listener.x, patch.listener.y);
-  sources = patch.sources.map((source) => new SoundSource(source.x, source.y, source.name));
+  listener.drawTrace = Boolean(patch.listener.drawTrace);
+  sources = patch.sources.map((source) => {
+    const nextSource = new SoundSource(source.x, source.y, source.name);
+    nextSource.drawTrace = Boolean(source.drawTrace);
+    return nextSource;
+  });
   movingObjects = (patch.movingObjects || [])
-    .map((mover) => new MovingObject(mover.x, mover.y, mover.name, mover.trajectory));
+    .map((mover) => {
+      const nextMover = new MovingObject(mover.x, mover.y, mover.name, mover.trajectory);
+      nextMover.drawTrace = Boolean(mover.drawTrace);
+      return nextMover;
+    });
   const objectByName = createObjectMap();
   constraints = (patch.constraints || [])
     .map((constraint) => createConstraintFromSpec(constraint, objectByName))
@@ -1270,6 +1285,7 @@ function createConstraintFromSpec(spec, objectByName) {
     constraint.node.x = spec.node.x;
     constraint.node.y = spec.node.y;
     constraint.node.isManual = Boolean(spec.node.isManual);
+    constraint.node.drawTrace = Boolean(spec.node.drawTrace);
   }
 
   return constraint;
@@ -1363,16 +1379,18 @@ function serializePatch() {
   return {
     version: 1,
     name: activePatch.name || "MusicSpace Patch",
-    listener: { x: listener.x, y: listener.y },
+    listener: { x: listener.x, y: listener.y, drawTrace: listener.drawTrace },
     sources: sources.map((source) => ({
       name: source.name,
       x: source.x,
-      y: source.y
+      y: source.y,
+      drawTrace: source.drawTrace
     })),
     movingObjects: movingObjects.map((mover) => ({
       name: mover.name,
       x: mover.x,
       y: mover.y,
+      drawTrace: mover.drawTrace,
       trajectory: mover.trajectory
     })),
     constraints: constraints.map(serializeConstraint).filter(Boolean)
@@ -1383,7 +1401,8 @@ function serializeConstraint(constraint) {
   const node = {
     x: constraint.node.x,
     y: constraint.node.y,
-    isManual: constraint.node.isManual
+    isManual: constraint.node.isManual,
+    drawTrace: constraint.node.drawTrace
   };
 
   if (constraint instanceof AngleConstraint) {
@@ -1471,11 +1490,16 @@ function serializeConstraint(constraint) {
 }
 
 function drawAll() {
+  updateTraceSelectedButton();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
 
   for (const constraint of constraints) {
     constraint.draw(ctx);
+  }
+
+  for (const mover of movingObjects) {
+    drawMoverTrajectory(ctx, mover);
   }
 
   for (const mover of movingObjects) {
@@ -1493,8 +1517,6 @@ function drawAll() {
 }
 
 function drawGrid(ctx) {
-  ctx.fillStyle = "#fbfbf8";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
   ctx.strokeStyle = "#e5e7eb";
   ctx.lineWidth = 1;
 
@@ -1520,6 +1542,25 @@ function drawConnector(ctx, from, to, color) {
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
   ctx.stroke();
+}
+
+function drawMoverTrajectory(ctx, mover) {
+  if (mover.trajectory?.type !== "shuttle" || !mover.trajectory.showPath) {
+    return;
+  }
+
+  const start = resolveTrajectoryEndpoint(mover.trajectory.start, mover.trajectory.ax, mover.trajectory.ay);
+  const end = resolveTrajectoryEndpoint(mover.trajectory.end, mover.trajectory.bx, mover.trajectory.by);
+
+  ctx.save();
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawListenerGlyph(ctx, x, y) {
@@ -1705,6 +1746,10 @@ function getObjectByName(name) {
 }
 
 function entityLabel(entity) {
+  if (entity instanceof ConstraintNode) {
+    return `${entity.label} constraint`;
+  }
+
   return entity && entity.name ? entity.name : "Object";
 }
 
@@ -1757,7 +1802,8 @@ function normalizeTrajectory(trajectory, x, y) {
       by: end.y,
       phase: trajectory.phase ?? 0.5,
       speed: trajectory.speed ?? 0.01,
-      direction: trajectory.direction ?? 1
+      direction: trajectory.direction ?? 1,
+      showPath: trajectory.showPath ?? true
     };
   }
 
@@ -2237,6 +2283,7 @@ function openShuttleEditor(mover) {
   shuttleEndXInput.value = String(end.x ?? trajectory.bx);
   shuttleEndYInput.value = String(end.y ?? trajectory.by);
   shuttleSpeedInput.value = String(trajectory.speed ?? 0.01);
+  shuttleShowPathInput.checked = trajectory.showPath !== false;
   shuttleEditor.hidden = false;
   setConstraintStatus(`Editing shuttle trajectory ${mover.name}.`);
 }
@@ -2273,7 +2320,8 @@ function applyShuttleEditor() {
     type: "shuttle",
     start: endpointFromEditor(shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput),
     end: endpointFromEditor(shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput),
-    speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed
+    speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed,
+    showPath: shuttleShowPathInput.checked
   }, activeShuttleMover.x, activeShuttleMover.y);
   setConstraintStatus(`Shuttle trajectory ${activeShuttleMover.name} updated.`);
   drawAll();
@@ -2413,7 +2461,7 @@ function moveEntity(entity, x, y) {
     enforceConstraints(entity);
   }
 
-  syncTracePositions();
+  drawTracesForChangedEntities();
   drawAll();
 }
 
@@ -2437,22 +2485,65 @@ function setAnimationPressedState(isPressed) {
   animationToggle.setAttribute("aria-pressed", String(isPressed));
 }
 
+function updateTraceSelectedButton() {
+  const canTrace = selectedEntity && selectedEntity !== null;
+  traceSelectedButton.disabled = !canTrace;
+  traceSelectedButton.setAttribute("aria-pressed", String(Boolean(selectedEntity?.drawTrace)));
+}
+
+function toggleSelectedTrace() {
+  if (!selectedEntity) {
+    setConstraintStatus("Select an object to toggle drawing.");
+    updateTraceSelectedButton();
+    return;
+  }
+
+  pushUndoSnapshot(`toggle drawing for ${entityLabel(selectedEntity)}`);
+  selectedEntity.drawTrace = !selectedEntity.drawTrace;
+  selectedEntity.prevX = selectedEntity.x;
+  selectedEntity.prevY = selectedEntity.y;
+  updateTraceSelectedButton();
+  setConstraintStatus(`${entityLabel(selectedEntity)} drawing ${selectedEntity.drawTrace ? "on" : "off"}.`);
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
 function syncTracePositions() {
-  for (const source of sources) {
-    source.prevX = source.x;
-    source.prevY = source.y;
-  }
-  for (const mover of movingObjects) {
-    mover.prevX = mover.x;
-    mover.prevY = mover.y;
+  for (const entity of getTraceableEntities()) {
+    entity.prevX = entity.x;
+    entity.prevY = entity.y;
   }
 }
 
-function drawTraceSegment(entity, nextX = entity.x, nextY = entity.y, color = "rgba(17, 24, 39, 0.55)") {
+function getTraceableEntities() {
+  return [
+    listener,
+    ...sources,
+    ...movingObjects,
+    ...constraints.map((constraint) => constraint.node)
+  ].filter(Boolean);
+}
+
+function drawTracesForChangedEntities() {
+  for (const entity of getTraceableEntities()) {
+    if (entity.prevX === undefined || entity.prevY === undefined) {
+      entity.prevX = entity.x;
+      entity.prevY = entity.y;
+    }
+
+    const distance = Math.hypot(entity.x - entity.prevX, entity.y - entity.prevY);
+    if (distance > 0.25 && entity.drawTrace) {
+      drawTraceSegment(entity, entity.x, entity.y, traceColorForEntity(entity));
+    } else {
+      entity.prevX = entity.x;
+      entity.prevY = entity.y;
+    }
+  }
+}
+
+function drawTraceSegment(entity, nextX = entity.x, nextY = entity.y, color = traceColorForEntity(entity)) {
   if (entity.prevX === undefined || entity.prevY === undefined) {
     entity.prevX = entity.x;
     entity.prevY = entity.y;
@@ -2469,6 +2560,22 @@ function drawTraceSegment(entity, nextX = entity.x, nextY = entity.y, color = "r
   entity.prevY = nextY;
 }
 
+function traceColorForEntity(entity) {
+  if (entity instanceof MovingObject) {
+    return "rgba(8, 145, 178, 0.45)";
+  }
+
+  if (entity instanceof ConstraintNode) {
+    return "rgba(124, 58, 237, 0.45)";
+  }
+
+  if (entity === listener) {
+    return "rgba(17, 24, 39, 0.45)";
+  }
+
+  return "rgba(220, 38, 38, 0.45)";
+}
+
 function animate() {
   if (!isAnimating) {
     return;
@@ -2479,16 +2586,10 @@ function animate() {
       const moved = mover.tick();
       if (moved) {
         enforceConstraints(mover);
-        drawTraceSegment(mover, mover.x, mover.y, "rgba(8, 145, 178, 0.45)");
       }
     }
 
-    for (const source of sources) {
-      if (Math.hypot(source.x - source.prevX, source.y - source.prevY) > 0.25) {
-        drawTraceSegment(source, source.x, source.y);
-      }
-    }
-
+    drawTracesForChangedEntities();
     drawAll();
     animationFrame = requestAnimationFrame(animate);
     return;
@@ -2508,12 +2609,11 @@ function animate() {
   const nextX = clamp(source.x + velocity.x, 0, WIDTH);
   const nextY = clamp(source.y + velocity.y, 0, HEIGHT);
 
-  drawTraceSegment(source, nextX, nextY);
-
   source.x = nextX;
   source.y = nextY;
 
   enforceConstraints(source);
+  drawTracesForChangedEntities();
   drawAll();
   animationFrame = requestAnimationFrame(animate);
 }
@@ -2543,6 +2643,7 @@ function stopAnimation() {
 
 function clearTrace() {
   traceCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  syncTracePositions();
 }
 
 function saveTrace() {
@@ -2613,18 +2714,16 @@ function beginDrag(event) {
     return;
   }
 
-  if (constraints.some((constraint) => constraint.node === entity)) {
-    entity.isManual = true;
-  }
-
   canvas.focus();
-  pushUndoSnapshot(`move ${entityLabel(entity)}`);
   selectedEntity = entity;
   dragged = {
     entity,
     pointerId: event.pointerId,
     offsetX: x - entity.x,
-    offsetY: y - entity.y
+    offsetY: y - entity.y,
+    startX: x,
+    startY: y,
+    didSnapshot: false
   };
   stage.classList.add("is-dragging");
   canvas.style.cursor = "grabbing";
@@ -2641,6 +2740,18 @@ function continueDrag(event) {
   }
 
   const { x, y } = getPointerPosition(event);
+  const dragDistance = Math.hypot(x - dragged.startX, y - dragged.startY);
+  if (!dragged.didSnapshot && dragDistance <= 2) {
+    return;
+  }
+
+  if (!dragged.didSnapshot && dragDistance > 2) {
+    pushUndoSnapshot(`move ${entityLabel(dragged.entity)}`);
+    if (constraints.some((constraint) => constraint.node === dragged.entity)) {
+      dragged.entity.isManual = true;
+    }
+    dragged.didSnapshot = true;
+  }
   moveEntity(dragged.entity, x - dragged.offsetX, y - dragged.offsetY);
 }
 
@@ -2735,6 +2846,7 @@ animationToggle.addEventListener("click", () => {
   }
 });
 undoButton.addEventListener("click", undoLastEdit);
+traceSelectedButton.addEventListener("click", toggleSelectedTrace);
 
 listenerModeRetargetButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_RETARGET);

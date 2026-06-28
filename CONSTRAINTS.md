@@ -11,6 +11,7 @@ This file lists constraint, trajectory, and mapping types to implement once the 
 - Additional geometric constraints: fixed distance, distance ratio, pin, minimum separation, and angle sector.
 - Product constraint nodes use a `π` glyph, matching the older MusicSpace visual convention.
 - Rotative object editor for start/running state, revolution period, direction, and displacement-induced rotation.
+- Per-object drawing toggle so listeners, sources, movers, and constraint nodes can leave traces while moving.
 - Patch serialization for moving objects, trajectories, and the new constraint types.
 - Built-in Beatles trajectory study patch that sketches the remixing-with-trajectories use case.
 

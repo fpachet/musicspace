@@ -32,12 +32,13 @@ npm run check
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
 - Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
-- Double-click a shuttle mover to edit its endpoints. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
+- Double-click a shuttle mover to edit its endpoints and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
   - **Re-anchor** moves the listener and retargets constraints to the new geometry.
   - **Preserve** moves the listener while preserving active constraints.
 - Drag the listener, sources, movers, or constraint nodes on the canvas.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
+- Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
@@ -52,7 +53,7 @@ npm run check
 - **Open Trio** is a simpler three-source balance scene for experimenting with listener and source motion.
 - **Simple Rotator** has one rotative object carrying several sources.
 - **Nested Rotators** links one rotative object to another, producing epicycle-like compound motion.
-- **Cycloid Rotator** carries a rotative object around an orbital mover, producing cycloid-like traces.
+- **Cycloid Rotator** carries a rotative object around an orbital mover, with drawing enabled by default to produce cycloid-like traces.
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.

@@ -272,6 +272,7 @@
         </div>
         <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
         <button id="undo" type="button" title="Undo last edit">Undo</button>
+        <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
         <button id="reset" type="button">Reset</button>
         <button id="clear-trace" type="button">Clear Trace</button>
         <button id="save-trace" type="button">Save Trace</button>
@@ -366,6 +367,10 @@
         <label>
           Speed
           <input id="shuttle-speed" type="number" min="0.001" step="0.001">
+        </label>
+        <label class="editor-check">
+          <input id="shuttle-show-path" type="checkbox">
+          Show dotted shuttle line
         </label>
       </div>
       <div class="editor-actions">
