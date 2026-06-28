@@ -2,7 +2,7 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, three sound sources, an angle constraint, a sum-distance constraint, draggable constraint nodes, and optional trace drawing for an animated source.
+The current demo has a listener, sound sources, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing for an animated source, and several prototype constraints including angle, balance/sum, product, and radial limits.
 
 ## Running
 
@@ -26,16 +26,29 @@ npm run check
 
 ## Controls
 
+- Use the patch menu to load a built-in scene such as **Angle + Balance**, **Product + Limit**, or **Open Trio**.
+- Use **Save Patch** / **Load Patch** to export and import scene JSON.
+- Choose listener mode:
+  - **Re-anchor** moves the listener and retargets constraints to the new geometry.
+  - **Preserve** moves the listener while preserving active constraints.
 - Drag the listener, sources, or constraint nodes on the canvas.
+- Use arrow keys to nudge the selected object; hold Shift for larger steps.
 - Use **Start** / **Stop** to animate source A with a smooth random walk.
 - Use **Clear Trace** to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
-- Use **Reset** to restore the initial scene.
+- Use **Reset** to restore the currently selected patch.
+
+## Built-In Patches
+
+- **Angle + Balance** shows a two-source angle relation plus a group balance/sum relation.
+- **Product + Limit** demonstrates bounded deterministic backoff: a product constraint propagates multiplicatively, but once source B reaches its radial limit, the product correction is propagated to the remaining source.
+- **Open Trio** is a simpler three-source balance scene for experimenting with listener and source motion.
 
 ## Repository Layout
 
 - `musicspace.html` contains the static page structure and styling.
 - `musicspace.js` contains the canvas entities, constraints, drawing, interaction, and animation logic.
+- `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
 - `TODO.md` tracks likely next steps for the prototype.
 - `LICENSE` contains the MIT license.
 
@@ -57,6 +70,8 @@ npm run check
 
 - Static browser demo with no runtime dependencies.
 - Simple implementation of visual constraint propagation.
+- JSON patch loading and saving.
+- Built-in product + radial limit example for deterministic backoff.
 - Trace export for animated source motion.
 - A compact codebase intended for experimentation with spatialization controls.
 

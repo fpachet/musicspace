@@ -45,11 +45,35 @@
     .toolbar {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
       justify-content: flex-end;
     }
 
-    button {
+    .mode-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      min-height: 36px;
+      border: 1px solid #b9c1c9;
+      border-radius: 6px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .mode-label {
+      align-self: stretch;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-right: 1px solid #d4dae1;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    button,
+    select {
       border: 1px solid #b9c1c9;
       border-radius: 6px;
       background: #ffffff;
@@ -62,9 +86,43 @@
       padding: 0 12px;
     }
 
+    select {
+      min-width: 190px;
+    }
+
+    .mode-group button {
+      border: 0;
+      border-radius: 0;
+      min-height: 34px;
+    }
+
+    button[aria-pressed="true"] {
+      background: #111827;
+      color: #ffffff;
+    }
+
     button:hover {
       border-color: #52616f;
       background: #f8fafc;
+    }
+
+    select:hover {
+      border-color: #52616f;
+    }
+
+    .mode-group button:hover,
+    button[aria-pressed="true"]:hover {
+      background: #1f2933;
+      color: #ffffff;
+    }
+
+    .status {
+      min-height: 22px;
+      margin: -4px auto 12px;
+      width: min(100%, 800px);
+      color: #7c2d12;
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     .stage {
@@ -87,6 +145,17 @@
 
     #canvas {
       z-index: 2;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .stage.is-dragging #canvas {
+      cursor: grabbing;
+    }
+
+    #canvas:focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 3px;
     }
 
     #trace {
@@ -107,6 +176,14 @@
       .toolbar {
         justify-content: flex-start;
       }
+
+      .mode-group {
+        width: 100%;
+      }
+
+      .mode-group button {
+        flex: 1;
+      }
     }
   </style>
 </head>
@@ -115,15 +192,31 @@
     <header>
       <h1>MusicSpace</h1>
       <div class="toolbar" aria-label="MusicSpace controls">
-        <button id="animation-toggle" type="button">Start</button>
+        <select id="patch-select" aria-label="Load built-in patch"></select>
+        <button id="save-patch" type="button">Save Patch</button>
+        <button id="load-patch" type="button">Load Patch</button>
+        <input id="patch-file" type="file" accept="application/json,.json" hidden>
+        <div class="mode-group" aria-label="Listener drag mode">
+          <span class="mode-label">Listener</span>
+          <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
+          <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
+        </div>
+        <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
         <button id="reset" type="button">Reset</button>
         <button id="clear-trace" type="button">Clear Trace</button>
         <button id="save-trace" type="button">Save Trace</button>
       </div>
     </header>
-    <div class="stage">
+    <p id="constraint-status" class="status" aria-live="polite"></p>
+    <div id="stage" class="stage">
       <canvas id="trace" width="800" height="600"></canvas>
-      <canvas id="canvas" width="800" height="600"></canvas>
+      <canvas
+        id="canvas"
+        width="800"
+        height="600"
+        tabindex="0"
+        role="application"
+        aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
     </div>
   </main>
   <script src="musicspace.js"></script>
