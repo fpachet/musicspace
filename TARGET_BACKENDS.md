@@ -59,17 +59,17 @@ Both expose Faust-style parameter paths, but neither is currently compiled from 
 
 ## MIDI File Client
 
-The Jazz Trio demo uses a separate MIDI-file client rather than the generic target backend registry. That client owns MIDI parsing, transport, note scheduling, Web MIDI output, and a small internal Web Audio synth. MusicSpace still only supplies source/listener geometry.
+The Jazz Trio demo and user-loaded sequence files use a separate MIDI/MusicXML client rather than the generic target backend registry. That client owns MIDI parsing, MusicXML/MXL conversion, transport, note scheduling, Web MIDI output, and a small internal Web Audio synth. MusicSpace still only supplies source/listener geometry.
 
 ```text
-MIDI file client
+MIDI/MusicXML client
   -> track/channel events
-  -> Bass, Drums, Piano source bindings
+  -> one source binding per MIDI track or MusicXML part
   -> listener-relative pan, gain, reverb, filter values
   -> internal browser synth or external Web MIDI output
 ```
 
-This keeps MIDI-file time and note playback separate from the constraint system, while preserving the same MusicSpace idea: spatial source motion controls musical output.
+This keeps sequence-file time and note playback separate from the constraint system, while preserving the same MusicSpace idea: spatial source motion controls musical output.
 
 When external Web MIDI playback stops, the client sends sustain-off, all-sound-off, all-notes-off, and explicit note-off messages on the active channels. It repeats that panic shortly after stop because browser-scheduled Web MIDI note-ons cannot be cancelled once queued.
 

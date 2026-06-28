@@ -23,6 +23,8 @@ const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
 const targetGrid = document.getElementById("target-grid");
 const midiToggleButton = document.getElementById("midi-toggle");
+const midiLoadSequenceButton = document.getElementById("midi-load-sequence");
+const midiSequenceFileInput = document.getElementById("midi-sequence-file");
 const midiModeSelect = document.getElementById("midi-mode");
 const midiOutputSelect = document.getElementById("midi-output");
 const midiPanel = document.getElementById("midi-panel");
@@ -1128,6 +1130,7 @@ let isAnimating = false;
 let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = clonePatch(BUILT_IN_PATCHES[0]);
+const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   toggleButton: targetToggleButton,
   panel: targetPanel,
@@ -1168,8 +1171,26 @@ function populatePatchSelect() {
   }
 }
 
-function loadBuiltInPatch(key, options = {}) {
-  const patch = BUILT_IN_PATCHES.find((candidate) => candidate.key === key) || BUILT_IN_PATCHES[0];
+function selectPatchOptionForPatch(patch) {
+  const key = patch.key || `loaded-sequence-${Date.now()}`;
+  let option = Array.from(patchSelect.options).find((candidate) => candidate.value === key);
+  patch.key = key;
+
+  if (!option) {
+    option = document.createElement("option");
+    option.value = key;
+    patchSelect.append(option);
+  }
+
+  option.textContent = patch.name || "Loaded Sequence";
+  patchSelect.value = key;
+  loadedSequencePatches.set(key, clonePatch(patch));
+}
+
+function loadMenuPatch(key, options = {}) {
+  const patch = loadedSequencePatches.get(key) ||
+    BUILT_IN_PATCHES.find((candidate) => candidate.key === key) ||
+    BUILT_IN_PATCHES[0];
   loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: options.clearUndo ?? true });
 }
 
@@ -3013,7 +3034,7 @@ listenerModePreserveButton.addEventListener("click", () => {
 });
 patchSelect.addEventListener("change", () => {
   stopAnimation();
-  loadBuiltInPatch(patchSelect.value, { clearUndo: true });
+  loadMenuPatch(patchSelect.value, { clearUndo: true });
 });
 savePatchButton.addEventListener("click", savePatch);
 loadPatchButton.addEventListener("click", () => {
@@ -3022,6 +3043,25 @@ loadPatchButton.addEventListener("click", () => {
 patchFileInput.addEventListener("change", () => {
   loadPatchFile(patchFileInput.files[0]);
   patchFileInput.value = "";
+});
+midiLoadSequenceButton.addEventListener("click", () => {
+  midiSequenceFileInput.click();
+});
+midiSequenceFileInput.addEventListener("change", async () => {
+  const file = midiSequenceFileInput.files[0];
+  midiSequenceFileInput.value = "";
+  if (!file) {
+    return;
+  }
+
+  try {
+    stopAnimation();
+    const patch = await MusicSpaceMidiFileClient.createPatchFromSequenceFile(file);
+    selectPatchOptionForPatch(patch);
+    loadPatch(patch, { preserveAsActive: true, clearUndo: true });
+  } catch (error) {
+    setConstraintStatus(error.message || "Could not load MIDI/MusicXML file.");
+  }
 });
 clearTraceButton.addEventListener("click", clearTrace);
 saveTraceButton.addEventListener("click", saveTrace);

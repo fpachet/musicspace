@@ -1,7 +1,7 @@
-// MIDI file transport and spatial playback client for MusicSpace.
+// MIDI/MusicXML transport and spatial playback client for MusicSpace.
 //
 // This module is intentionally separate from the MusicSpace constraint engine:
-// it parses and plays MIDI files, then asks the scene for listener/source
+// it parses and plays sequence files, then asks the scene for listener/source
 // positions to derive pan, gain, reverb, and filter controls.
 
 (function exposeMusicSpaceMidiFileClient(global) {
@@ -10,6 +10,7 @@
   const SCHEDULER_INTERVAL_MS = 35;
   const SPATIAL_INTERVAL_MS = 60;
   const MAX_SPATIAL_DISTANCE = 360;
+  const PPQ = 480;
 
   function createMidiFileClient(options = {}) {
     const playButton = options.playButton || null;
@@ -92,15 +93,20 @@
         modeSelect.value = patchMidiSpec.preferredMode === "external" ? "external" : "internal";
       }
 
-      setStatus(`Loading ${patchMidiSpec.url}...`);
+      setStatus(`Loading ${patchMidiSpec.name || patchMidiSpec.url || "sequence"}...`);
 
       try {
-        const response = await fetch(patchMidiSpec.url);
-        if (!response.ok) {
-          throw new Error(`Could not load ${patchMidiSpec.url}.`);
+        const loadUrl = patchMidiSpec.url;
+        let parsed = patchMidiSpec.sequenceData || null;
+
+        if (!parsed) {
+          const response = await fetch(loadUrl);
+          if (!response.ok) {
+            throw new Error(`Could not load ${loadUrl}.`);
+          }
+          const buffer = await response.arrayBuffer();
+          parsed = await parseSequenceFile(loadUrl, buffer);
         }
-        const buffer = await response.arrayBuffer();
-        const parsed = parseMidiFile(buffer);
         if (currentLoadToken !== loadToken) {
           return;
         }
@@ -110,12 +116,13 @@
         updatePanel();
         updatePlayButton();
         updateModeAvailability();
-        setStatus(`${parsed.musicalTracks.length} MIDI tracks loaded.`);
+        setStatus(`${parsed.musicalTracks.length} sequence tracks loaded.`);
       } catch (error) {
         if (currentLoadToken === loadToken) {
+          const failedUrl = patchMidiSpec?.url;
           patchMidiSpec = null;
           updatePanel();
-          setStatus(midiLoadErrorMessage(error, patchMidiSpec?.url));
+          setStatus(midiLoadErrorMessage(error, failedUrl));
         }
       }
     }
@@ -127,7 +134,7 @@
 
       return {
         midiFile: {
-          ...patchMidiSpec,
+          ...serializeMidiSpec(patchMidiSpec),
           preferredMode: modeSelect?.value || patchMidiSpec.preferredMode || "internal"
         }
       };
@@ -135,7 +142,7 @@
 
     async function play() {
       if (!midiFile || trackBindings.length === 0) {
-        setStatus(patchMidiSpec ? "MIDI file is still loading." : "This patch has no MIDI file.");
+        setStatus(patchMidiSpec ? "Sequence file is still loading." : "This patch has no sequence file.");
         return;
       }
 
@@ -354,14 +361,14 @@
 
     function midiLoadErrorMessage(error, url) {
       if (global.location?.protocol === "file:") {
-        return "MIDI files cannot be fetched from file://. Run npm run serve and open http://localhost:8000/musicspace.html.";
+        return "MIDI/MusicXML files cannot be fetched from file://. Run npm run serve and open http://localhost:8000/musicspace.html.";
       }
 
       if (error instanceof TypeError) {
-        return `Could not fetch ${url}. Check that the app is served from the project root and that the MIDI file exists.`;
+        return `Could not fetch ${url}. Check that the app is served from the project root and that the sequence file exists.`;
       }
 
-      return error.message || "Could not load MIDI file.";
+      return error.message || "Could not load sequence file.";
     }
 
     function spatialValuesForSource(source) {
@@ -383,6 +390,82 @@
     }
   }
 
+  async function createPatchFromSequenceFile(file) {
+    const buffer = await file.arrayBuffer();
+    const sequence = await parseSequenceFile(file.name, buffer);
+    return patchFromSequence(sequence, file.name);
+  }
+
+  function serializeMidiSpec(spec) {
+    if (!spec.url) {
+      return spec;
+    }
+
+    const { sequenceData, ...serializableSpec } = spec;
+    return serializableSpec;
+  }
+
+  function patchFromSequence(sequence, fileName) {
+    const tracks = sequence.musicalTracks;
+    if (tracks.length === 0) {
+      throw new Error("No playable tracks or parts were found.");
+    }
+
+    const listener = { x: 400, y: 300 };
+    const radius = tracks.length <= 3 ? 185 : 230;
+    const usedNames = new Set();
+    const sources = tracks.map((track, index) => {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / tracks.length;
+      const name = uniqueSourceName(track.name || `Part ${index + 1}`, usedNames, index);
+      return {
+        name,
+        x: Math.round(listener.x + radius * Math.cos(angle)),
+        y: Math.round(listener.y + radius * Math.sin(angle)),
+        drawTrace: false
+      };
+    });
+    const trackBindings = tracks.map((track, index) => ({
+      track: track.name,
+      trackIndex: track.index,
+      source: sources[index].name,
+      channel: track.primaryChannel || index + 1,
+      program: track.primaryProgram || 1,
+      isDrums: track.channels.includes(10)
+    }));
+
+    return {
+      key: `sequence-${Date.now()}`,
+      name: sequence.title || cleanFileName(fileName),
+      listener,
+      sources,
+      constraints: sources.length >= 2 ? [{ type: "sum", sources: sources.map((source) => source.name) }] : [],
+      midiFile: {
+        name: fileName,
+        preferredMode: "internal",
+        sequenceData: sequence,
+        trackBindings
+      }
+    };
+  }
+
+  function uniqueSourceName(name, usedNames, index) {
+    const base = (name || "").trim() || `Part ${index + 1}`;
+    let candidate = base;
+    let suffix = 2;
+
+    while (usedNames.has(candidate)) {
+      candidate = `${base} ${suffix}`;
+      suffix += 1;
+    }
+
+    usedNames.add(candidate);
+    return candidate;
+  }
+
+  function cleanFileName(fileName) {
+    return fileName.replace(/\.(mid|midi|musicxml|xml|mxl)$/i, "");
+  }
+
   function bindTracks(midiFile, bindings) {
     return bindings
       .map((binding) => {
@@ -402,6 +485,284 @@
         };
       })
       .filter(Boolean);
+  }
+
+  async function parseSequenceFile(name, arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer);
+    const lowerName = String(name || "").toLowerCase();
+
+    if (startsWith(bytes, [0x4d, 0x54, 0x68, 0x64]) || lowerName.endsWith(".mid") || lowerName.endsWith(".midi")) {
+      return parseMidiFile(arrayBuffer);
+    }
+
+    if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]) || lowerName.endsWith(".mxl")) {
+      return parseMusicXmlText(await extractMusicXmlFromMxl(arrayBuffer));
+    }
+
+    return parseMusicXmlText(new TextDecoder("utf-8").decode(bytes));
+  }
+
+  function startsWith(bytes, signature) {
+    return signature.every((byte, index) => bytes[index] === byte);
+  }
+
+  async function extractMusicXmlFromMxl(arrayBuffer) {
+    const entries = await readZipEntries(arrayBuffer);
+    const container = entries.find((entry) => entry.name === "META-INF/container.xml");
+    let rootFile = null;
+
+    if (container) {
+      const containerText = decodeUtf8(container.data);
+      const match = containerText.match(/full-path=["']([^"']+)["']/);
+      rootFile = match ? match[1] : null;
+    }
+
+    const mainEntry = entries.find((entry) => entry.name === rootFile) ||
+      entries.find((entry) => /\.(musicxml|xml)$/i.test(entry.name) && !entry.name.startsWith("META-INF/"));
+
+    if (!mainEntry) {
+      throw new Error("No MusicXML score found in MXL archive.");
+    }
+
+    return decodeUtf8(mainEntry.data);
+  }
+
+  async function readZipEntries(arrayBuffer) {
+    const view = new DataView(arrayBuffer);
+    const entries = [];
+    let offset = 0;
+
+    while (offset + 30 <= view.byteLength) {
+      const signature = view.getUint32(offset, true);
+      if (signature !== 0x04034b50) {
+        break;
+      }
+
+      const flags = view.getUint16(offset + 6, true);
+      const method = view.getUint16(offset + 8, true);
+      const compressedSize = view.getUint32(offset + 18, true);
+      const fileNameLength = view.getUint16(offset + 26, true);
+      const extraLength = view.getUint16(offset + 28, true);
+      const nameStart = offset + 30;
+      const dataStart = nameStart + fileNameLength + extraLength;
+      const name = decodeUtf8(new Uint8Array(arrayBuffer, nameStart, fileNameLength));
+
+      if (flags & 0x08) {
+        throw new Error("MXL entries with data descriptors are not supported yet.");
+      }
+
+      const compressed = new Uint8Array(arrayBuffer, dataStart, compressedSize);
+      const data = method === 0 ? compressed :
+        method === 8 ? new Uint8Array(await inflateRaw(compressed)) :
+          null;
+
+      if (data && !name.endsWith("/")) {
+        entries.push({ name, data });
+      }
+
+      offset = dataStart + compressedSize;
+    }
+
+    return entries;
+  }
+
+  async function inflateRaw(bytes) {
+    if (!global.DecompressionStream) {
+      throw new Error("This browser cannot decompress MXL files.");
+    }
+
+    try {
+      return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+    } catch (error) {
+      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer();
+    }
+  }
+
+  function parseMusicXmlText(xmlText) {
+    if (!global.DOMParser) {
+      throw new Error("MusicXML parsing requires a browser DOMParser.");
+    }
+
+    const document = new DOMParser().parseFromString(xmlText, "application/xml");
+    const parserError = document.querySelector("parsererror");
+    if (parserError) {
+      throw new Error("Could not parse MusicXML.");
+    }
+
+    const partInfo = parseMusicXmlPartInfo(document);
+    const rawTracks = Array.from(document.querySelectorAll("score-partwise > part"))
+      .map((part, index) => parseMusicXmlPart(part, partInfo.get(part.getAttribute("id")), index + 1))
+      .filter((track) => track.noteCount > 0);
+    const tempoEvents = rawTracks
+      .flatMap((track) => track.tempos)
+      .sort((a, b) => a.tick - b.tick);
+    const tempoMap = buildTempoMap(tempoEvents, PPQ);
+    const musicalTracks = rawTracks.map((track) => ({
+      ...track,
+      primaryChannel: mostFrequent(track.channels),
+      primaryProgram: track.programs[0]?.program || 1
+    }));
+    const events = buildPlaybackEvents(rawTracks, tempoMap);
+    const durationSeconds = events.reduce((max, event) => Math.max(max, event.seconds + (event.durationSeconds || 0)), 0);
+
+    return {
+      format: "musicxml",
+      title: textContent(document.querySelector("work-title")) || textContent(document.querySelector("movement-title")),
+      trackCount: rawTracks.length,
+      ppq: PPQ,
+      rawTracks,
+      musicalTracks,
+      events,
+      durationSeconds
+    };
+  }
+
+  function parseMusicXmlPartInfo(document) {
+    const info = new Map();
+    const parts = Array.from(document.querySelectorAll("part-list > score-part"));
+
+    for (const scorePart of parts) {
+      const id = scorePart.getAttribute("id");
+      const instruments = new Map();
+      const midiInstruments = Array.from(scorePart.querySelectorAll("midi-instrument"));
+
+      for (const midiInstrument of midiInstruments) {
+        instruments.set(midiInstrument.getAttribute("id"), {
+          channel: intText(midiInstrument.querySelector("midi-channel"), 1),
+          program: intText(midiInstrument.querySelector("midi-program"), 1),
+          unpitched: intText(midiInstrument.querySelector("midi-unpitched"), null)
+        });
+      }
+
+      const firstInstrument = midiInstruments[0];
+      info.set(id, {
+        id,
+        name: textContent(scorePart.querySelector("part-name")) || id,
+        channel: intText(firstInstrument?.querySelector("midi-channel"), 1),
+        program: intText(firstInstrument?.querySelector("midi-program"), 1),
+        instruments
+      });
+    }
+
+    return info;
+  }
+
+  function parseMusicXmlPart(part, info, index) {
+    const channel = info?.channel || index;
+    const program = info?.program || 1;
+    const events = [{ tick: 0, type: "programChange", channel, program, bytes: [0xc0 + channelIndex(channel), clampInt(program - 1, 0, 127)] }];
+    const tempos = [];
+    const channels = [channel];
+    const programs = [{ tick: 0, channel, program }];
+    let divisions = 1;
+    let quarterPosition = 0;
+    let noteCount = 0;
+
+    for (const measure of Array.from(part.querySelectorAll(":scope > measure"))) {
+      const divisionsText = textContent(measure.querySelector(":scope > attributes > divisions"));
+      if (divisionsText) {
+        divisions = Number(divisionsText) || divisions;
+      }
+
+      for (const child of Array.from(measure.children)) {
+        if (child.localName === "direction") {
+          const tempo = Number(child.querySelector("sound")?.getAttribute("tempo"));
+          if (Number.isFinite(tempo) && tempo > 0) {
+            tempos.push({ tick: Math.round(quarterPosition * PPQ), microsecondsPerQuarter: Math.round(60000000 / tempo) });
+          }
+        } else if (child.localName === "backup") {
+          quarterPosition -= durationQuarters(child, divisions);
+        } else if (child.localName === "forward") {
+          quarterPosition += durationQuarters(child, divisions);
+        } else if (child.localName === "note") {
+          const isChord = Boolean(child.querySelector(":scope > chord"));
+          const isRest = Boolean(child.querySelector(":scope > rest"));
+          const duration = durationQuarters(child, divisions);
+
+          if (!isRest) {
+            const note = musicXmlNoteNumber(child, info, channel);
+            const velocity = clampInt(Number(child.querySelector(":scope > velocity")?.textContent) || 84, 1, 127);
+            const tick = Math.round(quarterPosition * PPQ);
+            const durationTicks = Math.max(1, Math.round(duration * PPQ));
+            events.push({
+              tick,
+              type: "noteOn",
+              channel: note.channel,
+              note: note.number,
+              velocity,
+              bytes: [0x90 + channelIndex(note.channel), note.number, velocity]
+            });
+            events.push({
+              tick: tick + durationTicks,
+              type: "noteOff",
+              channel: note.channel,
+              note: note.number,
+              velocity: 0,
+              bytes: [0x80 + channelIndex(note.channel), note.number, 0]
+            });
+            channels.push(note.channel);
+            noteCount += 1;
+          }
+
+          if (!isChord) {
+            quarterPosition += duration;
+          }
+        }
+      }
+    }
+
+    return {
+      index,
+      name: info?.name || `Part ${index}`,
+      events,
+      tempos,
+      channels: Array.from(new Set(channels)),
+      programs,
+      noteCount
+    };
+  }
+
+  function musicXmlNoteNumber(note, info, fallbackChannel) {
+    const instrumentId = note.querySelector(":scope > instrument")?.getAttribute("id");
+    const instrument = instrumentId ? info?.instruments.get(instrumentId) : null;
+
+    if (instrument?.unpitched) {
+      return { number: clampInt(instrument.unpitched, 0, 127), channel: instrument.channel || fallbackChannel };
+    }
+
+    const pitch = note.querySelector(":scope > pitch");
+    if (pitch) {
+      const step = textContent(pitch.querySelector("step"));
+      const alter = Number(textContent(pitch.querySelector("alter")) || 0);
+      const octave = Number(textContent(pitch.querySelector("octave")) || 4);
+      return { number: clampInt((octave + 1) * 12 + stepToSemitone(step) + alter, 0, 127), channel: instrument?.channel || fallbackChannel };
+    }
+
+    const unpitched = note.querySelector(":scope > unpitched");
+    if (unpitched) {
+      const step = textContent(unpitched.querySelector("display-step"));
+      const octave = Number(textContent(unpitched.querySelector("display-octave")) || 4);
+      return { number: clampInt((octave + 1) * 12 + stepToSemitone(step), 0, 127), channel: instrument?.channel || fallbackChannel };
+    }
+
+    return { number: 60, channel: fallbackChannel };
+  }
+
+  function durationQuarters(element, divisions) {
+    return (Number(textContent(element.querySelector(":scope > duration"))) || 0) / Math.max(1, divisions);
+  }
+
+  function stepToSemitone(step) {
+    return { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[step] ?? 0;
+  }
+
+  function textContent(element) {
+    return element?.textContent?.trim() || "";
+  }
+
+  function intText(element, fallback) {
+    const value = Number(textContent(element));
+    return Number.isFinite(value) ? value : fallback;
   }
 
   function findTrack(midiFile, binding) {
@@ -1018,6 +1379,10 @@
     return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
   }
 
+  function decodeUtf8(bytes) {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
   function read24(bytes) {
     return (bytes[0] << 16) | (bytes[1] << 8) | bytes[2];
   }
@@ -1100,7 +1465,9 @@
   }
 
   global.MusicSpaceMidiFileClient = {
+    createPatchFromSequenceFile,
     createMidiFileClient,
-    parseMidiFile
+    parseMidiFile,
+    parseSequenceFile
   };
 })(window);
