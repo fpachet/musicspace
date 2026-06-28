@@ -47,7 +47,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 ## Project Hygiene
 
 - Add a simple formatter or linter once the codebase grows beyond a single JavaScript file.
-- Add GitHub Pages deployment for a live demo.
+- Keep the GitHub Pages workflow healthy as the public live demo changes.
 - Keep the README focused on usage and move longer research notes into separate documentation if it grows.
 - Add screenshots or a short animated capture after the UI stabilizes.
 - Decide whether this should remain a static prototype or become a packaged JavaScript module.

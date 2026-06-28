@@ -157,7 +157,7 @@ In the initial system, trajectories were themselves handled through the constrai
 
 - **Acts on:** any moving source, handle, or trajectory.
 - **Goal:** optionally leave a visible trace of movement and save the whole drawing produced by motion.
-- **Current status:** the demo can draw and save the trace of animated source A.
+- **Current status:** the demo can toggle drawing for the selected listener, source, mover, or constraint node, clear the trace layer, and save it as an image.
 - **Implementation note:** make traces explicit layers with color, opacity, stroke width, fade/persist modes, clear/save controls, and scene serialization. Export should include either the trace layer alone or the composed scene plus trace.
 
 ### Angle Limits / Sector
