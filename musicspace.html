@@ -8,7 +8,7 @@
     :root {
       color-scheme: light;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f4ef;
+      background: #f3f5f2;
       color: #1f2933;
     }
 
@@ -19,25 +19,29 @@
     body {
       margin: 0;
       min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(243, 245, 242, 0) 240px),
+        #f3f5f2;
     }
 
     main {
-      width: min(100%, 920px);
+      width: min(100%, 1160px);
       margin: 0 auto;
       padding: 24px;
     }
 
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      align-items: start;
+      gap: 14px;
+      width: min(100%, 1080px);
+      margin: 0 auto 14px;
     }
 
     h1 {
-      margin: 0;
-      font-size: 24px;
+      margin: 8px 0 0;
+      font-size: 22px;
       font-weight: 700;
       letter-spacing: 0;
     }
@@ -45,9 +49,21 @@
     .toolbar {
       display: flex;
       flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 6px;
+      justify-content: flex-start;
+    }
+
+    .toolbar-group {
+      display: inline-flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 8px;
-      justify-content: flex-end;
+      gap: 4px;
+      min-height: 38px;
+      padding: 3px;
+      border: 1px solid #d1d8de;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
     }
 
     .mode-group {
@@ -61,13 +77,57 @@
       overflow: hidden;
     }
 
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(220px, 240px) minmax(0, 840px);
+      align-items: start;
+      gap: 14px;
+      width: min(100%, 1080px);
+      margin: 0 auto;
+    }
+
+    .canvas-column {
+      min-width: 0;
+    }
+
     .tool-palette {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 4px;
-      width: min(100%, 800px);
-      margin: 0 auto 12px;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      margin: 0;
+    }
+
+    .tool-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .tool-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      padding: 7px;
+      border: 1px solid #d1d8de;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 6px 18px rgba(31, 41, 51, 0.06);
+    }
+
+    .tool-section-label {
+      color: #52616f;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+      gap: 5px;
     }
 
     .mode-label {
@@ -91,8 +151,14 @@
       font: inherit;
       font-size: 14px;
       line-height: 1;
-      min-height: 36px;
-      padding: 0 12px;
+      min-height: 34px;
+      padding: 0 10px;
+    }
+
+    button:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.32);
+      outline-offset: 2px;
     }
 
     select {
@@ -102,7 +168,7 @@
     .mode-group button {
       border: 0;
       border-radius: 0;
-      min-height: 34px;
+      min-height: 32px;
     }
 
     button[aria-pressed="true"] {
@@ -110,11 +176,400 @@
       color: #ffffff;
     }
 
-    .tool-palette button {
-      min-width: 42px;
-      padding: 0 9px;
-      font-size: 13px;
+    .tool-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-width: 0;
+      min-height: 48px;
+      padding: 5px 6px;
+      color: #24313d;
+      font-size: 11px;
       font-weight: 700;
+      line-height: 1.1;
+      flex-direction: column;
+    }
+
+    .tool-button[aria-pressed="true"] {
+      border-color: #111827;
+      background: #111827;
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    }
+
+    .tool-button[aria-pressed="true"]:hover {
+      background: #1f2933;
+      color: #ffffff;
+    }
+
+    .tool-icon {
+      position: relative;
+      display: inline-block;
+      width: 21px;
+      height: 21px;
+      color: currentColor;
+      flex: 0 0 21px;
+    }
+
+    .tool-label {
+      display: block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+
+    .icon-select::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 3px;
+      width: 0;
+      height: 0;
+      border-top: 16px solid currentColor;
+      border-right: 10px solid transparent;
+      transform: rotate(-22deg);
+      transform-origin: 50% 50%;
+    }
+
+    .icon-select::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      top: 14px;
+      width: 8px;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+      transform: rotate(42deg);
+    }
+
+    .icon-source::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.18);
+    }
+
+    .icon-mover::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 3px;
+      background: currentColor;
+      transform: rotate(45deg);
+    }
+
+    .icon-angle::before,
+    .icon-angle::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      bottom: 6px;
+      width: 17px;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+      transform-origin: 0 50%;
+    }
+
+    .icon-angle::after {
+      transform: rotate(-50deg);
+    }
+
+    .icon-sum::before,
+    .icon-product::before,
+    .icon-ratio::before {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .icon-sum::before {
+      content: "+";
+    }
+
+    .icon-product::before {
+      content: "x";
+      font-size: 20px;
+    }
+
+    .icon-ratio::before {
+      content: "%";
+      font-size: 18px;
+    }
+
+    .icon-limit::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border: 3px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .icon-limit::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .icon-distance::before,
+    .icon-separation::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      top: 11px;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .icon-distance::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      top: 8px;
+      height: 9px;
+      border-left: 4px solid currentColor;
+      border-right: 4px solid currentColor;
+    }
+
+    .icon-pin::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 4px;
+      width: 4px;
+      height: 17px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .icon-pin::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .icon-link::before,
+    .icon-link::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      width: 13px;
+      height: 8px;
+      border: 3px solid currentColor;
+      border-radius: 8px;
+      transform: rotate(-28deg);
+    }
+
+    .icon-link::before {
+      left: 2px;
+    }
+
+    .icon-link::after {
+      right: 2px;
+    }
+
+    .icon-separation::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 5px;
+      height: 14px;
+      border-left: 4px solid currentColor;
+      border-right: 4px solid currentColor;
+    }
+
+    .icon-sector::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: conic-gradient(currentColor 20deg 92deg, transparent 92deg 360deg);
+      border: 2px solid currentColor;
+    }
+
+    .icon-move::before,
+    .icon-shuttle::before {
+      content: "";
+      position: absolute;
+      left: 3px;
+      right: 6px;
+      top: 11px;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .icon-move::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      top: 7px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid currentColor;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .icon-orbit::before,
+    .icon-spin::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 3px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .icon-orbit::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      top: 9px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .icon-spin::after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      top: 9px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 8px 0 0 currentColor;
+    }
+
+    .icon-shuttle::before {
+      background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 8px);
+    }
+
+    .icon-shuttle::after {
+      content: "";
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      top: 8px;
+      height: 9px;
+      border-left: 5px solid currentColor;
+      border-right: 5px solid currentColor;
+    }
+
+    .icon-bounce::before,
+    .icon-bounce::after {
+      content: "";
+      position: absolute;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+      transform-origin: 0 50%;
+    }
+
+    .icon-bounce::before {
+      left: 4px;
+      top: 15px;
+      width: 11px;
+      transform: rotate(-43deg);
+    }
+
+    .icon-bounce::after {
+      left: 12px;
+      top: 7px;
+      width: 10px;
+      transform: rotate(43deg);
+    }
+
+    .icon-angle::before,
+    .icon-sum::before,
+    .icon-product::before,
+    .icon-limit::before,
+    .icon-distance::before,
+    .icon-ratio::before,
+    .icon-pin::before,
+    .icon-link::before,
+    .icon-separation::before,
+    .icon-sector::before {
+      position: absolute;
+      inset: 2px;
+      display: grid;
+      place-items: center;
+      width: auto;
+      height: auto;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: none;
+      color: currentColor;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1;
+      transform: none;
+    }
+
+    .icon-angle::after,
+    .icon-distance::after,
+    .icon-link::after,
+    .icon-pin::after,
+    .icon-separation::after,
+    .icon-limit::after {
+      content: none;
+    }
+
+    .icon-angle::before {
+      content: "A";
+    }
+
+    .icon-sum::before {
+      content: "S";
+    }
+
+    .icon-product::before {
+      content: "π";
+    }
+
+    .icon-limit::before,
+    .icon-link::before {
+      content: "L";
+    }
+
+    .icon-distance::before {
+      content: "D";
+    }
+
+    .icon-ratio::before {
+      content: "R";
+    }
+
+    .icon-pin::before {
+      content: "P";
+    }
+
+    .icon-separation::before,
+    .icon-sector::before {
+      content: "S";
     }
 
     button:hover {
@@ -134,21 +589,22 @@
 
     .status {
       min-height: 22px;
-      margin: -4px auto 12px;
-      width: min(100%, 800px);
-      color: #7c2d12;
+      margin: 0 0 12px;
+      width: 100%;
+      padding: 0 2px;
+      color: #5f3416;
       font-size: 13px;
       line-height: 1.4;
     }
 
     .stage {
       position: relative;
-      width: min(100%, 800px);
+      width: 100%;
       aspect-ratio: 4 / 3;
-      margin: 0 auto;
+      margin: 0;
       border: 1px solid #b9c1c9;
       background: #fbfbf8;
-      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
+      box-shadow: 0 14px 34px rgba(31, 41, 51, 0.1);
     }
 
     canvas {
@@ -277,6 +733,26 @@
       font-variant-numeric: tabular-nums;
     }
 
+    @media (max-width: 960px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        width: min(100%, 800px);
+      }
+
+      .tool-palette {
+        display: grid;
+        grid-template-columns: minmax(90px, 0.4fr) minmax(110px, 0.5fr) minmax(350px, 1.55fr) minmax(220px, 1fr);
+        align-items: stretch;
+        width: 100%;
+        margin: 0 0 14px;
+      }
+
+      .tool-stack {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
     @media (max-width: 720px) {
       main {
         padding: 16px;
@@ -284,6 +760,7 @@
 
       header {
         align-items: flex-start;
+        grid-template-columns: 1fr;
         flex-direction: column;
       }
 
@@ -298,6 +775,50 @@
       .mode-group button {
         flex: 1;
       }
+
+      button,
+      select {
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 13px;
+      }
+
+      select {
+        min-width: 0;
+      }
+
+      .toolbar-group {
+        width: 100%;
+      }
+
+      .tool-palette {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .tool-stack {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .tool-section {
+        padding: 8px;
+      }
+
+      .tool-grid {
+        grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+      }
+
+      .tool-button {
+        min-height: 50px;
+        padding: 6px 7px;
+      }
+
+      .tool-icon {
+        width: 22px;
+        height: 22px;
+        flex-basis: 22px;
+      }
     }
   </style>
 </head>
@@ -306,54 +827,145 @@
     <header>
       <h1>MusicSpace</h1>
       <div class="toolbar" aria-label="MusicSpace controls">
-        <select id="patch-select" aria-label="Load built-in patch"></select>
-        <button id="save-patch" type="button">Save Patch</button>
-        <button id="load-patch" type="button">Load Patch</button>
-        <input id="patch-file" type="file" accept="application/json,.json" hidden>
-        <div class="mode-group" aria-label="Listener drag mode">
-          <span class="mode-label">Listener</span>
-          <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
-          <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
+        <div class="toolbar-group" aria-label="Patch controls">
+          <select id="patch-select" aria-label="Load built-in patch"></select>
+          <button id="save-patch" type="button">Save Patch</button>
+          <button id="load-patch" type="button">Load Patch</button>
+          <input id="patch-file" type="file" accept="application/json,.json" hidden>
         </div>
-        <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
-        <button id="target-toggle" type="button" aria-pressed="false">Sound Off</button>
-        <button id="undo" type="button" title="Undo last edit">Undo</button>
-        <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
-        <button id="reset" type="button">Reset</button>
-        <button id="clear-trace" type="button">Clear Trace</button>
-        <button id="save-trace" type="button">Save Trace</button>
+        <div class="toolbar-group" aria-label="Listener and playback controls">
+          <div class="mode-group" aria-label="Listener drag mode">
+            <span class="mode-label">Listener</span>
+            <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
+            <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
+          </div>
+          <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
+          <button id="target-toggle" type="button" aria-pressed="false">Sound Off</button>
+        </div>
+        <div class="toolbar-group" aria-label="Edit and trace controls">
+          <button id="undo" type="button" title="Undo last edit">Undo</button>
+          <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
+          <button id="reset" type="button">Reset</button>
+          <button id="clear-trace" type="button">Clear Trace</button>
+          <button id="save-trace" type="button">Save Trace</button>
+        </div>
       </div>
     </header>
-    <div class="tool-palette" aria-label="Creation tools">
-      <button type="button" data-tool="select" aria-pressed="true" title="Select and drag">Select</button>
-      <button type="button" data-tool="source" title="Create source">Src</button>
-      <button type="button" data-tool="mover" title="Create moving object">Mover</button>
-      <button type="button" data-tool="angle" title="Create angle constraint">Angle</button>
-      <button type="button" data-tool="sum" title="Create balance/sum constraint">Sum</button>
-      <button type="button" data-tool="product" title="Create product constraint">Prod</button>
-      <button type="button" data-tool="radialLimit" title="Create radial limit">Limit</button>
-      <button type="button" data-tool="fixedDistance" title="Create fixed distance constraint">Dist</button>
-      <button type="button" data-tool="distanceRatio" title="Create distance ratio constraint">Ratio</button>
-      <button type="button" data-tool="pin" title="Pin object">Pin</button>
-      <button type="button" data-tool="solid" title="Create solid attachment">Link</button>
-      <button type="button" data-tool="separation" title="Create minimum separation">Sep</button>
-      <button type="button" data-tool="angleSector" title="Create angle sector">Sector</button>
-      <button type="button" data-tool="translateTrajectory" title="Assign translation trajectory">Move</button>
-      <button type="button" data-tool="rotateTrajectory" title="Assign orbital trajectory around the listener">Orbit</button>
-      <button type="button" data-tool="rotatorTrajectory" title="Create/edit rotative object">Spin</button>
-      <button type="button" data-tool="shuttleTrajectory" title="Assign shuttle trajectory">Shuttle</button>
-      <button type="button" data-tool="bounceTrajectory" title="Assign bounce trajectory">Bounce</button>
-    </div>
-    <p id="constraint-status" class="status" aria-live="polite"></p>
-    <div id="stage" class="stage">
-      <canvas id="trace" width="800" height="600"></canvas>
-      <canvas
-        id="canvas"
-        width="800"
-        height="600"
-        tabindex="0"
-        role="application"
-        aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
+    <div class="workspace">
+      <nav class="tool-palette" aria-label="Creation tools">
+        <div class="tool-stack">
+          <section class="tool-section" aria-labelledby="pointer-tools">
+            <span id="pointer-tools" class="tool-section-label">Pointer</span>
+            <div class="tool-grid">
+              <button class="tool-button" type="button" data-tool="select" aria-pressed="true" title="Select and drag" aria-label="Select and drag">
+                <span class="tool-icon icon-select" aria-hidden="true"></span>
+                <span class="tool-label">Select</span>
+              </button>
+            </div>
+          </section>
+          <section class="tool-section" aria-labelledby="source-tools">
+            <span id="source-tools" class="tool-section-label">Sources</span>
+            <div class="tool-grid">
+              <button class="tool-button" type="button" data-tool="source" title="Create source" aria-label="Create source">
+                <span class="tool-icon icon-source" aria-hidden="true"></span>
+                <span class="tool-label">Source</span>
+              </button>
+            </div>
+          </section>
+        </div>
+        <section class="tool-section" aria-labelledby="moving-object-tools">
+          <span id="moving-object-tools" class="tool-section-label">Moving Objects</span>
+          <div class="tool-grid">
+            <button class="tool-button" type="button" data-tool="mover" title="Create moving object" aria-label="Create moving object">
+              <span class="tool-icon icon-mover" aria-hidden="true"></span>
+              <span class="tool-label">Mover</span>
+            </button>
+          </div>
+        </section>
+        <section class="tool-section" aria-labelledby="constraint-tools">
+          <span id="constraint-tools" class="tool-section-label">Constraints</span>
+          <div class="tool-grid">
+            <button class="tool-button" type="button" data-tool="angle" title="Create angle constraint" aria-label="Create angle constraint">
+              <span class="tool-icon icon-angle" aria-hidden="true"></span>
+              <span class="tool-label">Angle</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="sum" title="Create balance/sum constraint" aria-label="Create balance or sum constraint">
+              <span class="tool-icon icon-sum" aria-hidden="true"></span>
+              <span class="tool-label">Sum</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="product" title="Create product constraint" aria-label="Create product constraint">
+              <span class="tool-icon icon-product" aria-hidden="true"></span>
+              <span class="tool-label">Product</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="radialLimit" title="Create radial limit" aria-label="Create radial limit">
+              <span class="tool-icon icon-limit" aria-hidden="true"></span>
+              <span class="tool-label">Limit</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="fixedDistance" title="Create fixed distance constraint" aria-label="Create fixed distance constraint">
+              <span class="tool-icon icon-distance" aria-hidden="true"></span>
+              <span class="tool-label">Distance</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="distanceRatio" title="Create distance ratio constraint" aria-label="Create distance ratio constraint">
+              <span class="tool-icon icon-ratio" aria-hidden="true"></span>
+              <span class="tool-label">Ratio</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="pin" title="Pin object" aria-label="Pin object">
+              <span class="tool-icon icon-pin" aria-hidden="true"></span>
+              <span class="tool-label">Pin</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="solid" title="Create solid attachment" aria-label="Create solid attachment">
+              <span class="tool-icon icon-link" aria-hidden="true"></span>
+              <span class="tool-label">Link</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="separation" title="Create minimum separation" aria-label="Create minimum separation">
+              <span class="tool-icon icon-separation" aria-hidden="true"></span>
+              <span class="tool-label">Separate</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="angleSector" title="Create angle sector" aria-label="Create angle sector">
+              <span class="tool-icon icon-sector" aria-hidden="true"></span>
+              <span class="tool-label">Sector</span>
+            </button>
+          </div>
+        </section>
+        <section class="tool-section" aria-labelledby="trajectory-tools">
+          <span id="trajectory-tools" class="tool-section-label">Trajectories</span>
+          <div class="tool-grid">
+            <button class="tool-button" type="button" data-tool="translateTrajectory" title="Assign translation trajectory" aria-label="Assign translation trajectory">
+              <span class="tool-icon icon-move" aria-hidden="true"></span>
+              <span class="tool-label">Move</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="rotateTrajectory" title="Assign orbital trajectory around the listener" aria-label="Assign orbital trajectory around the listener">
+              <span class="tool-icon icon-orbit" aria-hidden="true"></span>
+              <span class="tool-label">Orbit</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="rotatorTrajectory" title="Create/edit rotative object" aria-label="Create or edit rotative object">
+              <span class="tool-icon icon-spin" aria-hidden="true"></span>
+              <span class="tool-label">Spin</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="shuttleTrajectory" title="Assign shuttle trajectory" aria-label="Assign shuttle trajectory">
+              <span class="tool-icon icon-shuttle" aria-hidden="true"></span>
+              <span class="tool-label">Shuttle</span>
+            </button>
+            <button class="tool-button" type="button" data-tool="bounceTrajectory" title="Assign bounce trajectory" aria-label="Assign bounce trajectory">
+              <span class="tool-icon icon-bounce" aria-hidden="true"></span>
+              <span class="tool-label">Bounce</span>
+            </button>
+          </div>
+        </section>
+      </nav>
+      <div class="canvas-column">
+        <p id="constraint-status" class="status" aria-live="polite"></p>
+        <div id="stage" class="stage">
+          <canvas id="trace" width="800" height="600"></canvas>
+          <canvas
+            id="canvas"
+            width="800"
+            height="600"
+            tabindex="0"
+            role="application"
+            aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
+        </div>
+      </div>
     </div>
     <section id="target-panel" class="target-panel" aria-label="Target parameter monitor" hidden>
       <h2>Target Parameters</h2>

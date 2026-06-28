@@ -52,6 +52,8 @@ const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
 const TOOL_SELECT = "select";
 const FRAMES_PER_SECOND = 60;
+const DOUBLE_CLICK_MS = 450;
+const DOUBLE_CLICK_DISTANCE = 12;
 
 const BUILT_IN_PATCHES = [
   {
@@ -1111,6 +1113,7 @@ let selectedEntity = null;
 let hoveredEntity = null;
 let activeTool = TOOL_SELECT;
 let pendingToolEntities = [];
+let lastCanvasClick = null;
 let activeRotationMover = null;
 let activeShuttleMover = null;
 let undoStack = [];
@@ -2298,6 +2301,7 @@ function openRotationEditor(mover) {
   rotationDirectionInput.value = String(mover.trajectory.direction || 1);
   rotationEditor.hidden = false;
   setConstraintStatus(`Editing rotative object ${mover.name}.`);
+  revealEditor(rotationEditor);
 }
 
 function applyRotationEditor() {
@@ -2352,6 +2356,13 @@ function openShuttleEditor(mover) {
   shuttleShowPathInput.checked = trajectory.showPath !== false;
   shuttleEditor.hidden = false;
   setConstraintStatus(`Editing shuttle trajectory ${mover.name}.`);
+  revealEditor(shuttleEditor);
+}
+
+function revealEditor(editor) {
+  requestAnimationFrame(() => {
+    editor.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
 }
 
 function populateEndpointSelect(select, mover) {
@@ -2525,6 +2536,38 @@ function findDoubleClickEntityAt(x, y) {
   }
 
   return findEntityAt(x, y);
+}
+
+function isRepeatedCanvasClick(event, x, y, entity) {
+  if (!lastCanvasClick || !entity || lastCanvasClick.entity !== entity) {
+    return false;
+  }
+
+  return event.timeStamp - lastCanvasClick.time <= DOUBLE_CLICK_MS &&
+    Math.hypot(x - lastCanvasClick.x, y - lastCanvasClick.y) <= DOUBLE_CLICK_DISTANCE;
+}
+
+function handleEntityDoubleClick(entity) {
+  if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
+    openRotationEditor(entity);
+    selectedEntity = entity;
+    drawAll();
+    return true;
+  }
+
+  if (entity instanceof MovingObject && entity.trajectory?.type === "shuttle") {
+    openShuttleEditor(entity);
+    selectedEntity = entity;
+    drawAll();
+    return true;
+  }
+
+  if (entity instanceof MovingObject) {
+    setConstraintStatus("Use Spin to convert this mover into a rotative object.");
+    return true;
+  }
+
+  return false;
 }
 
 function moveEntity(entity, x, y) {
@@ -2778,16 +2821,25 @@ function updateHoverState(entity) {
 function beginDrag(event) {
   const { x, y } = getPointerPosition(event);
   const entity = findEntityAt(x, y);
+  const doubleClickEntity = findDoubleClickEntityAt(x, y);
 
   if (activeTool !== TOOL_SELECT) {
+    lastCanvasClick = null;
     handleToolClick(x, y, entity);
     event.preventDefault();
     return;
   }
 
   if (!entity) {
+    lastCanvasClick = null;
     selectedEntity = null;
     drawAll();
+    return;
+  }
+
+  if (isRepeatedCanvasClick(event, x, y, doubleClickEntity) && handleEntityDoubleClick(doubleClickEntity)) {
+    lastCanvasClick = null;
+    event.preventDefault();
     return;
   }
 
@@ -2800,6 +2852,7 @@ function beginDrag(event) {
     offsetY: y - entity.y,
     startX: x,
     startY: y,
+    doubleClickEntity,
     didSnapshot: false
   };
   stage.classList.add("is-dragging");
@@ -2837,6 +2890,11 @@ function endDrag(event) {
     return;
   }
 
+  const clickEntity = dragged.doubleClickEntity || dragged.entity;
+  const wasClick = !dragged.didSnapshot;
+  const startX = dragged.startX;
+  const startY = dragged.startY;
+
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
   }
@@ -2844,6 +2902,16 @@ function endDrag(event) {
   stage.classList.remove("is-dragging");
   dragged = null;
   const { x, y } = getPointerPosition(event);
+  if (wasClick && Math.hypot(x - startX, y - startY) <= DOUBLE_CLICK_DISTANCE) {
+    lastCanvasClick = {
+      entity: clickEntity,
+      time: event.timeStamp,
+      x,
+      y
+    };
+  } else {
+    lastCanvasClick = null;
+  }
   updateHoverState(findEntityAt(x, y));
 }
 
@@ -2861,18 +2929,9 @@ canvas.addEventListener("dblclick", (event) => {
   const { x, y } = getPointerPosition(event);
   const entity = findDoubleClickEntityAt(x, y);
 
-  if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
-    openRotationEditor(entity);
-    selectedEntity = entity;
-    drawAll();
+  if (handleEntityDoubleClick(entity)) {
+    lastCanvasClick = null;
     event.preventDefault();
-  } else if (entity instanceof MovingObject && entity.trajectory?.type === "shuttle") {
-    openShuttleEditor(entity);
-    selectedEntity = entity;
-    drawAll();
-    event.preventDefault();
-  } else if (entity instanceof MovingObject) {
-    setConstraintStatus("Use Spin to convert this mover into a rotative object.");
   }
 });
 
