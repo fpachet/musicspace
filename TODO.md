@@ -41,7 +41,8 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Add a patch-level editor for generic parameter mappings instead of defining them only in built-in JSON.
 - Implement a Faust target backend on top of the `MusicSpaceTargets.registerTargetBackend()` contract.
-- Add MIDI, OSC, and spatial audio adapters as target backends that consume named parameter values and target manifests.
+- Expand the MIDI-file client with richer instrument rendering, MIDI output selection persistence, and mapping presets.
+- Add OSC and spatial audio adapters as target backends that consume named parameter values and target manifests.
 - Map source positions to useful audio parameters such as pan, gain, distance attenuation, or reverb send.
 - Add a generic mapping layer so source, handle, trajectory, and constraint values can drive arbitrary parameters, including Faust patch parameters.
 - Expand the optional demo sound source into spatialized audio with pan, gain, distance attenuation, and reverb send.

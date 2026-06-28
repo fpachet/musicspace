@@ -2,13 +2,15 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, generic parameter-target control patches, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, generic parameter-target control patches, MIDI-file spatialization, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
 ## Running
 
-Open `musicspace.html` directly in a browser.
+Open `musicspace.html` directly in a browser for ordinary canvas patches.
+
+MIDI-file patches need the project to be served over HTTP because browsers block `fetch()` for local `file://` MIDI assets.
 
 You can also serve the directory locally:
 
@@ -45,6 +47,7 @@ npm run check
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
 - Use **Sound Off** / **Sound On** to enable the browser synth when a patch exposes parameter mappings for the current target backend.
+- Use **Play MIDI** / **Stop MIDI** on MIDI-file patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
 - Use **Clear Trace** to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
@@ -60,6 +63,7 @@ npm run check
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
+- **Jazz Trio MIDI Spatializer** loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
 - **Faust Control Study** maps constrained source motion to Faust-style parameters: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The current backend is a self-contained Web Audio oscillator and resonant low-pass filter, so it runs without a Faust compiler.
 - **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 
@@ -70,7 +74,9 @@ npm run check
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
+- `musicspace-midi-file-client.js` contains MIDI-file parsing, transport, Web MIDI output, and internal browser synth playback for MIDI-file patches.
 - `musicspace-client-patches.js` contains optional target/client demo patches, including the Faust-style and granular examples.
+- `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.
 - `TARGET_BACKENDS.md` describes the backend contract for Web Audio, Faust, MIDI, OSC, and other parameterized clients.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
 - `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
@@ -101,6 +107,7 @@ npm run check
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
+- Built-in MIDI-file spatialization example with Bass, Drums, and Piano sources controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.
 - A compact codebase intended for experimentation with spatialization controls.

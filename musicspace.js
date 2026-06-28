@@ -22,6 +22,12 @@ const saveTraceButton = document.getElementById("save-trace");
 const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
 const targetGrid = document.getElementById("target-grid");
+const midiToggleButton = document.getElementById("midi-toggle");
+const midiModeSelect = document.getElementById("midi-mode");
+const midiOutputSelect = document.getElementById("midi-output");
+const midiPanel = document.getElementById("midi-panel");
+const midiTrackList = document.getElementById("midi-track-list");
+const midiStatus = document.getElementById("midi-status");
 const constraintStatus = document.getElementById("constraint-status");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
@@ -1130,6 +1136,17 @@ const parameterClient = MusicSpaceParameterClient.createParameterClient({
   getEntity: getObjectByName,
   getFeature: parameterFeatureValue
 });
+const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
+  playButton: midiToggleButton,
+  modeSelect: midiModeSelect,
+  outputSelect: midiOutputSelect,
+  panel: midiPanel,
+  trackList: midiTrackList,
+  status: midiStatus,
+  onStatus: setConstraintStatus,
+  getSource: getObjectByName,
+  getListener: () => listener
+});
 
 function resetScene() {
   pushUndoSnapshot("reset");
@@ -1188,6 +1205,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
     .map((constraint) => createConstraintFromSpec(constraint, objectByName))
     .filter(Boolean);
   parameterClient.loadPatch(patch);
+  midiFileClient.loadPatch(patch);
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -1393,6 +1411,7 @@ function constraintReferencesEntity(constraint, entity) {
 
 function serializePatch() {
   const parameterState = parameterClient.serialize();
+  const midiState = midiFileClient.serialize();
 
   return {
     version: 1,
@@ -1412,7 +1431,8 @@ function serializePatch() {
       trajectory: mover.trajectory
     })),
     constraints: constraints.map(serializeConstraint).filter(Boolean),
-    ...parameterState
+    ...parameterState,
+    ...midiState
   };
 }
 
@@ -1560,6 +1580,7 @@ function drawAll() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
   parameterClient.update();
+  midiFileClient.updateSpatial();
 
   for (const constraint of constraints) {
     constraint.draw(ctx);

@@ -702,18 +702,47 @@
       display: none;
     }
 
+    .midi-panel {
+      width: min(100%, 800px);
+      margin: 12px auto 0;
+      padding: 12px;
+      border: 1px solid #b9c1c9;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
+    }
+
+    .midi-panel[hidden] {
+      display: none;
+    }
+
     .target-panel h2 {
       margin: 0 0 10px;
       font-size: 16px;
     }
 
-    .target-grid {
+    .midi-panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .target-grid,
+    .midi-track-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 8px;
     }
 
-    .target-param {
+    .midi-status {
+      min-height: 18px;
+      margin: 0 0 10px;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .target-param,
+    .midi-track {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 6px;
@@ -728,7 +757,8 @@
       font-weight: 700;
     }
 
-    .target-param output {
+    .target-param output,
+    .midi-track output {
       color: #111827;
       font-variant-numeric: tabular-nums;
     }
@@ -841,6 +871,14 @@
           </div>
           <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
           <button id="target-toggle" type="button" aria-pressed="false">Sound Off</button>
+        </div>
+        <div class="toolbar-group" aria-label="MIDI file controls">
+          <button id="midi-toggle" type="button" aria-pressed="false">Play MIDI</button>
+          <select id="midi-mode" aria-label="MIDI playback mode">
+            <option value="internal">Internal GM Synth</option>
+            <option value="external">External MIDI</option>
+          </select>
+          <select id="midi-output" aria-label="MIDI output" hidden disabled></select>
         </div>
         <div class="toolbar-group" aria-label="Edit and trace controls">
           <button id="undo" type="button" title="Undo last edit">Undo</button>
@@ -971,6 +1009,11 @@
       <h2>Target Parameters</h2>
       <div id="target-grid" class="target-grid"></div>
     </section>
+    <section id="midi-panel" class="midi-panel" aria-label="MIDI file monitor" hidden>
+      <h2>MIDI File</h2>
+      <p id="midi-status" class="midi-status" aria-live="polite"></p>
+      <div id="midi-track-list" class="midi-track-list"></div>
+    </section>
     <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
       <h2>Rotative Constraint Editor</h2>
       <div class="editor-grid">
@@ -1045,6 +1088,7 @@
   <script src="musicspace-targets.js"></script>
   <script src="musicspace-parameter-client.js"></script>
   <script src="musicspace-client-patches.js"></script>
+  <script src="musicspace-midi-file-client.js"></script>
   <script src="musicspace.js"></script>
 </body>
 </html>

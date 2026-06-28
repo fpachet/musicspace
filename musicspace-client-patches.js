@@ -7,6 +7,30 @@
 (function exposeMusicSpaceClientPatches(global) {
   global.MusicSpaceClientPatches = [
     {
+      key: "jazz-trio-midi",
+      name: "Jazz Trio MIDI Spatializer",
+      listener: { x: 400, y: 300 },
+      sources: [
+        { name: "Bass", x: 245, y: 355, drawTrace: true },
+        { name: "Drums", x: 400, y: 170, drawTrace: true },
+        { name: "Piano", x: 560, y: 355, drawTrace: true }
+      ],
+      constraints: [
+        { type: "sum", sources: ["Bass", "Drums", "Piano"] },
+        { type: "angle", sources: ["Bass", "Piano"] },
+        { type: "radialLimit", source: "Drums", minDistance: 95, maxDistance: 220 }
+      ],
+      midiFile: {
+        url: "Midifiles/triojazz.mid",
+        preferredMode: "internal",
+        trackBindings: [
+          { track: "Bass", source: "Bass", channel: 2, program: 33 },
+          { track: "Drums", source: "Drums", channel: 10, program: 1, isDrums: true },
+          { track: "Piano", source: "Piano", channel: 3, program: 1 }
+        ]
+      }
+    },
+    {
       key: "faust-control-study",
       name: "Faust Control Study",
       listener: { x: 400, y: 300 },
