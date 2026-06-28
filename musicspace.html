@@ -232,7 +232,7 @@
       margin-top: 12px;
     }
 
-    .audio-panel {
+    .target-panel {
       width: min(100%, 800px);
       margin: 12px auto 0;
       padding: 12px;
@@ -242,22 +242,22 @@
       box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
     }
 
-    .audio-panel[hidden] {
+    .target-panel[hidden] {
       display: none;
     }
 
-    .audio-panel h2 {
+    .target-panel h2 {
       margin: 0 0 10px;
       font-size: 16px;
     }
 
-    .audio-grid {
+    .target-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 8px;
     }
 
-    .audio-param {
+    .target-param {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 6px;
@@ -272,7 +272,7 @@
       font-weight: 700;
     }
 
-    .audio-param output {
+    .target-param output {
       color: #111827;
       font-variant-numeric: tabular-nums;
     }
@@ -316,7 +316,7 @@
           <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
         </div>
         <button id="animation-toggle" type="button" aria-pressed="false">Start</button>
-        <button id="audio-toggle" type="button" aria-pressed="false">Sound Off</button>
+        <button id="target-toggle" type="button" aria-pressed="false">Sound Off</button>
         <button id="undo" type="button" title="Undo last edit">Undo</button>
         <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
         <button id="reset" type="button">Reset</button>
@@ -355,9 +355,9 @@
         role="application"
         aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
     </div>
-    <section id="audio-panel" class="audio-panel" aria-label="Audio parameter monitor" hidden>
-      <h2>Faust Patch Control</h2>
-      <div id="audio-grid" class="audio-grid"></div>
+    <section id="target-panel" class="target-panel" aria-label="Target parameter monitor" hidden>
+      <h2>Target Parameters</h2>
+      <div id="target-grid" class="target-grid"></div>
     </section>
     <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
       <h2>Rotative Constraint Editor</h2>
@@ -431,6 +431,8 @@
   </main>
   <script src="musicspace-mapping.js"></script>
   <script src="musicspace-targets.js"></script>
+  <script src="musicspace-parameter-client.js"></script>
+  <script src="musicspace-client-patches.js"></script>
   <script src="musicspace.js"></script>
 </body>
 </html>

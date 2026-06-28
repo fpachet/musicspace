@@ -2,7 +2,7 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, Web Audio-backed Faust-style control patches, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, generic parameter-target control patches, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -44,7 +44,7 @@ npm run check
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Sound Off** / **Sound On** to enable the browser synth when a patch exposes audio mappings.
+- Use **Sound Off** / **Sound On** to enable the browser synth when a patch exposes parameter mappings for the current target backend.
 - Use **Clear Trace** to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
@@ -66,9 +66,12 @@ npm run check
 ## Repository Layout
 
 - `musicspace.html` contains the static page structure and styling.
-- `musicspace.js` contains the canvas entities, constraints, drawing, interaction, and animation logic.
+- `musicspace.js` contains the canvas entities, constraints, drawing, interaction, animation logic, and scene feature extraction. It does not know about Faust, Web Audio, MIDI, OSC, or concrete target clients.
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
+- `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-targets.js` contains independent target backends, currently Web Audio subtractive and granular examples.
+- `musicspace-client-patches.js` contains optional target/client demo patches, including the Faust-style and granular examples.
+- Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
 - `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
 - `TODO.md` tracks likely next steps for the prototype.
 - `LICENSE` contains the MIT license.
@@ -96,9 +99,9 @@ npm run check
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
-- Built-in Faust-style parameter mapping examples with live Web Audio output, including oscillator/filter and granular synthesis studies.
+- Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
 - Trace export for animated source and mover motion.
-- A first separation between MusicSpace scene logic, generic parameter mapping, and independent target backends.
+- A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.
 - A compact codebase intended for experimentation with spatialization controls.
 
 ## Authors

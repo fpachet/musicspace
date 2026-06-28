@@ -14,8 +14,8 @@ This file lists constraint, trajectory, and mapping types to implement once the 
 - Per-object drawing toggle so listeners, sources, movers, and constraint nodes can leave traces while moving.
 - Patch serialization for moving objects, trajectories, and the new constraint types.
 - Built-in Beatles trajectory study patch that sketches the remixing-with-trajectories use case.
-- Built-in Faust-style control study patches with serialized audio mappings from source features to Web Audio synth parameters, including subtractive and granular synthesis backends.
-- The current JavaScript code separates the canvas/constraint prototype from generic parameter mapping and target backends.
+- Built-in Faust-style control study patches with serialized parameter mappings from source features to Web Audio synth parameters, including subtractive and granular synthesis backends.
+- The current JavaScript code separates the canvas/constraint prototype from generic parameter mapping, target-client UI/lifecycle, optional client demo patches, and target backends.
 
 ## Paper-Backed Core Constraints
 
@@ -183,6 +183,8 @@ The intended boundary is:
 
 - **MusicSpace engine/UX:** owns entities, constraints, trajectories, propagation, hit testing, selection, editors, and patch state.
 - **Parameter mapping layer:** converts scene features such as `x`, `y`, distance, angle, speed, or constraint error into named parameter values.
+- **Parameter client layer:** owns mapping normalization against the active target manifest, the target-parameter monitor UI, target lifecycle, and patch serialization. It reads MusicSpace scene features through callbacks rather than importing scene objects.
+- **Client demo patches:** optional examples that bind MusicSpace scenes to concrete targets. They are not part of the core scene engine.
 - **Target backends:** receive named parameter values through an independent adapter. Targets should not know about MusicSpace objects or constraints.
 - **Target manifests:** expose parameter ids, defaults, ranges, labels, units, scaling, and smoothing. Faust, Web Audio, MIDI, OSC, and spatial audio should all fit this shape.
 
