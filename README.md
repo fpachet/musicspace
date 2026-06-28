@@ -69,8 +69,9 @@ npm run check
 - `musicspace.js` contains the canvas entities, constraints, drawing, interaction, animation logic, and scene feature extraction. It does not know about Faust, Web Audio, MIDI, OSC, or concrete target clients.
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
-- `musicspace-targets.js` contains independent target backends, currently Web Audio subtractive and granular examples.
+- `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-client-patches.js` contains optional target/client demo patches, including the Faust-style and granular examples.
+- `TARGET_BACKENDS.md` describes the backend contract for Web Audio, Faust, MIDI, OSC, and other parameterized clients.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
 - `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
 - `TODO.md` tracks likely next steps for the prototype.
