@@ -21,10 +21,7 @@ const resetButton = document.getElementById("reset");
 const saveTraceButton = document.getElementById("save-trace");
 const audioToggleButton = document.getElementById("audio-toggle");
 const audioPanel = document.getElementById("audio-panel");
-const audioFreqOutput = document.getElementById("audio-freq");
-const audioCutoffOutput = document.getElementById("audio-cutoff");
-const audioQOutput = document.getElementById("audio-q");
-const audioGainOutput = document.getElementById("audio-gain");
+const audioGrid = document.getElementById("audio-grid");
 const constraintStatus = document.getElementById("constraint-status");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
@@ -55,18 +52,6 @@ const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
 const TOOL_SELECT = "select";
 const FRAMES_PER_SECOND = 60;
-const AUDIO_DEFAULTS = {
-  "/osc/freq": 220,
-  "/filter/frequency": 1600,
-  "/filter/q": 2,
-  "/output/gain": 0.12
-};
-const AUDIO_OUTPUTS = {
-  "/osc/freq": { element: audioFreqOutput, suffix: " Hz", digits: 0 },
-  "/filter/frequency": { element: audioCutoffOutput, suffix: " Hz", digits: 0 },
-  "/filter/q": { element: audioQOutput, suffix: "", digits: 2 },
-  "/output/gain": { element: audioGainOutput, suffix: "", digits: 2 }
-};
 
 const BUILT_IN_PATCHES = [
   {
@@ -484,6 +469,151 @@ const BUILT_IN_PATCHES = [
         inputMax: 150,
         outputMin: 0.03,
         outputMax: 0.22,
+        curve: "linear"
+      }
+    ]
+  },
+  {
+    key: "granular-cloud-study",
+    name: "Granular Cloud Study",
+    listener: { x: 400, y: 300 },
+    sources: [
+      { name: "Rate", x: 235, y: 205, drawTrace: true },
+      { name: "Size", x: 330, y: 430, drawTrace: true },
+      { name: "Pitch", x: 555, y: 225, drawTrace: true },
+      { name: "Spray", x: 585, y: 370, drawTrace: true },
+      { name: "Tone", x: 420, y: 145 },
+      { name: "Level", x: 270, y: 350 }
+    ],
+    movingObjects: [
+      {
+        name: "DensityLift",
+        x: 235,
+        y: 205,
+        drawTrace: true,
+        trajectory: {
+          type: "shuttle",
+          start: { type: "object", name: "Level" },
+          end: { type: "fixed", x: 620, y: 190 },
+          ax: 270,
+          ay: 350,
+          bx: 620,
+          by: 190,
+          phase: 0.18,
+          speed: 0.0035,
+          direction: 1,
+          showPath: true
+        }
+      },
+      {
+        name: "PitchOrbit",
+        x: 540,
+        y: 300,
+        trajectory: {
+          type: "rotation",
+          centerX: 400,
+          centerY: 300,
+          radius: 140,
+          phase: -0.5,
+          angularSpeed: 0.006
+        }
+      },
+      {
+        name: "PitchSpin",
+        x: 540,
+        y: 300,
+        trajectory: {
+          type: "rotator",
+          running: true,
+          periodSeconds: 11,
+          direction: 1,
+          displacementInducesRotation: true,
+          phase: 0,
+          rotationDelta: 0
+        }
+      }
+    ],
+    constraints: [
+      { type: "solid", carrier: "DensityLift", attached: "Rate" },
+      { type: "solid", carrier: "PitchOrbit", attached: "PitchSpin" },
+      { type: "solid", carrier: "PitchSpin", attached: "Pitch" },
+      { type: "solid", carrier: "PitchSpin", attached: "Spray" },
+      { type: "fixedDistance", anchor: "Rate", target: "Size", distance: 250 },
+      { type: "distanceRatio", sources: ["Tone", "Pitch"], ratio: 0.85 },
+      { type: "angleSector", source: "Tone", centerAngle: -1.55, width: 1.75 },
+      { type: "radialLimit", source: "Spray", minDistance: 80, maxDistance: 210 },
+      { type: "sum", sources: ["Rate", "Size", "Level"] }
+    ],
+    target: { type: "granular" },
+    audioMappings: [
+      {
+        source: "Rate",
+        feature: "x",
+        target: "/grain/rate",
+        inputMin: 210,
+        inputMax: 640,
+        outputMin: 6,
+        outputMax: 44,
+        curve: "linear"
+      },
+      {
+        source: "Size",
+        feature: "distance",
+        target: "/grain/size",
+        inputMin: 90,
+        inputMax: 280,
+        outputMin: 0.025,
+        outputMax: 0.22,
+        curve: "linear"
+      },
+      {
+        source: "Pitch",
+        feature: "y",
+        target: "/grain/pitch",
+        inputMin: 500,
+        inputMax: 120,
+        outputMin: 0.45,
+        outputMax: 2.4,
+        curve: "exp"
+      },
+      {
+        source: "Spray",
+        feature: "distance",
+        target: "/grain/spread",
+        inputMin: 80,
+        inputMax: 215,
+        outputMin: 0.02,
+        outputMax: 0.9,
+        curve: "linear"
+      },
+      {
+        source: "Tone",
+        feature: "distance",
+        target: "/filter/frequency",
+        inputMin: 70,
+        inputMax: 230,
+        outputMin: 450,
+        outputMax: 6200,
+        curve: "exp"
+      },
+      {
+        source: "Spray",
+        feature: "angle",
+        target: "/filter/q",
+        inputMin: -3.14,
+        inputMax: 3.14,
+        outputMin: 0.6,
+        outputMax: 12,
+        curve: "linear"
+      },
+      {
+        source: "Level",
+        feature: "y",
+        target: "/output/gain",
+        inputMin: 500,
+        inputMax: 160,
+        outputMin: 0.08,
+        outputMax: 0.34,
         curve: "linear"
       }
     ]
@@ -1242,9 +1372,9 @@ let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = clonePatch(BUILT_IN_PATCHES[0]);
 let audioMappings = [];
-let audioParamValues = { ...AUDIO_DEFAULTS };
-let audioEngine = null;
-let audioEnabled = false;
+let targetController = null;
+let targetSpec = MusicSpaceTargets.normalizeTargetSpec();
+let targetParamValues = {};
 
 function resetScene() {
   pushUndoSnapshot("reset");
@@ -1302,7 +1432,8 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   constraints = (patch.constraints || [])
     .map((constraint) => createConstraintFromSpec(constraint, objectByName))
     .filter(Boolean);
-  audioMappings = normalizeAudioMappings(patch.audioMappings || []);
+  resetTargetController(patch.target || patch.audioSynth);
+  audioMappings = normalizeParameterMappings(patch.audioMappings || []);
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -1526,6 +1657,7 @@ function serializePatch() {
       trajectory: mover.trajectory
     })),
     constraints: constraints.map(serializeConstraint).filter(Boolean),
+    target: { ...targetSpec },
     audioMappings: audioMappings.map((mapping) => ({ ...mapping }))
   };
 }
@@ -1622,59 +1754,38 @@ function serializeConstraint(constraint) {
   return null;
 }
 
-function normalizeAudioMappings(mappings) {
-  return mappings
-    .filter((mapping) => mapping && mapping.source && mapping.target && mapping.feature)
-    .map((mapping) => ({
-      source: mapping.source,
-      feature: mapping.feature,
-      target: mapping.target,
-      inputMin: Number(mapping.inputMin),
-      inputMax: Number(mapping.inputMax),
-      outputMin: Number(mapping.outputMin),
-      outputMax: Number(mapping.outputMax),
-      curve: mapping.curve === "exp" ? "exp" : "linear"
-    }))
-    .filter((mapping) =>
-      Number.isFinite(mapping.inputMin) &&
-      Number.isFinite(mapping.inputMax) &&
-      Number.isFinite(mapping.outputMin) &&
-      Number.isFinite(mapping.outputMax) &&
-      AUDIO_DEFAULTS[mapping.target] !== undefined
-    );
+function resetTargetController(spec) {
+  if (targetController) {
+    targetController.dispose();
+  }
+
+  targetSpec = MusicSpaceTargets.normalizeTargetSpec(spec);
+  targetController = MusicSpaceTargets.createTargetController(targetSpec, {
+    onStatus: setConstraintStatus
+  });
+  targetParamValues = targetController.defaults();
+  updateAudioToggle();
+}
+
+function normalizeParameterMappings(mappings) {
+  return MusicSpaceMapping.normalizeMappings(mappings, {
+    isSupportedTarget: (target) => targetController?.hasParameter(target)
+  });
 }
 
 function updateAudioMappings({ immediate = false } = {}) {
-  audioParamValues = { ...AUDIO_DEFAULTS };
-
-  for (const mapping of audioMappings) {
-    const entity = getObjectByName(mapping.source);
-    if (!entity) {
-      continue;
-    }
-
-    audioParamValues[mapping.target] = valueFromAudioMapping(mapping, entity);
-  }
+  targetParamValues = MusicSpaceMapping.valuesForMappings({
+    mappings: audioMappings,
+    defaults: targetController?.defaults() || {},
+    getEntity: getObjectByName,
+    getFeature: parameterFeatureValue
+  });
 
   updateAudioPanel();
-  applyAudioParamValues(immediate);
+  targetController?.apply(targetParamValues, { immediate });
 }
 
-function valueFromAudioMapping(mapping, entity) {
-  const rawValue = audioFeatureValue(mapping.feature, entity);
-  const inputSpan = mapping.inputMax - mapping.inputMin;
-  const normalized = inputSpan === 0
-    ? 0
-    : clamp((rawValue - mapping.inputMin) / inputSpan, 0, 1);
-
-  if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
-    return mapping.outputMin * ((mapping.outputMax / mapping.outputMin) ** normalized);
-  }
-
-  return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * normalized;
-}
-
-function audioFeatureValue(feature, entity) {
+function parameterFeatureValue(feature, entity) {
   if (feature === "x") {
     return entity.x;
   }
@@ -1693,89 +1804,31 @@ function audioFeatureValue(feature, entity) {
 function updateAudioPanel() {
   audioPanel.hidden = audioMappings.length === 0;
 
-  for (const [target, config] of Object.entries(AUDIO_OUTPUTS)) {
-    const value = audioParamValues[target] ?? AUDIO_DEFAULTS[target];
-    config.element.value = `${value.toFixed(config.digits)}${config.suffix}`;
+  audioGrid.replaceChildren();
+  for (const [target, value] of Object.entries(targetParamValues)) {
+    const config = targetController?.parameterConfig(target) || { suffix: "", digits: 2 };
+    const row = document.createElement("div");
+    const label = document.createElement("span");
+    const output = document.createElement("output");
+
+    row.className = "audio-param";
+    label.textContent = target;
+    output.value = `${value.toFixed(config.digits)}${config.suffix}`;
+    row.append(label, output);
+    audioGrid.append(row);
   }
-}
-
-function ensureAudioEngine() {
-  if (audioEngine) {
-    return audioEngine;
-  }
-
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) {
-    setConstraintStatus("Web Audio is not available in this browser.");
-    return null;
-  }
-
-  const context = new AudioContextClass();
-  const oscillator = context.createOscillator();
-  const filter = context.createBiquadFilter();
-  const gain = context.createGain();
-
-  oscillator.type = "sawtooth";
-  filter.type = "lowpass";
-  gain.gain.value = 0;
-  oscillator.connect(filter);
-  filter.connect(gain);
-  gain.connect(context.destination);
-  oscillator.start();
-
-  audioEngine = { context, oscillator, filter, gain };
-  applyAudioParamValues(true);
-  return audioEngine;
 }
 
 async function toggleAudio() {
-  const engine = ensureAudioEngine();
-  if (!engine) {
-    return;
-  }
-
-  audioEnabled = !audioEnabled;
+  const nextEnabled = !targetController?.isEnabled();
+  await targetController?.setEnabled(nextEnabled);
   updateAudioToggle();
-  applyAudioParamValues(true);
-
-  if (audioEnabled) {
-    try {
-      await engine.context.resume();
-    } catch (error) {
-      audioEnabled = false;
-      updateAudioToggle();
-      applyAudioParamValues(true);
-      setConstraintStatus("The browser blocked audio start.");
-    }
-  } else {
-    await engine.context.suspend();
-  }
 }
 
 function updateAudioToggle() {
-  audioToggleButton.textContent = audioEnabled ? "Sound On" : "Sound Off";
-  audioToggleButton.setAttribute("aria-pressed", String(audioEnabled));
-}
-
-function applyAudioParamValues(immediate = false) {
-  if (!audioEngine) {
-    return;
-  }
-
-  const { context, oscillator, filter, gain } = audioEngine;
-  const time = context.currentTime;
-  const rampTime = immediate ? 0.005 : 0.035;
-  const outputGain = audioEnabled ? audioParamValues["/output/gain"] : 0;
-
-  setAudioParam(oscillator.frequency, audioParamValues["/osc/freq"], time, rampTime);
-  setAudioParam(filter.frequency, audioParamValues["/filter/frequency"], time, rampTime);
-  setAudioParam(filter.Q, audioParamValues["/filter/q"], time, rampTime);
-  setAudioParam(gain.gain, outputGain, time, rampTime);
-}
-
-function setAudioParam(param, value, time, rampTime) {
-  param.cancelScheduledValues(time);
-  param.setTargetAtTime(value, time, rampTime);
+  const enabled = Boolean(targetController?.isEnabled());
+  audioToggleButton.textContent = enabled ? "Sound On" : "Sound Off";
+  audioToggleButton.setAttribute("aria-pressed", String(enabled));
 }
 
 function drawAudioMappingCues(ctx) {
@@ -2773,6 +2826,17 @@ function findEntityAt(x, y) {
   return null;
 }
 
+function findDoubleClickEntityAt(x, y) {
+  for (const mover of movingObjects) {
+    const trajectoryType = mover.trajectory?.type;
+    if ((trajectoryType === "rotator" || trajectoryType === "shuttle") && mover.isInside(x, y)) {
+      return mover;
+    }
+  }
+
+  return findEntityAt(x, y);
+}
+
 function moveEntity(entity, x, y) {
   const nextX = clamp(x, 0, WIDTH);
   const nextY = clamp(y, 0, HEIGHT);
@@ -3105,7 +3169,7 @@ canvas.addEventListener("pointerleave", () => {
 
 canvas.addEventListener("dblclick", (event) => {
   const { x, y } = getPointerPosition(event);
-  const entity = findEntityAt(x, y);
+  const entity = findDoubleClickEntityAt(x, y);
 
   if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
     openRotationEditor(entity);

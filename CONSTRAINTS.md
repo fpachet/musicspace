@@ -14,7 +14,8 @@ This file lists constraint, trajectory, and mapping types to implement once the 
 - Per-object drawing toggle so listeners, sources, movers, and constraint nodes can leave traces while moving.
 - Patch serialization for moving objects, trajectories, and the new constraint types.
 - Built-in Beatles trajectory study patch that sketches the remixing-with-trajectories use case.
-- Built-in Faust-style control study patch with serialized audio mappings from source features to Web Audio synth parameters.
+- Built-in Faust-style control study patches with serialized audio mappings from source features to Web Audio synth parameters, including subtractive and granular synthesis backends.
+- The current JavaScript code separates the canvas/constraint prototype from generic parameter mapping and target backends.
 
 ## Paper-Backed Core Constraints
 
@@ -178,6 +179,13 @@ In the initial system, trajectories were themselves handled through the constrai
 
 Sources should not only be visual points. Their positions, trajectories, and constraint states should be mappable to real audio sources or arbitrary synthesis/control parameters.
 
+The intended boundary is:
+
+- **MusicSpace engine/UX:** owns entities, constraints, trajectories, propagation, hit testing, selection, editors, and patch state.
+- **Parameter mapping layer:** converts scene features such as `x`, `y`, distance, angle, speed, or constraint error into named parameter values.
+- **Target backends:** receive named parameter values through an independent adapter. Targets should not know about MusicSpace objects or constraints.
+- **Target manifests:** expose parameter ids, defaults, ranges, labels, units, scaling, and smoothing. Faust, Web Audio, MIDI, OSC, and spatial audio should all fit this shape.
+
 ### Audio Source Mapping
 
 - **Acts on:** source, listener, and audio track/player node.
@@ -202,7 +210,7 @@ Sources should not only be visual points. Their positions, trajectories, and con
 - **Acts on:** source, handle, constraint, trajectory, or derived feature.
 - **Goal:** drive arbitrary parameters of a Faust patch.
 - **Examples:** x controls filter cutoff, distance controls reverb send, angle controls modulation index, trace speed controls delay feedback.
-- **Current status:** the patch schema can serialize mappings from source features to Faust-style paths, and the demo applies them to a local Web Audio synth.
+- **Current status:** the patch schema can serialize mappings from source features to target parameter paths, and the demo applies them to local Web Audio synth backends, including a subtractive oscillator/filter and a granular cloud.
 - **Implementation note:** each mapping needs source expression, target parameter path, range transform, smoothing, and update rate. Treat compiled Faust DSP as one target backend in a generic parameter-mapping system.
 
 ### Derived Feature Mapping

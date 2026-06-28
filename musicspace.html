@@ -357,12 +357,7 @@
     </div>
     <section id="audio-panel" class="audio-panel" aria-label="Audio parameter monitor" hidden>
       <h2>Faust Patch Control</h2>
-      <div class="audio-grid">
-        <div class="audio-param"><span>/osc/freq</span><output id="audio-freq">--</output></div>
-        <div class="audio-param"><span>/filter/frequency</span><output id="audio-cutoff">--</output></div>
-        <div class="audio-param"><span>/filter/q</span><output id="audio-q">--</output></div>
-        <div class="audio-param"><span>/output/gain</span><output id="audio-gain">--</output></div>
-      </div>
+      <div id="audio-grid" class="audio-grid"></div>
     </section>
     <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
       <h2>Rotative Constraint Editor</h2>
@@ -434,6 +429,8 @@
       </div>
     </section>
   </main>
+  <script src="musicspace-mapping.js"></script>
+  <script src="musicspace-targets.js"></script>
   <script src="musicspace.js"></script>
 </body>
 </html>

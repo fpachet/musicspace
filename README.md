@@ -2,7 +2,7 @@
 
 A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
 
-The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, a Web Audio-backed Faust-style control patch, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, Web Audio-backed Faust-style control patches, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -61,11 +61,14 @@ npm run check
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 - **Faust Control Study** maps constrained source motion to Faust-style parameters: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The current backend is a self-contained Web Audio oscillator and resonant low-pass filter, so it runs without a Faust compiler.
+- **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 
 ## Repository Layout
 
 - `musicspace.html` contains the static page structure and styling.
 - `musicspace.js` contains the canvas entities, constraints, drawing, interaction, and animation logic.
+- `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
+- `musicspace-targets.js` contains independent target backends, currently Web Audio subtractive and granular examples.
 - `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
 - `TODO.md` tracks likely next steps for the prototype.
 - `LICENSE` contains the MIT license.
@@ -93,8 +96,9 @@ npm run check
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
-- Built-in Faust-style parameter mapping example with live Web Audio output.
+- Built-in Faust-style parameter mapping examples with live Web Audio output, including oscillator/filter and granular synthesis studies.
 - Trace export for animated source and mover motion.
+- A first separation between MusicSpace scene logic, generic parameter mapping, and independent target backends.
 - A compact codebase intended for experimentation with spatialization controls.
 
 ## Authors
