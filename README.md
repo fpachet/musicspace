@@ -1,8 +1,8 @@
 # MusicSpace
 
-A JavaScript prototype of the MusicSpace interface idea: sources are represented as 2D objects in a canvas, and constraints between them propagate source movements in real time.
+A browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; editing one object propagates through the active constraint graph in real time.
 
-The current demo has a listener, sound sources, moving trajectory objects, rotative objects, draggable constraint nodes, built-in patches, listener drag modes, JSON patch import/export, optional trace drawing, click-to-create tools, generic parameter-target control patches, MIDI/MusicXML sequence spatialization, and several prototype constraints including angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+MusicSpace now includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -108,9 +108,9 @@ npm run check
 
 ## Features
 
-- Static browser demo with no runtime dependencies.
-- Simple implementation of visual constraint propagation.
-- JSON patch loading and saving.
+- Browser-based MusicSpace workbench with no build step or runtime dependencies.
+- Deterministic local constraint propagation with residual diagnostics for unsatisfied graphs.
+- Versioned JSON patch loading, saving, inspection, editing, and validation.
 - Canvas palette for creating sources, movers, constraints, and trajectory assignments.
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
@@ -119,7 +119,7 @@ npm run check
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.
-- A compact codebase intended for experimentation with spatialization controls.
+- A compact codebase intended for continued experimentation with constraint-based spatialization controls.
 
 ## Authors
 
