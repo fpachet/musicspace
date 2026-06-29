@@ -63,8 +63,8 @@ npm run check
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
-- **Jazz Trio MIDI Spatializer** loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
-- **Faust Control Study** maps constrained source motion to Faust-style parameters: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The current backend is a self-contained Web Audio oscillator and resonant low-pass filter, so it runs without a Faust compiler.
+- **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
+- **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
 - **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 
 ## Repository Layout
@@ -77,11 +77,12 @@ npm run check
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.
 - `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.
+- `targets/faust/` contains Faust target source/adapter files referenced by Faust patch JSON.
 - `schemas/musicspace-patch.schema.json` documents the patch JSON format.
 - `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.
 - `PATCH_FORMAT.md` explains how to author and register patch JSON files.
+- `TARGET_BACKENDS.md` describes Web Audio, Faust WebAssembly, MIDI, OSC, and other parameterized clients.
 - `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.
-- `TARGET_BACKENDS.md` describes the backend contract for Web Audio, Faust, MIDI, OSC, and other parameterized clients.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
 - `CONSTRAINTS.md` describes the planned constraint, trajectory, patch, backoff, and audio/parameter mapping roadmap.
 - `TODO.md` tracks likely next steps for the prototype.

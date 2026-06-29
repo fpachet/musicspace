@@ -4,7 +4,7 @@
   "private": true,
   "description": "A static JavaScript prototype of the MusicSpace constraint-based spatialization interface.",
   "scripts": {
-    "check": "node --check musicspace-mapping.js && node --check musicspace-targets.js && node --check musicspace-parameter-client.js && node --check musicspace-midi-file-client.js && node --check musicspace.js",
+    "check": "node --check musicspace-mapping.js && node --check musicspace-targets.js && node --check musicspace-parameter-client.js && node --check musicspace-midi-file-client.js && node --check musicspace.js && node --check targets/faust/faust-control-study-adapter.js",
     "serve": "python3 -m http.server 8000"
   }
 }

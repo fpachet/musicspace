@@ -49,6 +49,9 @@
       "maxDistance": 220
     }
   ],
+  "target": {
+    "type": "midi-file"
+  },
   "midiFile": {
     "url": "Midifiles/triojazz.mid",
     "preferredMode": "internal",

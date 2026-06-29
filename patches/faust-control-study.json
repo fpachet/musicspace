@@ -122,6 +122,40 @@
       ]
     }
   ],
+  "target": {
+    "type": "faust-wasm",
+    "name": "Faust Control Study",
+    "module": "targets/faust/faust-control-study-adapter.js",
+    "dsp": "targets/faust/faust-control-study.dsp",
+    "parameters": {
+      "/osc/freq": {
+        "default": 220,
+        "min": 110,
+        "max": 880,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/filter/frequency": {
+        "default": 1600,
+        "min": 250,
+        "max": 4200,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/filter/q": {
+        "default": 2,
+        "min": 0.5,
+        "max": 18,
+        "digits": 2
+      },
+      "/output/gain": {
+        "default": 0.12,
+        "min": 0,
+        "max": 0.3,
+        "digits": 2
+      }
+    }
+  },
   "parameterMappings": [
     {
       "source": "Freq",

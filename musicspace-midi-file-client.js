@@ -439,6 +439,7 @@
       listener,
       sources,
       constraints: sources.length >= 2 ? [{ type: "sum", sources: sources.map((source) => source.name) }] : [],
+      target: { type: "midi-file" },
       midiFile: {
         name: fileName,
         preferredMode: "internal",

@@ -54,12 +54,53 @@ Only `type` and `createRuntime` are mandatory, but useful backends should provid
 
 - `subtractive`: a local Web Audio sawtooth oscillator through a resonant low-pass filter.
 - `granular`: a local Web Audio granular cloud with filter, compressor, and output gain.
+- `midi-file`: MIDI/MusicXML sequence-file playback handled by the MIDI file client.
+- `faust-wasm`: a patch-provided Faust WebAssembly target loaded through an adapter module.
 
-Both expose Faust-style parameter paths, but neither is currently compiled from a Faust patch.
+The Web Audio examples expose Faust-style parameter paths, but they are not compiled from Faust patches. `faust-wasm` is the bridge for actual Faust artifacts.
+
+## Patch-Level Faust Binding
+
+A patch specifies the actual Faust target in its `target` object:
+
+```json
+{
+  "target": {
+    "type": "faust-wasm",
+    "name": "Freeverb",
+    "module": "targets/faust/freeverb-adapter.js",
+    "wasm": "targets/faust/freeverb.wasm",
+    "json": "targets/faust/freeverb.json",
+    "dsp": "targets/faust/freeverb.dsp",
+    "parameters": {
+      "/freeverb/roomSize": { "default": 0.5, "min": 0, "max": 1 },
+      "/freeverb/damp": { "default": 0.5, "min": 0, "max": 1 },
+      "/freeverb/output": { "default": 0.2, "min": 0, "max": 1 }
+    }
+  }
+}
+```
+
+The adapter module must export `createFaustNode(context, target)` or a default factory. MusicSpace resolves `wasm`, `json`, and `metadata` URLs before passing the target object to the adapter. A `dsp` source path can also be provided for documentation or adapter-specific compilation workflows. The factory returns either an `AudioNode` with `setParamValue(path, value)`, or an object with `node`/`output`, `setParamValue`, and optional `destroy`/`dispose`.
+
+`parameterMappings` then map MusicSpace features to the Faust parameter addresses exposed by that target.
 
 ## MIDI File Client
 
-The Jazz Trio demo and user-loaded sequence files use a separate MIDI/MusicXML client rather than the generic target backend registry. That client owns MIDI parsing, MusicXML/MXL conversion, transport, note scheduling, Web MIDI output, and a small internal Web Audio synth. MusicSpace still only supplies source/listener geometry.
+The Jazz Trio demo and user-loaded sequence files declare `target.type: "midi-file"` and use a separate `midiFile` block for sequence details. The target type makes the patch-level backend binding explicit, while the MIDI/MusicXML client owns MIDI parsing, MusicXML/MXL conversion, transport, note scheduling, Web MIDI output, and a small internal Web Audio synth. MusicSpace still only supplies source/listener geometry.
+
+```json
+{
+  "target": { "type": "midi-file" },
+  "midiFile": {
+    "url": "Midifiles/triojazz.mid",
+    "preferredMode": "internal",
+    "trackBindings": [
+      { "track": "Bass", "source": "Bass", "channel": 2, "program": 33 }
+    ]
+  }
+}
+```
 
 ```text
 MIDI/MusicXML client
@@ -75,11 +116,11 @@ When external Web MIDI playback stops, the client sends sustain-off, all-sound-o
 
 ## Faust Direction
 
-A Faust backend should become another registered target backend, not a special case in MusicSpace core.
+The Faust backend is a registered target backend, not a special case in MusicSpace core.
 
 The Faust integration can work in two phases:
 
 - **Introspection:** compile or inspect a Faust patch, then extract slider/button metadata, parameter paths, ranges, units, defaults, groups, and annotations.
-- **Runtime:** instantiate the compiled DSP and implement `apply()` by calling the Faust parameter setter for each mapped path.
+- **Runtime:** instantiate the compiled DSP through the patch-provided adapter module and call the Faust parameter setter for each mapped path.
 
 The generated target manifest can then seed MusicSpace mappings and suggested constraints, while still allowing the user to edit the controller scene.

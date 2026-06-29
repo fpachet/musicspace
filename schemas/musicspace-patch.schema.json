@@ -57,7 +57,44 @@
     },
     "target": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string",
+          "description": "For faust-wasm targets, an ES module exporting createFaustNode(context, target) or a default factory."
+        },
+        "wasm": {
+          "type": "string",
+          "description": "Compiled Faust WebAssembly artifact passed to the Faust adapter module."
+        },
+        "json": {
+          "type": "string",
+          "description": "Faust UI/metadata JSON artifact passed to the Faust adapter module."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Alternative Faust metadata JSON artifact path."
+        },
+        "dsp": {
+          "type": "string",
+          "description": "Optional source Faust DSP path for documentation/introspection workflows."
+        },
+        "parameters": {
+          "$ref": "#/$defs/targetParameters"
+        },
+        "params": {
+          "$ref": "#/$defs/targetParameters"
+        },
+        "defaults": {
+          "$ref": "#/$defs/targetParameters"
+        }
+      }
     },
     "parameterMappings": {
       "type": "array",
@@ -79,7 +116,52 @@
     },
     "midiFile": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": true,
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "preferredMode": {
+          "enum": ["internal", "external"]
+        },
+        "trackBindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source"],
+            "additionalProperties": true,
+            "properties": {
+              "track": {
+                "type": "string"
+              },
+              "trackIndex": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "source": {
+                "$ref": "#/$defs/entityName"
+              },
+              "channel": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "program": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "isDrums": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "sequenceData": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
     }
   },
   "$defs": {
@@ -89,6 +171,52 @@
     "entityName": {
       "type": "string",
       "minLength": 1
+    },
+    "targetParameters": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "#/$defs/targetParameterConfig" }
+            ]
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/targetParameterConfig" },
+              {
+                "type": "object",
+                "anyOf": [
+                  { "required": ["path"] },
+                  { "required": ["address"] }
+                ],
+                "properties": {
+                  "path": { "type": "string" },
+                  "address": { "type": "string" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "targetParameterConfig": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "default": { "type": "number" },
+        "init": { "type": "number" },
+        "value": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "unit": { "type": "string" },
+        "suffix": { "type": "string" },
+        "digits": { "type": "integer" }
+      }
     },
     "traceable": {
       "type": "object",
