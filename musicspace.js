@@ -60,6 +60,9 @@ const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
 const MAX_PROPAGATION_STEPS = 96;
 const MAX_ENTITY_PROPAGATION_COUNT = 8;
+const ANGLE_EPSILON = 0.01;
+const RATIO_EPSILON = 0.01;
+const RELATIVE_PRODUCT_EPSILON = 0.001;
 const TOOL_SELECT = "select";
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
@@ -277,6 +280,19 @@ class AngleConstraint {
       Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
   }
 
+  affectedEntities() {
+    return [this.listener, this.a, this.b];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.abs(normalizeAngle(this.computeAngle() - this.angle)),
+      tolerance: ANGLE_EPSILON,
+      unit: "rad"
+    };
+  }
+
   refresh() {
     this.angle = this.computeAngle();
     this.updateNode();
@@ -339,6 +355,19 @@ class SumConstraint {
 
   distanceToListener(source) {
     return Math.hypot(source.x - this.listener.x, source.y - this.listener.y);
+  }
+
+  affectedEntities() {
+    return [this.listener, ...this.sources];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.abs(this.computeTotalDistance() - this.totalDistance),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
   }
 
   refresh() {
@@ -407,6 +436,19 @@ class ProductConstraint {
     return Math.max(MIN_DISTANCE, Math.hypot(source.x - this.listener.x, source.y - this.listener.y));
   }
 
+  affectedEntities() {
+    return [this.listener, ...this.sources];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.abs(this.computeProduct() - this.product) / Math.max(1, Math.abs(this.product)),
+      tolerance: RELATIVE_PRODUCT_EPSILON,
+      unit: "relative"
+    };
+  }
+
   refresh() {
     this.product = this.computeProduct();
   }
@@ -463,6 +505,20 @@ class RadialLimitConstraint {
     this.updateNode();
   }
 
+  affectedEntities() {
+    return [this.listener, this.source];
+  }
+
+  measureError() {
+    const distance = distanceBetween(this.source, this.listener);
+    return {
+      label: this.node.label,
+      error: Math.max(0, this.minDistance - distance, distance - this.maxDistance),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
+  }
+
   updateNode() {
     if (!this.node.isManual) {
       this.node.x = (this.listener.x + this.source.x) / 2;
@@ -513,6 +569,19 @@ class FixedDistanceConstraint {
     this.updateNode();
   }
 
+  affectedEntities() {
+    return [this.anchor, this.target];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.abs(distanceBetween(this.anchor, this.target) - this.distance),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
+  }
+
   updateNode() {
     if (!this.node.isManual) {
       this.node.x = (this.anchor.x + this.target.x) / 2;
@@ -557,6 +626,20 @@ class DistanceRatioConstraint {
   refresh() {
     this.ratio = distanceBetween(this.a, this.listener) / distanceBetween(this.b, this.listener);
     this.updateNode();
+  }
+
+  affectedEntities() {
+    return [this.listener, this.a, this.b];
+  }
+
+  measureError() {
+    const currentRatio = distanceBetween(this.a, this.listener) / Math.max(MIN_DISTANCE, distanceBetween(this.b, this.listener));
+    return {
+      label: this.node.label,
+      error: Math.abs(currentRatio - this.ratio),
+      tolerance: RATIO_EPSILON,
+      unit: "ratio"
+    };
   }
 
   updateNode() {
@@ -606,6 +689,19 @@ class PinConstraint {
     this.updateNode();
   }
 
+  affectedEntities() {
+    return [this.target];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.hypot(this.target.x - this.fixedX, this.target.y - this.fixedY),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
+  }
+
   updateNode() {
     if (!this.node.isManual) {
       this.node.x = this.target.x + 34;
@@ -646,6 +742,22 @@ class SolidAttachmentConstraint {
     this.offsetX = this.attached.x - this.carrier.x;
     this.offsetY = this.attached.y - this.carrier.y;
     this.updateNode();
+  }
+
+  affectedEntities() {
+    return [this.carrier, this.attached];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.hypot(
+        this.attached.x - this.carrier.x - this.offsetX,
+        this.attached.y - this.carrier.y - this.offsetY
+      ),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
   }
 
   updateNode() {
@@ -711,6 +823,19 @@ class MinimumSeparationConstraint {
     this.updateNode();
   }
 
+  affectedEntities() {
+    return [this.a, this.b];
+  }
+
+  measureError() {
+    return {
+      label: this.node.label,
+      error: Math.max(0, this.minDistance - distanceBetween(this.a, this.b)),
+      tolerance: CONSTRAINT_EPSILON,
+      unit: "px"
+    };
+  }
+
   updateNode() {
     if (!this.node.isManual) {
       this.node.x = (this.a.x + this.b.x) / 2;
@@ -762,6 +887,21 @@ class AngleSectorConstraint {
   refresh() {
     this.centerAngle = Math.atan2(this.source.y - this.listener.y, this.source.x - this.listener.x);
     this.updateNode();
+  }
+
+  affectedEntities() {
+    return [this.listener, this.source];
+  }
+
+  measureError() {
+    const angle = Math.atan2(this.source.y - this.listener.y, this.source.x - this.listener.x);
+    const delta = normalizeAngle(angle - this.centerAngle);
+    return {
+      label: this.node.label,
+      error: Math.max(0, Math.abs(delta) - this.width / 2),
+      tolerance: ANGLE_EPSILON,
+      unit: "rad"
+    };
   }
 
   updateNode() {
@@ -824,6 +964,7 @@ let isAnimating = false;
 let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = null;
+let lastPropagationReport = null;
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   toggleButton: targetToggleButton,
@@ -965,6 +1106,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
+  lastPropagationReport = null;
   pendingToolEntities = [];
   activeRotationMover = null;
   activeShuttleMover = null;
@@ -1341,6 +1483,7 @@ function drawAll() {
   for (const constraint of constraints) {
     constraint.draw(ctx);
   }
+  drawConstraintDiagnostics(ctx);
 
   drawParameterMappingCues(ctx);
 
@@ -1388,6 +1531,21 @@ function drawConnector(ctx, from, to, color) {
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
   ctx.stroke();
+}
+
+function drawConstraintDiagnostics(ctx) {
+  const residuals = lastPropagationReport?.residuals || measureConstraintResiduals();
+  for (const residual of residuals) {
+    const node = residual.constraint.node;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.radius + 6, 0, Math.PI * 2);
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawMoverTrajectory(ctx, mover) {
@@ -1809,7 +1967,9 @@ function enforceConstraints(moved) {
   const queue = [];
   const queuedEntities = new Set();
   const processCounts = new Map();
+  const movedEntities = new Set();
   let propagationSteps = 0;
+  let hitEntityCap = false;
 
   enqueuePropagationEntity(moved, queue, queuedEntities, processCounts);
 
@@ -1819,9 +1979,11 @@ function enforceConstraints(moved) {
 
     const processCount = processCounts.get(currentMoved) || 0;
     if (processCount >= MAX_ENTITY_PROPAGATION_COUNT) {
+      hitEntityCap = true;
       continue;
     }
     processCounts.set(currentMoved, processCount + 1);
+    movedEntities.add(currentMoved);
     propagationSteps += 1;
 
     for (const constraint of constraints) {
@@ -1838,7 +2000,15 @@ function enforceConstraints(moved) {
     }
   }
 
-  setConstraintStatus(messages[0] || "");
+  lastPropagationReport = createPropagationReport({
+    hitEntityCap: hitEntityCap || [...processCounts.values()].some((count) => count >= MAX_ENTITY_PROPAGATION_COUNT),
+    hitStepCap: queue.length > 0,
+    messages,
+    movedEntities: [...movedEntities],
+    processCounts,
+    propagationSteps
+  });
+  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
 }
 
 function enqueuePropagationEntity(entity, queue, queuedEntities, processCounts, currentMoved = null) {
@@ -1854,10 +2024,101 @@ function enqueuePropagationEntity(entity, queue, queuedEntities, processCounts, 
   queuedEntities.add(entity);
 }
 
+function createPropagationReport({ hitEntityCap, hitStepCap, messages, movedEntities, processCounts, propagationSteps }) {
+  const residuals = measureConstraintResiduals();
+
+  return {
+    hitEntityCap,
+    hitStepCap,
+    messages,
+    movedEntities,
+    processCounts,
+    propagationSteps,
+    residuals,
+    satisfied: residuals.length === 0 && !hitEntityCap && !hitStepCap
+  };
+}
+
+function measureConstraintResiduals() {
+  return constraints
+    .map((constraint) => ({
+      constraint,
+      measurement: normalizeConstraintMeasurement(constraint)
+    }))
+    .filter(({ measurement }) => measurement.error > measurement.tolerance);
+}
+
+function normalizeConstraintMeasurement(constraint) {
+  const measurement = constraint.measureError?.() || {
+    error: 0,
+    label: constraint.node?.label || "Constraint",
+    tolerance: CONSTRAINT_EPSILON,
+    unit: "px"
+  };
+
+  return {
+    error: Number.isFinite(measurement.error) ? measurement.error : Number.POSITIVE_INFINITY,
+    label: measurement.label || constraint.node?.label || "Constraint",
+    tolerance: measurement.tolerance ?? CONSTRAINT_EPSILON,
+    unit: measurement.unit || ""
+  };
+}
+
+function formatPropagationStatus(report) {
+  const statusParts = [...report.messages];
+
+  if (report.hitStepCap) {
+    statusParts.push(`Propagation stopped after ${MAX_PROPAGATION_STEPS} steps.`);
+  } else if (report.hitEntityCap) {
+    statusParts.push(`Propagation capped one entity after ${MAX_ENTITY_PROPAGATION_COUNT} passes.`);
+  }
+
+  if (report.residuals.length > 0) {
+    const residual = report.residuals[0].measurement;
+    const suffix = report.residuals.length > 1 ? ` (+${report.residuals.length - 1} more)` : "";
+    statusParts.push(`${residual.label} residual ${formatConstraintError(residual)}${suffix}.`);
+  }
+
+  return statusParts.join(" ");
+}
+
+function formatConstraintError(measurement) {
+  const roundedError = measurement.error >= 10
+    ? measurement.error.toFixed(1)
+    : measurement.error.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  const roundedTolerance = measurement.tolerance >= 10
+    ? measurement.tolerance.toFixed(1)
+    : measurement.tolerance.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  const unit = measurement.unit ? ` ${measurement.unit}` : "";
+  return `${roundedError}${unit} > ${roundedTolerance}${unit}`;
+}
+
+function getLastPropagationReport() {
+  if (!lastPropagationReport) {
+    return null;
+  }
+
+  return {
+    hitEntityCap: lastPropagationReport.hitEntityCap,
+    hitStepCap: lastPropagationReport.hitStepCap,
+    messages: [...lastPropagationReport.messages],
+    movedEntities: lastPropagationReport.movedEntities.map(entityLabel),
+    propagationSteps: lastPropagationReport.propagationSteps,
+    residuals: lastPropagationReport.residuals.map(({ measurement }) => ({
+      error: measurement.error,
+      label: measurement.label,
+      tolerance: measurement.tolerance,
+      unit: measurement.unit
+    })),
+    satisfied: lastPropagationReport.satisfied
+  };
+}
+
 function refreshConstraints() {
   for (const constraint of constraints) {
     constraint.refresh();
   }
+  lastPropagationReport = null;
   setConstraintStatus("");
 }
 

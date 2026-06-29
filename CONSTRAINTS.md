@@ -25,6 +25,8 @@ Propagation is intentionally iterative: an entity can be processed more than onc
 
 Constraints that adjust groups, such as `SumConstraint` and `ProductConstraint`, must return every adjusted entity through `movedEntities`. Constraints that adjust a single dependent entity may return `movedEntity`. New constraint types should follow the same reporting convention, otherwise downstream constraints will not see the induced motion.
 
+Each constraint also exposes `affectedEntities()` and `measureError()`. `measureError()` returns a label, residual error, tolerance, and unit; after every propagation pass the engine collects these measurements into a propagation report. Residuals above tolerance are shown in the status line and marked on the canvas with a red diagnostic ring around the corresponding constraint node. `getLastPropagationReport()` returns a sanitized copy of the latest report for browser-console debugging and future regression tests. This makes local propagation failures visible without requiring a full numerical solver.
+
 ## Paper-Backed Core Constraints
 
 ### Balance / Constant Energy
