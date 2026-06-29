@@ -316,7 +316,7 @@ Patches should become the main way to save, share, load, and regression-test Mus
 - **Examples:** soloist zone, accompaniment arc, rear percussion band.
 - **Implementation note:** zones can be circles, annuli, sectors, rectangles, or arbitrary polygons later.
 
-## Engine Requirements Before Implementing Most Of These
+## Engine Capabilities And Roadmap
 
 The currently implemented constraint and propagation semantics are documented in `CONSTRAINT_SEMANTICS.md`.
 
@@ -339,15 +339,29 @@ The currently implemented constraint and propagation semantics are documented in
 
 ## Propagation And Backoff Policy
 
-The original solver was deterministic: a user edit induced recursive propagations through the constraint graph, and failure stopped the edit. We should keep that direct interactive character, but add a bounded repair layer that tries alternate deterministic propagations before giving up.
+The current solver is deterministic: a user edit induces bounded fixed-point propagation through the constraint graph, then reports any remaining residuals. Some constraints already implement local backoff or clamping, such as sum redistribution near `MIN_DISTANCE`, product propagation around radial limits, radial limits, and angle sectors.
+
+The open question is not whether MusicSpace should have any backoff at all; it already does. The question is whether these local policies should be generalized into a transaction/backoff layer that can try alternate deterministic repairs, commit the first satisfying result, or roll back a failed edit. Add that broader layer only if focused fixtures show clear, repeatable cases where the current local propagation fails despite an obvious solution.
 
 ### Design Principle
 
 - Do not use a general-purpose combinatorial constraint solver for normal interaction.
 - Keep propagation local, deterministic, and fast enough for pointer dragging.
+- Extend beyond the existing local backoff rules only when small regression fixtures show repeatable failures where a clear deterministic solution exists.
 - Treat backoff as a small ordered strategy list, not an open-ended search.
 - Prefer predictable behavior over mathematically exhaustive solving.
 - Make failure explicit when all strategies fail.
+
+### TODO: Solvable Failure Fixtures
+
+Before generalizing the existing local backoff rules into a transaction/backoff layer, add regression fixtures that distinguish impossible configurations from solvable local failures. Useful candidates:
+
+- **Angle + pinned dependent:** dragging A breaks an angle constraint whose normal repair moves pinned B; a valid repair may exist by projecting A instead.
+- **Fixed distance + pinned target:** dragging the anchor currently tries to move the pinned target; a valid repair may exist by projecting the anchor onto the stored-distance circle around the target.
+- **Solid chains + pin:** local link propagation may leave residuals even when a rigid placement exists by moving an upstream carrier.
+- **Sum/product + limits:** verify whether existing clamping/backoff covers the musical cases before adding broader solver machinery.
+
+Only promote propagation transactions or per-constraint backoff APIs if these fixtures expose unacceptable interaction failures.
 
 ### Propagation Transaction
 
