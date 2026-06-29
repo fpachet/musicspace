@@ -17,6 +17,14 @@ This file lists constraint, trajectory, and mapping types to implement once the 
 - Built-in Faust-style control study patches with serialized parameter mappings from source features to Web Audio synth parameters, including subtractive and granular synthesis backends.
 - The current JavaScript code separates the canvas/constraint prototype from generic parameter mapping, target-client UI/lifecycle, optional client demo patches, and target backends.
 
+## Constraint Propagation Model
+
+The current demo uses deterministic local propagation rather than a full symbolic constraint solver. A drag or trajectory tick enqueues the moved entity, then each constraint that references it may adjust one or more dependent entities and report those adjusted entities back to the propagation queue.
+
+Propagation is intentionally iterative: an entity can be processed more than once if another constraint moves it later in the same chain. This is necessary for shared-source graphs such as a source that belongs to two `sum` constraints and an `angle` constraint. The queue is bounded by a maximum total step count and a maximum per-entity process count, so cyclic or over-constrained scenes cannot loop forever.
+
+Constraints that adjust groups, such as `SumConstraint` and `ProductConstraint`, must return every adjusted entity through `movedEntities`. Constraints that adjust a single dependent entity may return `movedEntity`. New constraint types should follow the same reporting convention, otherwise downstream constraints will not see the induced motion.
+
 ## Paper-Backed Core Constraints
 
 ### Balance / Constant Energy

@@ -58,6 +58,8 @@ const LISTENER_MODE_PRESERVE = "preserve";
 const MIN_DISTANCE = 2;
 const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
+const MAX_PROPAGATION_STEPS = 96;
+const MAX_ENTITY_PROPAGATION_COUNT = 8;
 const TOOL_SELECT = "select";
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
@@ -364,6 +366,7 @@ class SumConstraint {
     if (Math.abs(remainingError) > CONSTRAINT_EPSILON) {
       return {
         satisfied: false,
+        movedEntities: result.movedEntities,
         message: "Sum constraint reached its limit; source motion was backed off."
       };
     }
@@ -371,11 +374,12 @@ class SumConstraint {
     if (!result.satisfied) {
       return {
         satisfied: true,
+        movedEntities: result.movedEntities,
         message: "Sum constraint used backoff to keep distances non-negative."
       };
     }
 
-    return { satisfied: true };
+    return { satisfied: true, movedEntities: result.movedEntities };
   }
 
   draw(ctx) {
@@ -421,6 +425,7 @@ class ProductConstraint {
     if (error > PRODUCT_EPSILON) {
       return {
         satisfied: false,
+        movedEntities: result.movedEntities,
         message: "Product constraint has no solution within the active limits."
       };
     }
@@ -428,11 +433,12 @@ class ProductConstraint {
     if (result.usedBackoff) {
       return {
         satisfied: true,
+        movedEntities: result.movedEntities,
         message: "Product constraint skipped a limited source and propagated to the remaining sources."
       };
     }
 
-    return { satisfied: true };
+    return { satisfied: true, movedEntities: result.movedEntities };
   }
 
   draw(ctx) {
@@ -1706,6 +1712,7 @@ function getRadialLimitsForSource(source) {
 function distributeDistanceDelta(sourcesToAdjust, totalDelta, anchor) {
   let remainingDelta = totalDelta;
   const activeSources = [...sourcesToAdjust];
+  const movedEntities = new Set();
 
   while (activeSources.length > 0 && Math.abs(remainingDelta) > CONSTRAINT_EPSILON) {
     const share = remainingDelta / activeSources.length;
@@ -1719,6 +1726,7 @@ function distributeDistanceDelta(sourcesToAdjust, totalDelta, anchor) {
 
       if (nextDistance < MIN_DISTANCE) {
         setSourceDistance(source, anchor, MIN_DISTANCE);
+        movedEntities.add(source);
         appliedDelta += MIN_DISTANCE - currentDistance;
         activeSources.splice(index, 1);
         clampedAny = true;
@@ -1729,6 +1737,7 @@ function distributeDistanceDelta(sourcesToAdjust, totalDelta, anchor) {
       for (const source of activeSources) {
         const currentDistance = Math.hypot(source.x - anchor.x, source.y - anchor.y);
         setSourceDistance(source, anchor, currentDistance + share);
+        movedEntities.add(source);
       }
       remainingDelta = 0;
       break;
@@ -1739,12 +1748,14 @@ function distributeDistanceDelta(sourcesToAdjust, totalDelta, anchor) {
 
   return {
     satisfied: Math.abs(remainingDelta) <= CONSTRAINT_EPSILON,
-    remainingDelta
+    remainingDelta,
+    movedEntities: [...movedEntities]
   };
 }
 
 function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
   const activeSources = [...sourcesToAdjust];
+  const movedEntities = new Set();
   let usedBackoff = false;
 
   while (activeSources.length > 0) {
@@ -1756,7 +1767,7 @@ function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
       .reduce((product, source) => product * distanceBetween(source, anchor), 1);
 
     if (targetActiveProduct <= 0 || currentActiveProduct <= 0) {
-      return { satisfied: false, usedBackoff };
+      return { satisfied: false, usedBackoff, movedEntities: [...movedEntities] };
     }
 
     const factor = Math.pow(targetActiveProduct / currentActiveProduct, 1 / activeSources.length);
@@ -1771,6 +1782,7 @@ function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
 
       if (Math.abs(nextDistance - clampedDistance) > CONSTRAINT_EPSILON) {
         setSourceDistance(source, anchor, clampedDistance);
+        movedEntities.add(source);
         activeSources.splice(index, 1);
         clampedAny = true;
         usedBackoff = true;
@@ -1779,40 +1791,67 @@ function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
 
     if (!clampedAny) {
       for (const source of activeSources) {
-        setSourceDistance(source, anchor, distanceBetween(source, anchor) * factor);
+        const currentDistance = distanceBetween(source, anchor);
+        setSourceDistance(source, anchor, currentDistance * factor);
+        if (Math.abs(currentDistance * factor - currentDistance) > CONSTRAINT_EPSILON) {
+          movedEntities.add(source);
+        }
       }
-      return { satisfied: true, usedBackoff };
+      return { satisfied: true, usedBackoff, movedEntities: [...movedEntities] };
     }
   }
 
-  return { satisfied: false, usedBackoff };
+  return { satisfied: false, usedBackoff, movedEntities: [...movedEntities] };
 }
 
 function enforceConstraints(moved) {
   const messages = [];
-  const queue = moved ? [moved] : [];
-  const seenEntities = new Set();
+  const queue = [];
+  const queuedEntities = new Set();
+  const processCounts = new Map();
   let propagationSteps = 0;
 
-  while (queue.length > 0 && propagationSteps < 24) {
+  enqueuePropagationEntity(moved, queue, queuedEntities, processCounts);
+
+  while (queue.length > 0 && propagationSteps < MAX_PROPAGATION_STEPS) {
     const currentMoved = queue.shift();
-    if (seenEntities.has(currentMoved)) {
+    queuedEntities.delete(currentMoved);
+
+    const processCount = processCounts.get(currentMoved) || 0;
+    if (processCount >= MAX_ENTITY_PROPAGATION_COUNT) {
       continue;
     }
-    seenEntities.add(currentMoved);
+    processCounts.set(currentMoved, processCount + 1);
     propagationSteps += 1;
+
     for (const constraint of constraints) {
       const result = constraint.enforce(currentMoved);
       if (result && result.message && !messages.includes(result.message)) {
         messages.push(result.message);
       }
-      if (result && result.movedEntity && result.movedEntity !== currentMoved && !seenEntities.has(result.movedEntity)) {
-        queue.push(result.movedEntity);
+      for (const movedEntity of result?.movedEntities || []) {
+        enqueuePropagationEntity(movedEntity, queue, queuedEntities, processCounts, currentMoved);
+      }
+      if (result?.movedEntity) {
+        enqueuePropagationEntity(result.movedEntity, queue, queuedEntities, processCounts, currentMoved);
       }
     }
   }
 
   setConstraintStatus(messages[0] || "");
+}
+
+function enqueuePropagationEntity(entity, queue, queuedEntities, processCounts, currentMoved = null) {
+  if (!entity || entity === currentMoved || queuedEntities.has(entity)) {
+    return;
+  }
+
+  if ((processCounts.get(entity) || 0) >= MAX_ENTITY_PROPAGATION_COUNT) {
+    return;
+  }
+
+  queue.push(entity);
+  queuedEntities.add(entity);
 }
 
 function refreshConstraints() {

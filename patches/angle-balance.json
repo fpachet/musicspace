@@ -3,24 +3,34 @@
   "key": "angle-balance",
   "name": "Angle + Balance",
   "listener": {
-    "x": 400,
-    "y": 300
+    "x": 308,
+    "y": 246
   },
   "sources": [
     {
       "name": "A",
-      "x": 300,
-      "y": 200
+      "x": 307,
+      "y": 128
     },
     {
       "name": "B",
-      "x": 400,
-      "y": 200
+      "x": 377,
+      "y": 180
     },
     {
       "name": "C",
-      "x": 350,
-      "y": 300
+      "x": 380,
+      "y": 296
+    },
+    {
+      "name": "D",
+      "x": 233,
+      "y": 189
+    },
+    {
+      "name": "E",
+      "x": 209,
+      "y": 286
     }
   ],
   "constraints": [
@@ -29,7 +39,25 @@
       "sources": [
         "A",
         "B"
-      ]
+      ],
+      "node": {
+        "x": 476,
+        "y": 78,
+        "isManual": true
+      }
+    },
+    {
+      "type": "sum",
+      "sources": [
+        "A",
+        "D",
+        "E"
+      ],
+      "node": {
+        "x": 35,
+        "y": 137,
+        "isManual": true
+      }
     },
     {
       "type": "sum",
@@ -37,7 +65,12 @@
         "A",
         "B",
         "C"
-      ]
+      ],
+      "node": {
+        "x": 583,
+        "y": 220,
+        "isManual": true
+      }
     }
   ],
   "version": 1
