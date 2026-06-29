@@ -30,6 +30,8 @@ When a patch is loaded, these stored values come either from serialized fields o
 
 `enforceConstraints(moved)` preserves stored constraint values. It starts from the moved entity and propagates repairs through constraints.
 
+Holding Shift during a drag pauses propagation. The dragged entity moves, residuals are reported, and dependent objects are left in place. When the drag ends, constraints are refreshed against the paused layout so the next unpaused edit continues from the tuned geometry instead of snapping back to the previous invariant state.
+
 The listener has two drag modes:
 
 - **Re-anchor:** moving the listener refreshes constraints to the new listener geometry.

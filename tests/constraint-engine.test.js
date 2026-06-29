@@ -157,6 +157,7 @@ globalThis.__musicspaceTestApi = {
   loadPatch,
   measureConstraintResiduals,
   moveEntity,
+  resumePropagationAfterPausedDrag,
   serializePatch
 };`;
   vm.runInContext(exposedSource, sandbox, { filename: "musicspace.js" });
@@ -167,10 +168,10 @@ globalThis.__musicspaceTestApi = {
     loadPatch(patch) {
       api.loadPatch(JSON.parse(JSON.stringify(patch)), { clearUndo: true, preserveAsActive: true });
     },
-    move(name, x, y) {
+    move(name, x, y, options) {
       const entity = api.getObjectByName(name);
       assert.ok(entity, `Expected entity ${name} to exist`);
-      api.moveEntity(entity, x, y);
+      api.moveEntity(entity, x, y, options);
       return api.getLastPropagationReport();
     },
     point(name) {
@@ -180,6 +181,9 @@ globalThis.__musicspaceTestApi = {
     },
     report() {
       return api.getLastPropagationReport();
+    },
+    resumePropagationAfterPausedDrag() {
+      api.resumePropagationAfterPausedDrag();
     },
     residuals() {
       return api.measureConstraintResiduals().map(({ measurement }) => measurement);
@@ -234,6 +238,43 @@ test("shared sum and angle graph propagates through the shared source", () => {
   assert.ok(report.movedEntities.includes("A"), "shared source A should be propagated");
   assert.ok(distance(beforeB, afterB) > 1, "B should move after D pulls on shared A");
   assert.ok(distance(beforeC, afterC) > 1, "C should move after D pulls on shared A");
+});
+
+test("shift-style paused movement skips propagation and reports residuals", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch(loadFixturePatch("angle-balance.json"));
+  const beforeB = engine.point("B");
+  const beforeC = engine.point("C");
+
+  const report = engine.move("D", 165, 147, { skipPropagation: true });
+  const afterB = engine.point("B");
+  const afterC = engine.point("C");
+
+  assert.equal(report.propagationPaused, true);
+  assert.equal(report.satisfied, false);
+  assert.equal(report.propagationSteps, 0);
+  assert.ok(report.residuals.length > 0);
+  assert.deepEqual(afterB, beforeB);
+  assert.deepEqual(afterC, beforeC);
+});
+
+test("resuming after paused movement retargets constraints before normal propagation", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch(loadFixturePatch("angle-balance.json"));
+
+  engine.move("D", 165, 147, { skipPropagation: true });
+  const shiftedB = engine.point("B");
+  const shiftedC = engine.point("C");
+  engine.resumePropagationAfterPausedDrag();
+
+  const report = engine.move("D", 166, 148);
+  const afterB = engine.point("B");
+  const afterC = engine.point("C");
+
+  assert.equal(report.propagationPaused, false);
+  assert.equal(report.hitStepCap, false);
+  assert.ok(distance(shiftedB, afterB) < 8, "B should not jump back to the pre-pause constraint state");
+  assert.ok(distance(shiftedC, afterC) < 8, "C should not jump back to the pre-pause constraint state");
 });
 
 test("product constraint and radial limits can back off without residuals", () => {

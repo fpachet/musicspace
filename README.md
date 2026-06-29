@@ -39,6 +39,7 @@ npm run check
   - **Re-anchor** moves the listener and retargets constraints to the new geometry.
   - **Preserve** moves the listener while preserving active constraints.
 - Drag the listener, sources, movers, or constraint nodes on the canvas.
+- Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.

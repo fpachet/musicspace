@@ -965,6 +965,7 @@ let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = null;
 let lastPropagationReport = null;
+let propagationPaused = false;
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   toggleButton: targetToggleButton,
@@ -1107,6 +1108,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   selectedEntity = listener;
   hoveredEntity = null;
   lastPropagationReport = null;
+  propagationPaused = false;
   pendingToolEntities = [];
   activeRotationMover = null;
   activeShuttleMover = null;
@@ -1503,6 +1505,10 @@ function drawAll() {
   if (selectedEntity) {
     drawSelection(ctx, selectedEntity);
   }
+
+  if (propagationPaused) {
+    drawPropagationPausedBadge(ctx);
+  }
 }
 
 function drawGrid(ctx) {
@@ -1546,6 +1552,28 @@ function drawConstraintDiagnostics(ctx) {
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function drawPropagationPausedBadge(ctx) {
+  const width = 248;
+  const height = 34;
+  const x = WIDTH - width - 18;
+  const y = 18;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.fillStyle = "rgba(17, 24, 39, 0.9)";
+  ctx.fill();
+  ctx.strokeStyle = "#f59e0b";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 13px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Shift: propagation paused", x + 12, y + height / 2);
+  ctx.restore();
 }
 
 function drawMoverTrajectory(ctx, mover) {
@@ -2024,7 +2052,15 @@ function enqueuePropagationEntity(entity, queue, queuedEntities, processCounts, 
   queuedEntities.add(entity);
 }
 
-function createPropagationReport({ hitEntityCap, hitStepCap, messages, movedEntities, processCounts, propagationSteps }) {
+function createPropagationReport({
+  hitEntityCap,
+  hitStepCap,
+  messages,
+  movedEntities,
+  processCounts,
+  propagationPaused = false,
+  propagationSteps
+}) {
   const residuals = measureConstraintResiduals();
 
   return {
@@ -2033,9 +2069,10 @@ function createPropagationReport({ hitEntityCap, hitStepCap, messages, movedEnti
     messages,
     movedEntities,
     processCounts,
+    propagationPaused,
     propagationSteps,
     residuals,
-    satisfied: residuals.length === 0 && !hitEntityCap && !hitStepCap
+    satisfied: residuals.length === 0 && !hitEntityCap && !hitStepCap && !propagationPaused
   };
 }
 
@@ -2103,6 +2140,7 @@ function getLastPropagationReport() {
     hitStepCap: lastPropagationReport.hitStepCap,
     messages: [...lastPropagationReport.messages],
     movedEntities: lastPropagationReport.movedEntities.map(entityLabel),
+    propagationPaused: lastPropagationReport.propagationPaused,
     propagationSteps: lastPropagationReport.propagationSteps,
     residuals: lastPropagationReport.residuals.map(({ measurement }) => ({
       error: measurement.error,
@@ -2118,6 +2156,7 @@ function refreshConstraints() {
   for (const constraint of constraints) {
     constraint.refresh();
   }
+  propagationPaused = false;
   lastPropagationReport = null;
   setConstraintStatus("");
 }
@@ -2641,19 +2680,43 @@ function handleEntityDoubleClick(entity) {
   return false;
 }
 
-function moveEntity(entity, x, y) {
+function moveEntity(entity, x, y, { skipPropagation = false } = {}) {
   const nextX = clamp(x, 0, WIDTH);
   const nextY = clamp(y, 0, HEIGHT);
   translateEntity(entity, nextX - entity.x, nextY - entity.y);
 
-  if (entity === listener && listenerMode === LISTENER_MODE_RETARGET) {
+  if (skipPropagation) {
+    pausePropagation(entity);
+  } else if (entity === listener && listenerMode === LISTENER_MODE_RETARGET) {
+    propagationPaused = false;
     refreshConstraints();
   } else {
+    propagationPaused = false;
     enforceConstraints(entity);
   }
 
   drawTracesForChangedEntities();
   drawAll();
+}
+
+function pausePropagation(entity) {
+  propagationPaused = true;
+  lastPropagationReport = createPropagationReport({
+    hitEntityCap: false,
+    hitStepCap: false,
+    messages: ["Propagation paused (Shift). Constraints are not being enforced."],
+    movedEntities: entity ? [entity] : [],
+    processCounts: new Map(),
+    propagationPaused: true,
+    propagationSteps: 0
+  });
+  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
+}
+
+function resumePropagationAfterPausedDrag() {
+  propagationPaused = false;
+  refreshConstraints();
+  setConstraintStatus("Propagation resumed; constraints retargeted to paused positions.");
 }
 
 function setConstraintStatus(message) {
@@ -2924,7 +2987,8 @@ function beginDrag(event) {
     startX: x,
     startY: y,
     doubleClickEntity,
-    didSnapshot: false
+    didSnapshot: false,
+    skipPropagation: false
   };
   stage.classList.add("is-dragging");
   canvas.style.cursor = "grabbing";
@@ -2953,7 +3017,8 @@ function continueDrag(event) {
     }
     dragged.didSnapshot = true;
   }
-  moveEntity(dragged.entity, x - dragged.offsetX, y - dragged.offsetY);
+  dragged.skipPropagation = dragged.skipPropagation || event.shiftKey;
+  moveEntity(dragged.entity, x - dragged.offsetX, y - dragged.offsetY, { skipPropagation: dragged.skipPropagation });
 }
 
 function endDrag(event) {
@@ -2965,6 +3030,7 @@ function endDrag(event) {
   const wasClick = !dragged.didSnapshot;
   const startX = dragged.startX;
   const startY = dragged.startY;
+  const wasPropagationPaused = propagationPaused;
 
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
@@ -2984,6 +3050,14 @@ function endDrag(event) {
     lastCanvasClick = null;
   }
   updateHoverState(findEntityAt(x, y));
+  if (wasPropagationPaused) {
+    resumePropagationAfterPausedDrag();
+  } else {
+    propagationPaused = false;
+  }
+  if (wasPropagationPaused) {
+    drawAll();
+  }
 }
 
 canvas.addEventListener("pointerdown", beginDrag);
