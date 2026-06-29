@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fpachet.github.io/musicspace/schemas/musicspace-patch.schema.json",
+  "title": "MusicSpace Patch",
+  "type": "object",
+  "required": ["version", "name", "listener", "sources"],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "listener": {
+      "$ref": "#/$defs/pointWithTrace"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/namedPoint" },
+          { "$ref": "#/$defs/traceable" }
+        ]
+      }
+    },
+    "movingObjects": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/namedPoint" },
+          { "$ref": "#/$defs/traceable" },
+          {
+            "type": "object",
+            "properties": {
+              "trajectory": { "$ref": "#/$defs/trajectory" }
+            }
+          }
+        ]
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/constraint"
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "parameterMappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "feature", "target", "inputMin", "inputMax", "outputMin", "outputMax"],
+        "additionalProperties": true,
+        "properties": {
+          "source": { "type": "string" },
+          "feature": { "type": "string" },
+          "target": { "type": "string" },
+          "inputMin": { "type": "number" },
+          "inputMax": { "type": "number" },
+          "outputMin": { "type": "number" },
+          "outputMax": { "type": "number" },
+          "curve": { "enum": ["linear", "exp"] }
+        }
+      }
+    },
+    "midiFile": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "number": {
+      "type": "number"
+    },
+    "entityName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "traceable": {
+      "type": "object",
+      "properties": {
+        "drawTrace": { "type": "boolean" }
+      }
+    },
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "$ref": "#/$defs/number" },
+        "y": { "$ref": "#/$defs/number" }
+      }
+    },
+    "pointWithTrace": {
+      "allOf": [
+        { "$ref": "#/$defs/point" },
+        { "$ref": "#/$defs/traceable" }
+      ]
+    },
+    "namedPoint": {
+      "allOf": [
+        { "$ref": "#/$defs/point" },
+        {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "$ref": "#/$defs/entityName" }
+          }
+        }
+      ]
+    },
+    "constraintNode": {
+      "allOf": [
+        { "$ref": "#/$defs/pointWithTrace" },
+        {
+          "type": "object",
+          "properties": {
+            "isManual": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "trajectory": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "enum": ["rotator", "rotation", "shuttle", "bounce"]
+        }
+      }
+    },
+    "constraintBase": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "node": { "$ref": "#/$defs/constraintNode" }
+      }
+    },
+    "constraint": {
+      "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "sources"],
+              "properties": {
+                "type": { "const": "angle" },
+                "sources": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": { "$ref": "#/$defs/entityName" }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "sources"],
+              "properties": {
+                "type": { "enum": ["sum", "product"] },
+                "sources": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/$defs/entityName" }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "source", "minDistance", "maxDistance"],
+              "properties": {
+                "type": { "const": "radialLimit" },
+                "source": { "$ref": "#/$defs/entityName" },
+                "minDistance": { "$ref": "#/$defs/number" },
+                "maxDistance": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "anchor", "target", "distance"],
+              "properties": {
+                "type": { "const": "fixedDistance" },
+                "anchor": { "$ref": "#/$defs/entityName" },
+                "target": { "$ref": "#/$defs/entityName" },
+                "distance": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "sources", "ratio"],
+              "properties": {
+                "type": { "const": "distanceRatio" },
+                "sources": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": { "$ref": "#/$defs/entityName" }
+                },
+                "ratio": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "target", "x", "y"],
+              "properties": {
+                "type": { "const": "pin" },
+                "target": { "$ref": "#/$defs/entityName" },
+                "x": { "$ref": "#/$defs/number" },
+                "y": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "carrier", "attached"],
+              "properties": {
+                "type": { "const": "solid" },
+                "carrier": { "$ref": "#/$defs/entityName" },
+                "attached": { "$ref": "#/$defs/entityName" },
+                "offsetX": { "$ref": "#/$defs/number" },
+                "offsetY": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "sources", "minDistance"],
+              "properties": {
+                "type": { "const": "separation" },
+                "sources": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": { "$ref": "#/$defs/entityName" }
+                },
+                "minDistance": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "source", "centerAngle", "width"],
+              "properties": {
+                "type": { "const": "angleSector" },
+                "source": { "$ref": "#/$defs/entityName" },
+                "centerAngle": { "$ref": "#/$defs/number" },
+                "width": { "$ref": "#/$defs/number" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

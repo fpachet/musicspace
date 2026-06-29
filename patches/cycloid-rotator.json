@@ -1,0 +1,82 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "cycloid-rotator",
+  "name": "Cycloid Rotator",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 580,
+      "y": 300,
+      "drawTrace": true
+    },
+    {
+      "name": "B",
+      "x": 520,
+      "y": 360,
+      "drawTrace": true
+    },
+    {
+      "name": "C",
+      "x": 460,
+      "y": 300,
+      "drawTrace": true
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Orbit",
+      "x": 520,
+      "y": 300,
+      "drawTrace": true,
+      "trajectory": {
+        "type": "rotation",
+        "centerX": 400,
+        "centerY": 300,
+        "radius": 120,
+        "phase": 0,
+        "angularSpeed": 0.012
+      }
+    },
+    {
+      "name": "Spin",
+      "x": 520,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 8,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Orbit",
+      "attached": "Spin"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "A"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "B"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "C"
+    }
+  ],
+  "version": 1
+}

@@ -230,7 +230,8 @@ Patches should become the main way to save, share, load, and regression-test Mus
 
 - **Contains:** listener, sources, handles, constraints, trajectories, mappings, trace settings, and UI-relevant metadata.
 - **Goal:** represent a complete use case that can be loaded from the interface.
-- **Implementation note:** patches should be JSON-serializable and versioned. Built-in patches should use the same schema as user-saved patches.
+- **Current status:** built-in patches live as individual JSON files in `patches/`, are listed by `patches/index.json`, and reference the JSON Schema in `schemas/musicspace-patch.schema.json`.
+- **Implementation note:** patches should remain JSON-serializable and versioned. Built-in patches should use the same schema as user-saved patches.
 
 ### Built-In Patch Library
 

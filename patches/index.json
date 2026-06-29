@@ -1,0 +1,66 @@
+{
+  "$schema": "../schemas/musicspace-patch-index.schema.json",
+  "version": 1,
+  "patches": [
+    {
+      "key": "angle-balance",
+      "name": "Angle + Balance",
+      "file": "angle-balance.json"
+    },
+    {
+      "key": "product-limit",
+      "name": "Product + Limit",
+      "file": "product-limit.json"
+    },
+    {
+      "key": "open-trio",
+      "name": "Open Trio",
+      "file": "open-trio.json"
+    },
+    {
+      "key": "simple-rotator",
+      "name": "Simple Rotator",
+      "file": "simple-rotator.json"
+    },
+    {
+      "key": "nested-rotators",
+      "name": "Nested Rotators",
+      "file": "nested-rotators.json"
+    },
+    {
+      "key": "cycloid-rotator",
+      "name": "Cycloid Rotator",
+      "file": "cycloid-rotator.json"
+    },
+    {
+      "key": "shuttle-spin",
+      "name": "Shuttle Spin",
+      "file": "shuttle-spin.json"
+    },
+    {
+      "key": "bouncing-constellation",
+      "name": "Bouncing Constellation",
+      "file": "bouncing-constellation.json"
+    },
+    {
+      "key": "beatles-trajectory-study",
+      "name": "Beatles Trajectory Study",
+      "file": "beatles-trajectory-study.json"
+    },
+    {
+      "key": "jazz-trio-midi",
+      "name": "Jazz Trio MIDI Spatializer",
+      "file": "jazz-trio-midi.json"
+    },
+    {
+      "key": "faust-control-study",
+      "name": "Faust Control Study",
+      "file": "faust-control-study.json"
+    },
+    {
+      "key": "granular-cloud-study",
+      "name": "Granular Cloud Study",
+      "file": "granular-cloud-study.json"
+    }
+  ]
+}

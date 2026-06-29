@@ -1,0 +1,98 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "shuttle-spin",
+  "name": "Shuttle Spin",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Start",
+      "x": 230,
+      "y": 210
+    },
+    {
+      "name": "End",
+      "x": 570,
+      "y": 390
+    },
+    {
+      "name": "Vox",
+      "x": 305,
+      "y": 250
+    },
+    {
+      "name": "Beat",
+      "x": 250,
+      "y": 310
+    },
+    {
+      "name": "Bass",
+      "x": 300,
+      "y": 365
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Lift",
+      "x": 300,
+      "y": 310,
+      "trajectory": {
+        "type": "shuttle",
+        "start": {
+          "type": "object",
+          "name": "Start"
+        },
+        "end": {
+          "type": "object",
+          "name": "End"
+        },
+        "ax": 230,
+        "ay": 210,
+        "bx": 570,
+        "by": 390,
+        "phase": 0.2,
+        "speed": 0.006,
+        "direction": 1
+      }
+    },
+    {
+      "name": "Spin",
+      "x": 300,
+      "y": 310,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 12,
+        "direction": -1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Lift",
+      "attached": "Spin"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Vox"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Beat"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Bass"
+    }
+  ],
+  "version": 1
+}

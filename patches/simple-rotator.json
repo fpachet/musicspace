@@ -1,0 +1,70 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "simple-rotator",
+  "name": "Simple Rotator",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "S1",
+      "x": 500,
+      "y": 300
+    },
+    {
+      "name": "S2",
+      "x": 430,
+      "y": 382
+    },
+    {
+      "name": "S3",
+      "x": 330,
+      "y": 352
+    },
+    {
+      "name": "S4",
+      "x": 335,
+      "y": 245
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Spin",
+      "x": 410,
+      "y": 310,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 18,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "S1"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "S2"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "S3"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "S4"
+    }
+  ],
+  "version": 1
+}

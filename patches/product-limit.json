@@ -1,0 +1,43 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "product-limit",
+  "name": "Product + Limit",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 300,
+      "y": 300
+    },
+    {
+      "name": "B",
+      "x": 400,
+      "y": 190
+    },
+    {
+      "name": "C",
+      "x": 520,
+      "y": 300
+    }
+  ],
+  "constraints": [
+    {
+      "type": "radialLimit",
+      "source": "B",
+      "minDistance": 60,
+      "maxDistance": 130
+    },
+    {
+      "type": "product",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ]
+    }
+  ],
+  "version": 1
+}

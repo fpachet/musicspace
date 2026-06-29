@@ -1,0 +1,100 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "beatles-trajectory-study",
+  "name": "Beatles Trajectory Study",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Voice",
+      "x": 520,
+      "y": 300
+    },
+    {
+      "name": "Bass",
+      "x": 260,
+      "y": 380
+    },
+    {
+      "name": "Drums",
+      "x": 430,
+      "y": 180
+    },
+    {
+      "name": "Guitar",
+      "x": 585,
+      "y": 335
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Spin",
+      "x": 430,
+      "y": 275,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 20,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Shuttle",
+      "x": 260,
+      "y": 380,
+      "trajectory": {
+        "type": "shuttle",
+        "ax": 220,
+        "ay": 380,
+        "bx": 580,
+        "by": 380,
+        "phase": 0.12,
+        "speed": 0.006,
+        "direction": 1
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Voice"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Drums"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Guitar"
+    },
+    {
+      "type": "solid",
+      "carrier": "Shuttle",
+      "attached": "Bass"
+    },
+    {
+      "type": "angle",
+      "sources": [
+        "Voice",
+        "Drums"
+      ]
+    },
+    {
+      "type": "sum",
+      "sources": [
+        "Voice",
+        "Bass",
+        "Drums"
+      ]
+    }
+  ],
+  "version": 1
+}

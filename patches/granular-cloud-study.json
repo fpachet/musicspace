@@ -1,0 +1,232 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "granular-cloud-study",
+  "name": "Granular Cloud Study",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Rate",
+      "x": 235,
+      "y": 205,
+      "drawTrace": true
+    },
+    {
+      "name": "Size",
+      "x": 330,
+      "y": 430,
+      "drawTrace": true
+    },
+    {
+      "name": "Pitch",
+      "x": 555,
+      "y": 225,
+      "drawTrace": true
+    },
+    {
+      "name": "Spray",
+      "x": 585,
+      "y": 370,
+      "drawTrace": true
+    },
+    {
+      "name": "Tone",
+      "x": 420,
+      "y": 145
+    },
+    {
+      "name": "Level",
+      "x": 270,
+      "y": 350
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "DensityLift",
+      "x": 235,
+      "y": 205,
+      "drawTrace": true,
+      "trajectory": {
+        "type": "shuttle",
+        "start": {
+          "type": "object",
+          "name": "Level"
+        },
+        "end": {
+          "type": "fixed",
+          "x": 620,
+          "y": 190
+        },
+        "ax": 270,
+        "ay": 350,
+        "bx": 620,
+        "by": 190,
+        "phase": 0.18,
+        "speed": 0.0035,
+        "direction": 1,
+        "showPath": true
+      }
+    },
+    {
+      "name": "PitchOrbit",
+      "x": 540,
+      "y": 300,
+      "trajectory": {
+        "type": "rotation",
+        "centerX": 400,
+        "centerY": 300,
+        "radius": 140,
+        "phase": -0.5,
+        "angularSpeed": 0.006
+      }
+    },
+    {
+      "name": "PitchSpin",
+      "x": 540,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 11,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "DensityLift",
+      "attached": "Rate"
+    },
+    {
+      "type": "solid",
+      "carrier": "PitchOrbit",
+      "attached": "PitchSpin"
+    },
+    {
+      "type": "solid",
+      "carrier": "PitchSpin",
+      "attached": "Pitch"
+    },
+    {
+      "type": "solid",
+      "carrier": "PitchSpin",
+      "attached": "Spray"
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "Rate",
+      "target": "Size",
+      "distance": 250
+    },
+    {
+      "type": "distanceRatio",
+      "sources": [
+        "Tone",
+        "Pitch"
+      ],
+      "ratio": 0.85
+    },
+    {
+      "type": "angleSector",
+      "source": "Tone",
+      "centerAngle": -1.55,
+      "width": 1.75
+    },
+    {
+      "type": "radialLimit",
+      "source": "Spray",
+      "minDistance": 80,
+      "maxDistance": 210
+    },
+    {
+      "type": "sum",
+      "sources": [
+        "Rate",
+        "Size",
+        "Level"
+      ]
+    }
+  ],
+  "target": {
+    "type": "granular"
+  },
+  "parameterMappings": [
+    {
+      "source": "Rate",
+      "feature": "x",
+      "target": "/grain/rate",
+      "inputMin": 210,
+      "inputMax": 640,
+      "outputMin": 6,
+      "outputMax": 44,
+      "curve": "linear"
+    },
+    {
+      "source": "Size",
+      "feature": "distance",
+      "target": "/grain/size",
+      "inputMin": 90,
+      "inputMax": 280,
+      "outputMin": 0.025,
+      "outputMax": 0.22,
+      "curve": "linear"
+    },
+    {
+      "source": "Pitch",
+      "feature": "y",
+      "target": "/grain/pitch",
+      "inputMin": 500,
+      "inputMax": 120,
+      "outputMin": 0.45,
+      "outputMax": 2.4,
+      "curve": "exp"
+    },
+    {
+      "source": "Spray",
+      "feature": "distance",
+      "target": "/grain/spread",
+      "inputMin": 80,
+      "inputMax": 215,
+      "outputMin": 0.02,
+      "outputMax": 0.9,
+      "curve": "linear"
+    },
+    {
+      "source": "Tone",
+      "feature": "distance",
+      "target": "/filter/frequency",
+      "inputMin": 70,
+      "inputMax": 230,
+      "outputMin": 450,
+      "outputMax": 6200,
+      "curve": "exp"
+    },
+    {
+      "source": "Spray",
+      "feature": "angle",
+      "target": "/filter/q",
+      "inputMin": -3.14,
+      "inputMax": 3.14,
+      "outputMin": 0.6,
+      "outputMax": 12,
+      "curve": "linear"
+    },
+    {
+      "source": "Level",
+      "feature": "y",
+      "target": "/output/gain",
+      "inputMin": 500,
+      "inputMax": 160,
+      "outputMin": 0.08,
+      "outputMax": 0.34,
+      "curve": "linear"
+    }
+  ],
+  "version": 1
+}

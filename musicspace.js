@@ -63,320 +63,8 @@ const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
 const DOUBLE_CLICK_DISTANCE = 12;
 
-const BUILT_IN_PATCHES = [
-  {
-    key: "angle-balance",
-    name: "Angle + Balance",
-    listener: { x: WIDTH / 2, y: HEIGHT / 2 },
-    sources: [
-      { name: "A", x: 300, y: 200 },
-      { name: "B", x: 400, y: 200 },
-      { name: "C", x: 350, y: 300 }
-    ],
-    constraints: [
-      { type: "angle", sources: ["A", "B"] },
-      { type: "sum", sources: ["A", "B", "C"] }
-    ]
-  },
-  {
-    key: "product-limit",
-    name: "Product + Limit",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "A", x: 300, y: 300 },
-      { name: "B", x: 400, y: 190 },
-      { name: "C", x: 520, y: 300 }
-    ],
-    constraints: [
-      { type: "radialLimit", source: "B", minDistance: 60, maxDistance: 130 },
-      { type: "product", sources: ["A", "B", "C"] }
-    ]
-  },
-  {
-    key: "open-trio",
-    name: "Open Trio",
-    listener: { x: 390, y: 320 },
-    sources: [
-      { name: "Voice", x: 390, y: 180 },
-      { name: "Bass", x: 250, y: 360 },
-      { name: "Drums", x: 520, y: 380 }
-    ],
-    constraints: [
-      { type: "sum", sources: ["Voice", "Bass", "Drums"] }
-    ]
-  },
-  {
-    key: "simple-rotator",
-    name: "Simple Rotator",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "S1", x: 500, y: 300 },
-      { name: "S2", x: 430, y: 382 },
-      { name: "S3", x: 330, y: 352 },
-      { name: "S4", x: 335, y: 245 }
-    ],
-    movingObjects: [
-      {
-        name: "Spin",
-        x: 410,
-        y: 310,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 18,
-          direction: 1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Spin", attached: "S1" },
-      { type: "solid", carrier: "Spin", attached: "S2" },
-      { type: "solid", carrier: "Spin", attached: "S3" },
-      { type: "solid", carrier: "Spin", attached: "S4" }
-    ]
-  },
-  {
-    key: "nested-rotators",
-    name: "Nested Rotators",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "Lead", x: 560, y: 300 },
-      { name: "Echo", x: 465, y: 380 },
-      { name: "Pad", x: 285, y: 300 }
-    ],
-    movingObjects: [
-      {
-        name: "Parent",
-        x: 400,
-        y: 300,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 24,
-          direction: 1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      },
-      {
-        name: "Child",
-        x: 480,
-        y: 300,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 9,
-          direction: -1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Parent", attached: "Child" },
-      { type: "solid", carrier: "Child", attached: "Lead" },
-      { type: "solid", carrier: "Child", attached: "Echo" },
-      { type: "solid", carrier: "Parent", attached: "Pad" }
-    ]
-  },
-  {
-    key: "cycloid-rotator",
-    name: "Cycloid Rotator",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "A", x: 580, y: 300, drawTrace: true },
-      { name: "B", x: 520, y: 360, drawTrace: true },
-      { name: "C", x: 460, y: 300, drawTrace: true }
-    ],
-    movingObjects: [
-      {
-        name: "Orbit",
-        x: 520,
-        y: 300,
-        drawTrace: true,
-        trajectory: {
-          type: "rotation",
-          centerX: 400,
-          centerY: 300,
-          radius: 120,
-          phase: 0,
-          angularSpeed: 0.012
-        }
-      },
-      {
-        name: "Spin",
-        x: 520,
-        y: 300,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 8,
-          direction: 1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Orbit", attached: "Spin" },
-      { type: "solid", carrier: "Spin", attached: "A" },
-      { type: "solid", carrier: "Spin", attached: "B" },
-      { type: "solid", carrier: "Spin", attached: "C" }
-    ]
-  },
-  {
-    key: "shuttle-spin",
-    name: "Shuttle Spin",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "Start", x: 230, y: 210 },
-      { name: "End", x: 570, y: 390 },
-      { name: "Vox", x: 305, y: 250 },
-      { name: "Beat", x: 250, y: 310 },
-      { name: "Bass", x: 300, y: 365 }
-    ],
-    movingObjects: [
-      {
-        name: "Lift",
-        x: 300,
-        y: 310,
-        trajectory: {
-          type: "shuttle",
-          start: { type: "object", name: "Start" },
-          end: { type: "object", name: "End" },
-          ax: 230,
-          ay: 210,
-          bx: 570,
-          by: 390,
-          phase: 0.2,
-          speed: 0.006,
-          direction: 1
-        }
-      },
-      {
-        name: "Spin",
-        x: 300,
-        y: 310,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 12,
-          direction: -1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Lift", attached: "Spin" },
-      { type: "solid", carrier: "Spin", attached: "Vox" },
-      { type: "solid", carrier: "Spin", attached: "Beat" },
-      { type: "solid", carrier: "Spin", attached: "Bass" }
-    ]
-  },
-  {
-    key: "bouncing-constellation",
-    name: "Bouncing Constellation",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "One", x: 575, y: 250 },
-      { name: "Two", x: 520, y: 320 },
-      { name: "Three", x: 590, y: 355 }
-    ],
-    movingObjects: [
-      {
-        name: "Bounce",
-        x: 545,
-        y: 315,
-        trajectory: {
-          type: "bounce",
-          vx: 1.6,
-          vy: 1.1
-        }
-      },
-      {
-        name: "Spin",
-        x: 545,
-        y: 315,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 10,
-          direction: 1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Bounce", attached: "Spin" },
-      { type: "solid", carrier: "Spin", attached: "One" },
-      { type: "solid", carrier: "Spin", attached: "Two" },
-      { type: "solid", carrier: "Spin", attached: "Three" },
-      { type: "separation", sources: ["One", "Two"], minDistance: 50 },
-      { type: "separation", sources: ["Two", "Three"], minDistance: 50 }
-    ]
-  },
-  {
-    key: "beatles-trajectory-study",
-    name: "Beatles Trajectory Study",
-    listener: { x: 400, y: 300 },
-    sources: [
-      { name: "Voice", x: 520, y: 300 },
-      { name: "Bass", x: 260, y: 380 },
-      { name: "Drums", x: 430, y: 180 },
-      { name: "Guitar", x: 585, y: 335 }
-    ],
-    movingObjects: [
-      {
-        name: "Spin",
-        x: 430,
-        y: 275,
-        trajectory: {
-          type: "rotator",
-          running: true,
-          periodSeconds: 20,
-          direction: 1,
-          displacementInducesRotation: true,
-          phase: 0,
-          rotationDelta: 0
-        }
-      },
-      {
-        name: "Shuttle",
-        x: 260,
-        y: 380,
-        trajectory: {
-          type: "shuttle",
-          ax: 220,
-          ay: 380,
-          bx: 580,
-          by: 380,
-          phase: 0.12,
-          speed: 0.006,
-          direction: 1
-        }
-      }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Spin", attached: "Voice" },
-      { type: "solid", carrier: "Spin", attached: "Drums" },
-      { type: "solid", carrier: "Spin", attached: "Guitar" },
-      { type: "solid", carrier: "Shuttle", attached: "Bass" },
-      { type: "angle", sources: ["Voice", "Drums"] },
-      { type: "sum", sources: ["Voice", "Bass", "Drums"] }
-    ]
-  },
-  ...(window.MusicSpaceClientPatches || [])
-];
+const PATCH_INDEX_URL = "patches/index.json";
+let builtInPatches = [];
 
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
@@ -1129,7 +817,7 @@ let listenerMode = LISTENER_MODE_RETARGET;
 let isAnimating = false;
 let animationFrame = null;
 let velocity = { x: 0, y: 0 };
-let activePatch = clonePatch(BUILT_IN_PATCHES[0]);
+let activePatch = null;
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   toggleButton: targetToggleButton,
@@ -1152,6 +840,11 @@ const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
 });
 
 function resetScene() {
+  if (!activePatch) {
+    setConstraintStatus("No patch is loaded.");
+    return;
+  }
+
   pushUndoSnapshot("reset");
   loadPatch(activePatch, { preserveAsActive: false });
 }
@@ -1163,12 +856,42 @@ function clonePatch(patch) {
 function populatePatchSelect() {
   patchSelect.replaceChildren();
 
-  for (const patch of BUILT_IN_PATCHES) {
+  for (const patch of builtInPatches) {
     const option = document.createElement("option");
     option.value = patch.key;
     option.textContent = patch.name;
     patchSelect.append(option);
   }
+}
+
+async function loadBuiltInPatchLibrary() {
+  const index = await fetchJson(PATCH_INDEX_URL);
+  const entries = Array.isArray(index.patches) ? index.patches : [];
+  const baseUrl = new URL(PATCH_INDEX_URL, window.location.href);
+
+  builtInPatches = await Promise.all(entries.map(async (entry) => {
+    const file = entry.file || `${entry.key}.json`;
+    const patchUrl = new URL(file, baseUrl);
+    const patch = await fetchJson(patchUrl.href);
+    return {
+      ...patch,
+      version: patch.version || index.version || 1,
+      key: patch.key || entry.key,
+      name: patch.name || entry.name || entry.key
+    };
+  }));
+
+  if (builtInPatches.length === 0) {
+    throw new Error("Patch index did not list any patches.");
+  }
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, { cache: "no-cache" });
+  if (!response.ok) {
+    throw new Error(`Could not load ${url}`);
+  }
+  return response.json();
 }
 
 function selectPatchOptionForPatch(patch) {
@@ -1189,8 +912,14 @@ function selectPatchOptionForPatch(patch) {
 
 function loadMenuPatch(key, options = {}) {
   const patch = loadedSequencePatches.get(key) ||
-    BUILT_IN_PATCHES.find((candidate) => candidate.key === key) ||
-    BUILT_IN_PATCHES[0];
+    builtInPatches.find((candidate) => candidate.key === key) ||
+    builtInPatches[0];
+
+  if (!patch) {
+    setConstraintStatus("No patch is available to load.");
+    return;
+  }
+
   loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: options.clearUndo ?? true });
 }
 
@@ -3074,7 +2803,30 @@ rotationCloseButton.addEventListener("click", closeRotationEditor);
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
 
-populatePatchSelect();
-setActiveTool(TOOL_SELECT);
-setListenerMode(LISTENER_MODE_RETARGET);
-resetScene();
+async function initializeApp() {
+  patchSelect.disabled = true;
+  patchSelect.replaceChildren();
+  const loadingOption = document.createElement("option");
+  loadingOption.textContent = "Loading patches...";
+  patchSelect.append(loadingOption);
+
+  setActiveTool(TOOL_SELECT);
+  setListenerMode(LISTENER_MODE_RETARGET);
+
+  try {
+    await loadBuiltInPatchLibrary();
+    populatePatchSelect();
+    patchSelect.disabled = false;
+    activePatch = clonePatch(builtInPatches[0]);
+    resetScene();
+  } catch (error) {
+    console.error(error);
+    patchSelect.replaceChildren();
+    const errorOption = document.createElement("option");
+    errorOption.textContent = "Patch JSON unavailable";
+    patchSelect.append(errorOption);
+    setConstraintStatus("Could not load built-in patch JSON. Serve this directory over HTTP, then reload.");
+  }
+}
+
+initializeApp();

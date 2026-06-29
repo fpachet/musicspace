@@ -1,0 +1,168 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "faust-control-study",
+  "name": "Faust Control Study",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Freq",
+      "x": 250,
+      "y": 230,
+      "drawTrace": true
+    },
+    {
+      "name": "Cutoff",
+      "x": 570,
+      "y": 260,
+      "drawTrace": true
+    },
+    {
+      "name": "Q",
+      "x": 530,
+      "y": 385,
+      "drawTrace": true
+    },
+    {
+      "name": "Gain",
+      "x": 325,
+      "y": 405
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Sweep",
+      "x": 250,
+      "y": 230,
+      "drawTrace": true,
+      "trajectory": {
+        "type": "shuttle",
+        "ax": 210,
+        "ay": 210,
+        "bx": 610,
+        "by": 250,
+        "phase": 0.1,
+        "speed": 0.0045,
+        "direction": 1,
+        "showPath": true
+      }
+    },
+    {
+      "name": "Orbit",
+      "x": 520,
+      "y": 340,
+      "trajectory": {
+        "type": "rotation",
+        "centerX": 400,
+        "centerY": 300,
+        "radius": 135,
+        "phase": 0.3,
+        "angularSpeed": 0.009
+      }
+    },
+    {
+      "name": "ResoSpin",
+      "x": 520,
+      "y": 340,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 7,
+        "direction": -1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Sweep",
+      "attached": "Freq"
+    },
+    {
+      "type": "solid",
+      "carrier": "Orbit",
+      "attached": "ResoSpin"
+    },
+    {
+      "type": "solid",
+      "carrier": "ResoSpin",
+      "attached": "Q"
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "Freq",
+      "target": "Gain",
+      "distance": 190
+    },
+    {
+      "type": "distanceRatio",
+      "sources": [
+        "Cutoff",
+        "Q"
+      ],
+      "ratio": 1.35
+    },
+    {
+      "type": "radialLimit",
+      "source": "Q",
+      "minDistance": 75,
+      "maxDistance": 185
+    },
+    {
+      "type": "sum",
+      "sources": [
+        "Freq",
+        "Cutoff",
+        "Gain"
+      ]
+    }
+  ],
+  "parameterMappings": [
+    {
+      "source": "Freq",
+      "feature": "x",
+      "target": "/osc/freq",
+      "inputMin": 180,
+      "inputMax": 640,
+      "outputMin": 110,
+      "outputMax": 880,
+      "curve": "exp"
+    },
+    {
+      "source": "Cutoff",
+      "feature": "distance",
+      "target": "/filter/frequency",
+      "inputMin": 70,
+      "inputMax": 260,
+      "outputMin": 250,
+      "outputMax": 4200,
+      "curve": "exp"
+    },
+    {
+      "source": "Q",
+      "feature": "distance",
+      "target": "/filter/q",
+      "inputMin": 70,
+      "inputMax": 190,
+      "outputMin": 0.5,
+      "outputMax": 18,
+      "curve": "linear"
+    },
+    {
+      "source": "Gain",
+      "feature": "y",
+      "target": "/output/gain",
+      "inputMin": 500,
+      "inputMax": 150,
+      "outputMin": 0.03,
+      "outputMax": 0.22,
+      "curve": "linear"
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "bouncing-constellation",
+  "name": "Bouncing Constellation",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "One",
+      "x": 575,
+      "y": 250
+    },
+    {
+      "name": "Two",
+      "x": 520,
+      "y": 320
+    },
+    {
+      "name": "Three",
+      "x": 590,
+      "y": 355
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Bounce",
+      "x": 545,
+      "y": 315,
+      "trajectory": {
+        "type": "bounce",
+        "vx": 1.6,
+        "vy": 1.1
+      }
+    },
+    {
+      "name": "Spin",
+      "x": 545,
+      "y": 315,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 10,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Bounce",
+      "attached": "Spin"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "One"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Two"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Three"
+    },
+    {
+      "type": "separation",
+      "sources": [
+        "One",
+        "Two"
+      ],
+      "minDistance": 50
+    },
+    {
+      "type": "separation",
+      "sources": [
+        "Two",
+        "Three"
+      ],
+      "minDistance": 50
+    }
+  ],
+  "version": 1
+}

@@ -8,17 +8,15 @@ Live demo: <https://fpachet.github.io/musicspace/>
 
 ## Running
 
-Open `musicspace.html` directly in a browser for ordinary canvas patches.
-
-Built-in MIDI/MusicXML sequence patches need the project to be served over HTTP because browsers block `fetch()` for local `file://` assets.
-
-You can also serve the directory locally:
+Serve the directory locally:
 
 ```sh
 python3 -m http.server 8000
 ```
 
 Then open <http://localhost:8000/musicspace.html>.
+
+The built-in patch library is loaded from JSON files, so the page needs HTTP. Browsers usually block `fetch()` for local `file://` assets.
 
 No build step or package installation is required.
 
@@ -77,7 +75,11 @@ npm run check
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
-- `musicspace-client-patches.js` contains optional target/client demo patches, including the Faust-style and granular examples.
+- `patches/index.json` lists the built-in patch files loaded by the patch menu.
+- `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.
+- `schemas/musicspace-patch.schema.json` documents the patch JSON format.
+- `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.
+- `PATCH_FORMAT.md` explains how to author and register patch JSON files.
 - `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.
 - `TARGET_BACKENDS.md` describes the backend contract for Web Audio, Faust, MIDI, OSC, and other parameterized clients.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
