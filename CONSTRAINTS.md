@@ -318,6 +318,8 @@ Patches should become the main way to save, share, load, and regression-test Mus
 
 ## Engine Requirements Before Implementing Most Of These
 
+The currently implemented constraint and propagation semantics are documented in `CONSTRAINT_SEMANTICS.md`.
+
 - Constraint model separated from canvas rendering.
 - Trajectory model separated from animation rendering.
 - Mapping model separated from constraints and trajectories.
