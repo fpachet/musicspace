@@ -51,6 +51,40 @@ Validation checks MusicSpace-level semantics that JSON Schema cannot fully expre
 - `parameterMappings`: optional mappings from scene features to target parameters.
 - `midiFile`: optional MIDI/MusicXML sequence-file binding.
 
+Trace state is serialized with `drawTrace` on listeners, sources, movers, and constraint nodes. A constraint `node` stores the visual handle position plus `isManual` and `drawTrace`.
+
+`movingObjects` may include a serialized `trajectory`. Schema-covered temporal trajectory types are `rotation`, `rotator`, `shuttle`, and `bounce`; the runtime may also use `free` for movers that have no active temporal motion. Shuttle endpoints can be fixed points or object references:
+
+```json
+{
+  "name": "Shuttle",
+  "x": 420,
+  "y": 260,
+  "trajectory": {
+    "type": "shuttle",
+    "start": { "type": "object", "name": "A" },
+    "end": { "type": "fixed", "x": 620, "y": 260 },
+    "speed": 0.01,
+    "showPath": true
+  }
+}
+```
+
+Parameter mappings connect a source feature to a target parameter path:
+
+```json
+{
+  "source": "A",
+  "feature": "distance",
+  "target": "/filter/frequency",
+  "inputMin": 40,
+  "inputMax": 320,
+  "outputMin": 300,
+  "outputMax": 3000,
+  "curve": "linear"
+}
+```
+
 ## Target Backend Binding
 
 Patches bind to parameter backends with the top-level `target` object. If `target` is omitted, MusicSpace uses the built-in `subtractive` Web Audio backend.

@@ -320,22 +320,30 @@ Patches should become the main way to save, share, load, and regression-test Mus
 
 The currently implemented constraint and propagation semantics are documented in `CONSTRAINT_SEMANTICS.md`.
 
+Current capabilities:
+
 - Constraint model separated from canvas rendering.
 - Trajectory model separated from animation rendering.
 - Mapping model separated from constraints and trajectories.
-- Multi-way propagation with clear driver/object roles.
-- Directional and one-way propagation support.
-- Inequality constraints that can clamp, reject, or report conflicts.
-- Conflict policy: reject action, backoff, priority, or try alternate deterministic solutions.
-- Speculative propagation transactions: try a propagation strategy on a temporary scene state, commit it on success, or roll it back on failure.
-- Per-constraint backoff strategies: each constraint should expose an ordered list of deterministic repair methods before the engine declares failure.
-- Constraint graph cycles with conflict checking.
+- Bounded fixed-point propagation with clear driver/object roles.
+- Directional, bidirectional, and one-way constraint behavior depending on constraint type.
+- Inequality constraints that can clamp or report conflicts.
+- Local backoff/clamping for selected constraints, including sum, product, radial limits, and angle sectors.
+- Residual diagnostics for unsatisfied constraints and bounded graph cycles.
 - Serialization for sources, handles, constraints, trajectories, mappings, parameters, traces, and temporal annotations.
 - Patch schema and patch library for saving, loading, sharing, and regression-testing use cases.
-- Timeline scheduler for trajectory playback and timed constraint activation.
 - Trace layer API for recording, clearing, compositing, and exporting movement drawings.
 - Parameter mapping API with scaling, smoothing, update throttling, and backend adapters.
 - Tests for each constraint independent of the canvas UI.
+
+Open roadmap items:
+
+- Conflict policy beyond residual reporting: reject action, generalized backoff, priorities, or alternate deterministic solutions.
+- Solvable-failure fixtures that justify broader solver work.
+- Speculative propagation transactions, if fixtures prove they are needed.
+- Per-constraint strategy APIs beyond the current local backoff rules.
+- Constraint graph cycles with richer conflict recovery.
+- Timeline scheduler for timed constraint activation.
 
 ## Propagation And Backoff Policy
 
@@ -404,23 +412,18 @@ Failure should remain an ordinary part of the interaction model. The engine shou
 - optionally highlight the constraint that failed;
 - leave a hook for future priority-based or approximate solving.
 
-## Suggested Implementation Order
+## Suggested Next Implementation Order
 
-1. **Engine split:** model, renderer, scheduler, and mapping boundaries.
-2. **Patch schema and built-in patch loader**
-3. **Propagation transactions and deterministic backoff API**
-4. **Fixed Distance**
-5. **Radial Limits**
-6. **Constant Distance Ratio**
-7. **Grouping**
-8. **Generalized Constant Angle**
-9. **Handles / One-Way Constraints**
-10. **Trace Drawing**
-11. **Basic Trajectory API:** translation, rotation, shuttle, path.
-12. **Angle Limits / Sector**
-13. **Bounce Trajectory**
-14. **Timed Constraint Annotation**
-15. **Audio Source Mapping**
-16. **Generic Parameter Mapping / Faust-ready backend**
-17. **Incompatibility**
-18. **Equalizing**
+1. **Solvable-failure fixtures:** prove whether generalized transactions/backoff are needed before building them.
+2. **Engine split:** move model, renderer, scheduler, and mapping boundaries into smaller modules once behavior stabilizes.
+3. **Patch/editor controls:** add UI controls for constraint parameters, mapping edits, and non-rotative trajectory parameters.
+4. **Grouping**
+5. **Generalized Constant Angle**
+6. **Handles / One-Way Constraints**
+7. **Path / waypoint trajectories**
+8. **Timed Constraint Annotation**
+9. **Audio Source Mapping:** richer spatialization beyond current parameter and MIDI examples.
+10. **Compiled Faust workflows:** introspection and compiled DSP loading beyond the current adapter-based bridge.
+11. **OSC / external control backends**
+12. **Incompatibility**
+13. **Equalizing**

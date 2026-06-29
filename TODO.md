@@ -19,9 +19,8 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Constraint System
 
-- Separate the constraint model from the canvas UI so the propagation logic can be tested independently.
 - Clarify how conflicts between several constraints should be resolved.
-- Add transactional propagation with per-constraint deterministic backoff strategies before falling back to "no solution found."
+- Add focused fixtures for solvable local failures before deciding whether transactional propagation or generalized per-constraint backoff is worth adding.
 - Use patches as regression fixtures for solver behavior, including the product + radial limit backoff case.
 - Use `CONSTRAINTS.md` as the implementation backlog for paper-backed constraints, temporal trajectories, trace drawing, and output mappings.
 - Add more constraint types, such as alignment, barycenter, zone/region, grouping, symmetry, and handles.
@@ -40,13 +39,12 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Add a patch-level editor for generic parameter mappings instead of defining them only in built-in JSON.
-- Implement a Faust target backend on top of the `MusicSpaceTargets.registerTargetBackend()` contract.
+- Expand the Faust target backend beyond the current adapter-based `faust-wasm` bridge, including compiled DSP loading/introspection workflows.
 - Expand the MIDI/MusicXML client with richer instrument rendering, MIDI output selection persistence, and mapping presets.
 - Add OSC and spatial audio adapters as target backends that consume named parameter values and target manifests.
 - Map source positions to useful audio parameters such as pan, gain, distance attenuation, or reverb send.
-- Add a generic mapping layer so source, handle, trajectory, and constraint values can drive arbitrary parameters, including Faust patch parameters.
-- Expand the optional demo sound source into spatialized audio with pan, gain, distance attenuation, and reverb send.
-- Consider Web MIDI support for controlling external devices or software.
+- Expand the generic mapping layer beyond source features so handles, trajectories, and constraint values can drive arbitrary target parameters.
+- Expand the optional demo sound sources into richer spatialized audio with distance attenuation and reverb send.
 
 ## Project Hygiene
 

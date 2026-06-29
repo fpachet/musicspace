@@ -12,6 +12,7 @@ Current coverage:
 
 - Sum redistribution.
 - Shared Sum + Angle propagation through a common source.
+- Shift-style paused movement and resume retargeting.
 - Product + radial-limit backoff.
 - Radial-limit clamping.
 - Distance-ratio preservation.
