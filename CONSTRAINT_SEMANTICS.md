@@ -2,7 +2,7 @@
 
 This document describes the semantics implemented by the current MusicSpace prototype. It is a specification of the existing interactive engine, not a promise that this is the final solver architecture.
 
-MusicSpace uses a deterministic local propagation engine. It is not a global optimizer and it does not search all possible solutions. A user drag, keyboard nudge, or trajectory tick proposes a new position for one entity; constraints that mention that entity may move other entities; those moved entities are then propagated in turn.
+MusicSpace uses a deterministic local propagation engine. A user drag, keyboard nudge, or trajectory tick proposes a new position for one entity; constraints that mention that entity may move other entities; those moved entities are then propagated in turn until the queue drains to a fixed point or the bounded solver reports remaining residuals. This is not a global optimizer and it does not search all possible solutions, but it does give the interaction a stable, inspectable repair semantics.
 
 ## Core Concepts
 
@@ -54,7 +54,7 @@ Current bounds:
 - `MAX_PROPAGATION_STEPS = 96`
 - `MAX_ENTITY_PROPAGATION_COUNT = 8`
 
-The solver does not roll back a whole edit when a later constraint remains unsatisfied. Instead, it reports residuals and caps in the status line. Some individual constraints perform local backoff or clamping.
+When the queue drains without residuals, the scene has reached the fixed point induced by the edit and the active local repair rules. The solver does not roll back a whole edit when a later constraint remains unsatisfied. Instead, it reports residuals and caps in the status line. Some individual constraints perform local backoff or clamping; for example, product propagation can drop a limited source from its active correction set once a radial limit clamps it, then continue propagating over the remaining sources.
 
 ## Numeric Tolerances
 
