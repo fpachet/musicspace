@@ -30,6 +30,7 @@ npm run check
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Save Patch** / **Load Patch** to export and import scene JSON.
+- Use **Patch Inspector** to read the active patch summary, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
@@ -78,6 +79,7 @@ npm run check
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.
 - `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.
+- The in-page Patch Inspector validates patch JSON against MusicSpace-level rules such as object references, constraint parameters, backend declarations, Faust adapter links, MIDI bindings, and parameter mapping targets.
 - `targets/faust/` contains Faust target source/adapter files referenced by Faust patch JSON.
 - `schemas/musicspace-patch.schema.json` documents the patch JSON format.
 - `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.

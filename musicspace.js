@@ -30,6 +30,13 @@ const midiOutputSelect = document.getElementById("midi-output");
 const midiPanel = document.getElementById("midi-panel");
 const midiTrackList = document.getElementById("midi-track-list");
 const midiStatus = document.getElementById("midi-status");
+const patchSummary = document.getElementById("patch-summary");
+const patchValidation = document.getElementById("patch-validation");
+const patchJsonToggle = document.getElementById("patch-json-toggle");
+const patchJsonEditor = document.getElementById("patch-json-editor");
+const patchJsonTextarea = document.getElementById("patch-json");
+const patchJsonApplyButton = document.getElementById("patch-json-apply");
+const patchValidateButton = document.getElementById("patch-validate");
 const constraintStatus = document.getElementById("constraint-status");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
@@ -1118,6 +1125,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   setConstraintStatus("");
   clearTrace();
   drawAll();
+  updatePatchInspector();
 }
 
 function pushUndoSnapshot(reason = "edit") {
@@ -1426,6 +1434,447 @@ function serializeConstraint(constraint) {
   }
 
   return null;
+}
+
+function currentPatchSnapshot() {
+  if (!listener || !sources || !movingObjects || !constraints) {
+    return activePatch ? clonePatch(activePatch) : null;
+  }
+
+  const patch = serializePatch();
+  if (activePatch?.$schema) {
+    patch.$schema = activePatch.$schema;
+  }
+  if (activePatch?.key) {
+    patch.key = activePatch.key;
+  }
+  return patch;
+}
+
+function updatePatchInspector({ refreshJson = true } = {}) {
+  if (!patchSummary || !patchValidation) {
+    return;
+  }
+
+  const patch = currentPatchSnapshot();
+  renderPatchSummary(patch);
+  renderPatchValidation(validatePatch(patch));
+
+  if (
+    patchJsonTextarea &&
+    patch &&
+    refreshJson &&
+    !patchJsonEditor.hidden &&
+    document.activeElement !== patchJsonTextarea
+  ) {
+    patchJsonTextarea.value = JSON.stringify(patch, null, 2);
+  }
+}
+
+function renderPatchSummary(patch) {
+  patchSummary.replaceChildren();
+
+  if (!patch) {
+    patchSummary.append(createInspectorSection("Patch", ["No patch loaded."]));
+    return;
+  }
+
+  const constraintLines = (patch.constraints || []).map(describeConstraintSpec);
+  const mappingLines = (patch.parameterMappings || []).map(describeParameterMapping);
+  const midiLines = (patch.midiFile?.trackBindings || []).map(describeMidiBinding);
+  const backendLines = describePatchBackend(patch);
+
+  patchSummary.append(
+    createInspectorSection("Patch", [
+      `Name: ${patch.name || "Untitled"}`,
+      `Key: ${patch.key || "unsaved"}`,
+      `Version: ${patch.version || 1}`
+    ]),
+    createInspectorSection("Scene", [
+      `Sources: ${(patch.sources || []).length}`,
+      `Moving objects: ${(patch.movingObjects || []).length}`,
+      `Constraints: ${(patch.constraints || []).length}`
+    ]),
+    createInspectorSection("Backend", backendLines),
+    createInspectorSection("Constraints", constraintLines.length ? constraintLines : ["None"]),
+    createInspectorSection("Mappings", mappingLines.length ? mappingLines : ["None"]),
+    createInspectorSection("MIDI", midiLines.length ? midiLines : ["None"])
+  );
+}
+
+function createInspectorSection(title, lines) {
+  const section = document.createElement("section");
+  const heading = document.createElement("h3");
+  const list = document.createElement("ul");
+
+  section.className = "inspector-section";
+  heading.textContent = title;
+  list.className = "inspector-list";
+
+  for (const line of lines) {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  }
+
+  section.append(heading, list);
+  return section;
+}
+
+function describePatchBackend(patch) {
+  const target = patch.target || patch.audioSynth || null;
+  const type = target?.type || (patch.midiFile ? "midi-file?" : "subtractive");
+  const lines = [`Type: ${type}`];
+
+  if (target?.name) {
+    lines.push(`Name: ${target.name}`);
+  }
+  if (target?.module) {
+    lines.push(`Module: ${target.module}`);
+  }
+  if (target?.dsp) {
+    lines.push(`DSP: ${target.dsp}`);
+  }
+  if (target?.wasm) {
+    lines.push(`WASM: ${target.wasm}`);
+  }
+  if (target?.json || target?.metadata) {
+    lines.push(`Metadata: ${target.json || target.metadata}`);
+  }
+  if (patch.midiFile?.url) {
+    lines.push(`Sequence: ${patch.midiFile.url}`);
+  }
+  return lines;
+}
+
+function describeConstraintSpec(spec) {
+  if (!spec || !spec.type) {
+    return "Invalid constraint";
+  }
+  if (spec.type === "angle") {
+    return `Angle: ${(spec.sources || []).join(" / ")}`;
+  }
+  if (spec.type === "sum" || spec.type === "product") {
+    return `${capitalize(spec.type)}: ${(spec.sources || []).join(", ")}`;
+  }
+  if (spec.type === "radialLimit") {
+    return `Radial limit: ${spec.source} in [${spec.minDistance}, ${spec.maxDistance}]`;
+  }
+  if (spec.type === "fixedDistance") {
+    return `Fixed distance: ${spec.anchor} to ${spec.target} = ${spec.distance}`;
+  }
+  if (spec.type === "distanceRatio") {
+    return `Distance ratio: ${(spec.sources || []).join(" / ")} = ${spec.ratio}`;
+  }
+  if (spec.type === "pin") {
+    return `Pin: ${spec.target} at (${spec.x}, ${spec.y})`;
+  }
+  if (spec.type === "solid") {
+    return `Solid: ${spec.attached} follows ${spec.carrier}`;
+  }
+  if (spec.type === "separation") {
+    return `Separation: ${(spec.sources || []).join(" / ")} >= ${spec.minDistance}`;
+  }
+  if (spec.type === "angleSector") {
+    return `Angle sector: ${spec.source} center ${spec.centerAngle}, width ${spec.width}`;
+  }
+  return `Unknown: ${spec.type}`;
+}
+
+function describeParameterMapping(mapping) {
+  return `${mapping.source}.${mapping.feature} -> ${mapping.target} (${mapping.outputMin}..${mapping.outputMax})`;
+}
+
+function describeMidiBinding(binding) {
+  const channel = binding.channel ? ` ch ${binding.channel}` : "";
+  const program = Number.isFinite(Number(binding.program)) ? ` program ${binding.program}` : "";
+  return `${binding.track || `track ${binding.trackIndex ?? "?"}`} -> ${binding.source}${channel}${program}`;
+}
+
+function renderPatchValidation(findings) {
+  patchValidation.replaceChildren();
+
+  for (const finding of findings) {
+    const item = document.createElement("div");
+    item.className = `validation-item ${finding.level}`;
+    item.textContent = `${finding.level.toUpperCase()}: ${finding.message}`;
+    patchValidation.append(item);
+  }
+}
+
+function validatePatch(patch) {
+  const findings = [];
+  const add = (level, message) => findings.push({ level, message });
+
+  if (!patch || typeof patch !== "object") {
+    add("error", "Patch is not a JSON object.");
+    return findings;
+  }
+
+  if (!patch.listener || !isFinitePoint(patch.listener)) {
+    add("error", "Patch needs a listener with finite x/y coordinates.");
+  }
+
+  const scene = validateSceneObjects(patch, add);
+  validateConstraintSpecs(patch.constraints || [], scene.names, add);
+  validateBackendSpec(patch, add);
+  validateParameterMappings(patch.parameterMappings || patch.audioMappings || [], scene.names, patch.target || patch.audioSynth, add);
+  validateMidiSpec(patch.midiFile, scene.names, patch.target || patch.audioSynth, add);
+
+  if (!findings.some((finding) => finding.level === "error" || finding.level === "warning")) {
+    add("ok", "Patch structure, references, constraints, mappings, and backend declaration look coherent.");
+  }
+
+  return findings;
+}
+
+function validateSceneObjects(patch, add) {
+  const names = new Set(["Listener"]);
+  const seen = new Set();
+
+  validateObjectArray(patch.sources, "source", names, seen, add);
+  validateObjectArray(patch.movingObjects || [], "moving object", names, seen, add);
+
+  if (!Array.isArray(patch.sources) || patch.sources.length === 0) {
+    add("error", "Patch needs at least one source.");
+  }
+
+  return { names };
+}
+
+function validateObjectArray(objects, label, names, seen, add) {
+  if (!Array.isArray(objects)) {
+    add("error", `Patch ${label}s must be an array.`);
+    return;
+  }
+
+  for (const object of objects) {
+    if (!object || typeof object.name !== "string" || object.name.trim() === "") {
+      add("error", `Every ${label} needs a non-empty name.`);
+      continue;
+    }
+    if (seen.has(object.name)) {
+      add("error", `Duplicate scene object name: ${object.name}.`);
+    }
+    if (!isFinitePoint(object)) {
+      add("error", `${capitalize(label)} ${object.name} needs finite x/y coordinates.`);
+    }
+    seen.add(object.name);
+    names.add(object.name);
+  }
+}
+
+function validateConstraintSpecs(constraints, names, add) {
+  if (!Array.isArray(constraints)) {
+    add("error", "Patch constraints must be an array.");
+    return;
+  }
+
+  for (const spec of constraints) {
+    if (!spec || typeof spec.type !== "string") {
+      add("error", "Every constraint needs a type.");
+      continue;
+    }
+
+    if (spec.type === "angle") {
+      validateNamedList(spec.sources, 2, spec.type, names, add);
+    } else if (spec.type === "sum" || spec.type === "product") {
+      validateNamedList(spec.sources, 1, spec.type, names, add);
+    } else if (spec.type === "radialLimit") {
+      validateReference(spec.source, "radialLimit.source", names, add);
+      validateMinMax(spec.minDistance, spec.maxDistance, "radialLimit distance", add);
+    } else if (spec.type === "fixedDistance") {
+      validateReference(spec.anchor, "fixedDistance.anchor", names, add);
+      validateReference(spec.target, "fixedDistance.target", names, add);
+      validateNonNegativeNumber(spec.distance, "fixedDistance.distance", add);
+    } else if (spec.type === "distanceRatio") {
+      validateNamedList(spec.sources, 2, spec.type, names, add);
+      validatePositiveNumber(spec.ratio, "distanceRatio.ratio", add);
+    } else if (spec.type === "pin") {
+      validateReference(spec.target, "pin.target", names, add);
+      if (!Number.isFinite(Number(spec.x)) || !Number.isFinite(Number(spec.y))) {
+        add("error", "pin needs finite x/y coordinates.");
+      }
+    } else if (spec.type === "solid") {
+      validateReference(spec.carrier, "solid.carrier", names, add);
+      validateReference(spec.attached, "solid.attached", names, add);
+    } else if (spec.type === "separation") {
+      validateNamedList(spec.sources, 2, spec.type, names, add);
+      validateNonNegativeNumber(spec.minDistance, "separation.minDistance", add);
+    } else if (spec.type === "angleSector") {
+      validateReference(spec.source, "angleSector.source", names, add);
+      validateNumber(spec.centerAngle, "angleSector.centerAngle", add);
+      validatePositiveNumber(spec.width, "angleSector.width", add);
+    } else {
+      add("error", `Unknown constraint type: ${spec.type}.`);
+    }
+  }
+}
+
+function validateBackendSpec(patch, add) {
+  const target = patch.target || patch.audioSynth || null;
+  const targetApi = globalThis.MusicSpaceTargets;
+  const knownBackends = new Set((targetApi?.listTargetBackends?.() || []).map((backend) => backend.type));
+
+  if (target?.type && knownBackends.size > 0 && !knownBackends.has(target.type)) {
+    add("error", `Unknown target backend: ${target.type}.`);
+  }
+
+  if (patch.midiFile && target?.type !== "midi-file") {
+    add("warning", "Patch has midiFile data but target.type is not midi-file.");
+  }
+  if (target?.type === "midi-file" && !patch.midiFile) {
+    add("error", "midi-file target needs a midiFile block.");
+  }
+  if (target?.type === "faust-wasm") {
+    if (!target.module) {
+      add("error", "faust-wasm target needs an adapter module.");
+    }
+    if (!target.dsp && !target.wasm && !target.json && !target.metadata) {
+      add("warning", "faust-wasm target has no DSP, WASM, or metadata artifact reference.");
+    }
+  }
+  if ((patch.parameterMappings || patch.audioMappings || []).length > 0 && !target) {
+    add("warning", "Parameter mappings use the default subtractive backend because target is omitted.");
+  }
+}
+
+function validateParameterMappings(mappings, names, target, add) {
+  if (!Array.isArray(mappings)) {
+    add("error", "parameterMappings must be an array.");
+    return;
+  }
+
+  const supportedParameters = targetParameterNames(target);
+  const supportedFeatures = new Set(["x", "y", "angle", "distance"]);
+
+  for (const mapping of mappings) {
+    if (!mapping || typeof mapping !== "object") {
+      add("error", "Every parameter mapping must be an object.");
+      continue;
+    }
+
+    validateReference(mapping.source, "mapping.source", names, add);
+    if (!supportedFeatures.has(mapping.feature)) {
+      add("error", `Unsupported mapping feature: ${mapping.feature || "(missing)"}.`);
+    }
+    if (!mapping.target) {
+      add("error", "Every parameter mapping needs a target.");
+    } else if (supportedParameters.size > 0 && !supportedParameters.has(mapping.target)) {
+      add("error", `Mapping target ${mapping.target} is not declared by backend ${target?.type || "subtractive"}.`);
+    }
+
+    validateNumber(mapping.inputMin, "mapping.inputMin", add);
+    validateNumber(mapping.inputMax, "mapping.inputMax", add);
+    validateNumber(mapping.outputMin, "mapping.outputMin", add);
+    validateNumber(mapping.outputMax, "mapping.outputMax", add);
+    if (mapping.inputMin === mapping.inputMax) {
+      add("warning", `Mapping ${mapping.target || ""} has identical inputMin/inputMax.`);
+    }
+    if (mapping.curve === "exp" && (Number(mapping.outputMin) <= 0 || Number(mapping.outputMax) <= 0)) {
+      add("error", `Exponential mapping ${mapping.target || ""} needs positive outputMin/outputMax.`);
+    }
+  }
+}
+
+function validateMidiSpec(midiFile, names, target, add) {
+  if (!midiFile) {
+    return;
+  }
+
+  if (!midiFile.url && !midiFile.sequenceData) {
+    add("error", "midiFile needs either a url or embedded sequenceData.");
+  }
+  if (target?.type && target.type !== "midi-file") {
+    add("warning", "MIDI sequence playback should use target.type = midi-file.");
+  }
+  if (!Array.isArray(midiFile.trackBindings) || midiFile.trackBindings.length === 0) {
+    add("warning", "midiFile has no trackBindings.");
+    return;
+  }
+
+  for (const binding of midiFile.trackBindings) {
+    validateReference(binding?.source, "midiFile.trackBindings.source", names, add);
+    if (binding?.channel !== undefined) {
+      const channel = Number(binding.channel);
+      if (!Number.isInteger(channel) || channel < 1 || channel > 16) {
+        add("error", `MIDI channel must be an integer from 1 to 16 for ${binding.source || "binding"}.`);
+      }
+    }
+    if (binding?.program !== undefined) {
+      const program = Number(binding.program);
+      if (!Number.isInteger(program) || program < 0 || program > 127) {
+        add("error", `MIDI program must be an integer from 0 to 127 for ${binding.source || "binding"}.`);
+      }
+    }
+  }
+}
+
+function targetParameterNames(target) {
+  if (target?.parameters && typeof target.parameters === "object") {
+    return new Set(Object.keys(target.parameters));
+  }
+
+  const targetApi = globalThis.MusicSpaceTargets;
+  const targetType = target?.type || "subtractive";
+  const backend = (targetApi?.listTargetBackends?.() || []).find((candidate) => candidate.type === targetType);
+  return new Set(backend?.parameters || []);
+}
+
+function validateNamedList(values, expectedLength, label, names, add) {
+  if (!Array.isArray(values) || values.length < expectedLength) {
+    add("error", `${label} constraint needs at least ${expectedLength} source reference(s).`);
+    return;
+  }
+  for (const value of values) {
+    validateReference(value, `${label}.sources`, names, add);
+  }
+}
+
+function validateReference(name, label, names, add) {
+  if (typeof name !== "string" || name.trim() === "") {
+    add("error", `${label} needs a non-empty object name.`);
+    return;
+  }
+  if (!names.has(name)) {
+    add("error", `${label} references unknown object ${name}.`);
+  }
+}
+
+function validateMinMax(min, max, label, add) {
+  validateNumber(min, `${label} min`, add);
+  validateNumber(max, `${label} max`, add);
+  if (Number.isFinite(Number(min)) && Number.isFinite(Number(max)) && Number(min) > Number(max)) {
+    add("error", `${label} min must be less than or equal to max.`);
+  }
+}
+
+function validatePositiveNumber(value, label, add) {
+  validateNumber(value, label, add);
+  if (Number.isFinite(Number(value)) && Number(value) <= 0) {
+    add("error", `${label} must be positive.`);
+  }
+}
+
+function validateNonNegativeNumber(value, label, add) {
+  validateNumber(value, label, add);
+  if (Number.isFinite(Number(value)) && Number(value) < 0) {
+    add("error", `${label} must be non-negative.`);
+  }
+}
+
+function validateNumber(value, label, add) {
+  if (!Number.isFinite(Number(value))) {
+    add("error", `${label} must be a finite number.`);
+  }
+}
+
+function isFinitePoint(point) {
+  return Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y));
+}
+
+function capitalize(value) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function parameterFeatureValue(feature, entity) {
@@ -2945,6 +3394,53 @@ function loadPatchFile(file) {
   reader.readAsText(file);
 }
 
+function togglePatchJsonEditor() {
+  const isOpening = patchJsonEditor.hidden;
+  patchJsonEditor.hidden = !isOpening;
+  patchJsonToggle.setAttribute("aria-pressed", String(isOpening));
+
+  if (isOpening) {
+    const patch = currentPatchSnapshot();
+    patchJsonTextarea.value = patch ? JSON.stringify(patch, null, 2) : "";
+    patchJsonTextarea.focus();
+  }
+}
+
+function validatePatchEditor() {
+  const patch = patchJsonEditor.hidden ? currentPatchSnapshot() : parsePatchJsonEditor();
+  if (!patch) {
+    return;
+  }
+  renderPatchValidation(validatePatch(patch));
+}
+
+function applyPatchJsonEditor() {
+  const patch = parsePatchJsonEditor();
+  if (!patch) {
+    return;
+  }
+
+  patch.name = patch.name || "Edited Patch";
+  if (!patch.key || builtInPatches.some((candidate) => candidate.key === patch.key)) {
+    patch.key = `edited-${slugify(patch.name)}-${Date.now()}`;
+  }
+
+  stopAnimation();
+  selectPatchOptionForPatch(patch);
+  loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: true });
+  patchJsonTextarea.value = JSON.stringify(currentPatchSnapshot(), null, 2);
+  setConstraintStatus("Patch JSON applied.");
+}
+
+function parsePatchJsonEditor() {
+  try {
+    return JSON.parse(patchJsonTextarea.value);
+  } catch (error) {
+    renderPatchValidation([{ level: "error", message: "Patch JSON could not be parsed." }]);
+    return null;
+  }
+}
+
 function updateHoverState(entity) {
   hoveredEntity = entity;
   canvas.style.cursor = activeTool === TOOL_SELECT
@@ -3147,6 +3643,9 @@ patchFileInput.addEventListener("change", () => {
   loadPatchFile(patchFileInput.files[0]);
   patchFileInput.value = "";
 });
+patchJsonToggle.addEventListener("click", togglePatchJsonEditor);
+patchJsonApplyButton.addEventListener("click", applyPatchJsonEditor);
+patchValidateButton.addEventListener("click", validatePatchEditor);
 midiLoadSequenceButton.addEventListener("click", () => {
   midiSequenceFileInput.click();
 });

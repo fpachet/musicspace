@@ -688,7 +688,9 @@
       margin-top: 12px;
     }
 
-    .target-panel {
+    .target-panel,
+    .midi-panel,
+    .patch-inspector {
       width: min(100%, 800px);
       margin: 12px auto 0;
       padding: 12px;
@@ -702,28 +704,140 @@
       display: none;
     }
 
-    .midi-panel {
-      width: min(100%, 800px);
-      margin: 12px auto 0;
-      padding: 12px;
-      border: 1px solid #b9c1c9;
-      border-radius: 6px;
-      background: #ffffff;
-      box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
-    }
-
     .midi-panel[hidden] {
       display: none;
     }
 
-    .target-panel h2 {
+    .target-panel h2,
+    .midi-panel h2,
+    .patch-inspector h2,
+    .inspector-section h3 {
       margin: 0 0 10px;
       font-size: 16px;
     }
 
-    .midi-panel h2 {
-      margin: 0 0 10px;
-      font-size: 16px;
+    .inspector-header {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .inspector-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .inspector-actions button,
+    .patch-json-actions button {
+      min-height: 30px;
+      border: 1px solid #9aa8b6;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: #243447;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .inspector-actions button[aria-pressed="true"] {
+      background: #243447;
+      color: #ffffff;
+    }
+
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .inspector-section {
+      min-width: 0;
+      padding: 8px 0;
+      border-top: 1px solid #e1e7ef;
+    }
+
+    .inspector-section h3 {
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #1f2933;
+    }
+
+    .inspector-list {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .inspector-list li {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .validation-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .validation-item {
+      padding: 7px 9px;
+      border: 1px solid #d4dae1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #52616f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .validation-item.error {
+      border-color: #f0a5a5;
+      background: #fff1f1;
+      color: #9b1c1c;
+    }
+
+    .validation-item.warning {
+      border-color: #f5c16c;
+      background: #fff8e8;
+      color: #8a4b08;
+    }
+
+    .validation-item.ok {
+      border-color: #9bd0b4;
+      background: #eefaf3;
+      color: #18643a;
+    }
+
+    .patch-json-editor {
+      margin-top: 10px;
+    }
+
+    .patch-json-editor[hidden] {
+      display: none;
+    }
+
+    .patch-json-editor textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 280px;
+      resize: vertical;
+      padding: 10px;
+      border: 1px solid #b9c1c9;
+      border-radius: 6px;
+      background: #111827;
+      color: #f8fafc;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .patch-json-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
     }
 
     .target-grid,
@@ -1010,6 +1124,23 @@
     <section id="target-panel" class="target-panel" aria-label="Target parameter monitor" hidden>
       <h2>Target Parameters</h2>
       <div id="target-grid" class="target-grid"></div>
+    </section>
+    <section id="patch-inspector" class="patch-inspector" aria-label="Patch inspector">
+      <div class="inspector-header">
+        <h2>Patch Inspector</h2>
+        <div class="inspector-actions">
+          <button id="patch-validate" type="button">Validate</button>
+          <button id="patch-json-toggle" type="button" aria-pressed="false">JSON</button>
+        </div>
+      </div>
+      <div id="patch-summary" class="inspector-grid"></div>
+      <div id="patch-validation" class="validation-list" aria-live="polite"></div>
+      <div id="patch-json-editor" class="patch-json-editor" hidden>
+        <textarea id="patch-json" spellcheck="false" aria-label="Patch JSON"></textarea>
+        <div class="patch-json-actions">
+          <button id="patch-json-apply" type="button">Apply JSON</button>
+        </div>
+      </div>
     </section>
     <section id="midi-panel" class="midi-panel" aria-label="MIDI file monitor" hidden>
       <h2>MIDI File</h2>

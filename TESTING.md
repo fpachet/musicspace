@@ -17,5 +17,6 @@ Current coverage:
 - Distance-ratio preservation.
 - Solid-link propagation.
 - Over-constrained residual diagnostics.
+- Patch validation for object references, backend declarations, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
 
 Keep these tests focused on engine behavior. Browser/UI rendering checks should stay separate.

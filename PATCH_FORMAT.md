@@ -9,6 +9,14 @@ The formal schemas are:
 - `schemas/musicspace-patch.schema.json`
 - `schemas/musicspace-patch-index.schema.json`
 
+## Inspecting And Validating Patches
+
+The app includes a Patch Inspector under the canvas. It summarizes the active patch, shows the selected backend and any MIDI/Faust artifacts, lists constraints and mappings, and reports validation findings.
+
+Use **JSON** in the inspector to open an editable snapshot of the active patch. **Apply JSON** parses that snapshot, validates it, and loads it as a separate edited patch entry instead of overwriting a built-in patch.
+
+Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
+
 ## Minimal Patch
 
 ```json

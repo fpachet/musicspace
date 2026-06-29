@@ -108,6 +108,16 @@ function createEngineHarness() {
       throw new Error("fetch is disabled in constraint-engine tests");
     },
     FileReader: class {},
+    MusicSpaceTargets: {
+      listTargetBackends() {
+        return [
+          { type: "subtractive", parameters: ["/osc/freq", "/filter/frequency", "/filter/q", "/output/gain"] },
+          { type: "granular", parameters: ["/grain/rate", "/grain/size", "/grain/pitch", "/grain/spread", "/filter/frequency", "/filter/q", "/output/gain"] },
+          { type: "midi-file", parameters: [] },
+          { type: "faust-wasm", parameters: [] }
+        ];
+      }
+    },
     MusicSpaceMidiFileClient: {
       createMidiFileClient() {
         return {
@@ -158,7 +168,8 @@ globalThis.__musicspaceTestApi = {
   measureConstraintResiduals,
   moveEntity,
   resumePropagationAfterPausedDrag,
-  serializePatch
+  serializePatch,
+  validatePatch
 };`;
   vm.runInContext(exposedSource, sandbox, { filename: "musicspace.js" });
 
@@ -345,6 +356,58 @@ test("solid link carries the attached object with its carrier", () => {
   assert.equal(report.residuals.length, 0);
   assert.ok(Math.abs(b.x - 180) <= 0.5);
   assert.ok(Math.abs(b.y - 30) <= 0.5);
+});
+
+test("patch validation accepts coherent patch JSON", () => {
+  const engine = createEngineHarness();
+  const findings = engine.api.validatePatch(loadFixturePatch("jazz-trio-midi.json"));
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "ok");
+});
+
+test("patch validation accepts every built-in patch", () => {
+  const engine = createEngineHarness();
+  const index = JSON.parse(fs.readFileSync(path.join(ROOT, "patches", "index.json"), "utf8"));
+
+  for (const entry of index.patches) {
+    const findings = engine.api.validatePatch(loadFixturePatch(entry.file));
+    const problems = findings.filter((finding) => finding.level !== "ok");
+
+    assert.equal(problems.length, 0, `${entry.file}: ${problems.map((finding) => finding.message).join("; ")}`);
+  }
+});
+
+test("patch validation reports dangling constraints and backend mistakes", () => {
+  const engine = createEngineHarness();
+  const findings = engine.api.validatePatch({
+    name: "Broken patch",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 200, y: 200 }],
+    constraints: [
+      { type: "angle", sources: ["A", "Missing"] },
+      { type: "radialLimit", source: "A", minDistance: 200, maxDistance: 100 }
+    ],
+    target: { type: "faust-wasm" },
+    parameterMappings: [
+      {
+        source: "Missing",
+        feature: "distance",
+        target: "/osc/freq",
+        inputMin: 0,
+        inputMax: 100,
+        outputMin: 0,
+        outputMax: 880,
+        curve: "exp"
+      }
+    ]
+  });
+
+  assert.ok(findings.some((finding) => finding.message.includes("unknown object Missing")));
+  assert.ok(findings.some((finding) => finding.message.includes("min must be less than or equal to max")));
+  assert.ok(findings.some((finding) => finding.message.includes("adapter module")));
+  assert.ok(findings.some((finding) => finding.message.includes("positive outputMin/outputMax")));
 });
 
 test("over-constrained graphs expose residual diagnostics", () => {
