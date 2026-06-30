@@ -3614,6 +3614,10 @@ function openShuttleEditor(mover) {
 }
 
 function revealEditor(editor) {
+  if (editor === sourceEditor && window.matchMedia?.("(min-width: 721px)").matches) {
+    return;
+  }
+
   requestAnimationFrame(() => {
     editor.scrollIntoView({ block: "nearest", behavior: "smooth" });
   });

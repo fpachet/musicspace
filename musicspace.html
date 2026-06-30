@@ -678,6 +678,21 @@
       box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
     }
 
+    #source-editor {
+      position: fixed;
+      top: 88px;
+      right: 20px;
+      z-index: 20;
+      width: min(360px, calc(100vw - 40px));
+      max-height: calc(100vh - 112px);
+      margin: 0;
+      overflow: auto;
+    }
+
+    #source-editor .editor-grid {
+      grid-template-columns: 1fr;
+    }
+
     .editor-panel[hidden] {
       display: none;
     }
@@ -1009,6 +1024,13 @@
 
       .tool-section {
         padding: 8px;
+      }
+
+      #source-editor {
+        position: static;
+        width: min(100%, 800px);
+        max-height: none;
+        margin: 12px auto 0;
       }
 
       .tool-grid {
