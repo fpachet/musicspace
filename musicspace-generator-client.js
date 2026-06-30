@@ -18,6 +18,8 @@
     let generators = [];
     let enabled = false;
     let context = null;
+    let midiAccess = null;
+    let midiOutputs = [];
     let schedulerTimer = null;
     let spatialTimer = null;
     let activeVoices = [];
@@ -41,8 +43,32 @@
       hasGeneratorForSource(sourceName) {
         return generators.some((generator) => generator.source === sourceName);
       },
+      isSourceMuted(sourceName) {
+        const generator = generators.find((candidate) => candidate.source === sourceName);
+        return generator ? Boolean(generator.muted) : false;
+      },
       isEnabled() {
         return enabled;
+      },
+      upsertGenerator(generator) {
+        const normalized = normalizeGenerator(generator);
+        if (!normalized) {
+          return null;
+        }
+        generators = generators.filter((candidate) => candidate.source !== normalized.source);
+        generators.push({ ...normalized, nextAt: enabled ? clockSeconds() + 0.04 : 0 });
+        return serializeGenerator(normalized);
+      },
+      toggleSourceMuted(sourceName) {
+        let updated = null;
+        generators = generators.map((generator) => {
+          if (generator.source !== sourceName) {
+            return generator;
+          }
+          updated = { ...generator, muted: !generator.muted };
+          return updated;
+        });
+        return updated ? serializeGenerator(updated) : null;
       },
       renameSource(oldName, newName) {
         generators = generators.map((generator) => (
@@ -66,14 +92,16 @@
           return false;
         }
 
-        await ensureContext();
-        if (!context) {
+        const canPlay = await ensureOutputsForGenerators();
+        if (!canPlay) {
           enabled = false;
           return false;
         }
 
-        await context.resume();
-        const startAt = context.currentTime + 0.04;
+        if (context?.resume) {
+          await context.resume();
+        }
+        const startAt = clockSeconds() + 0.04;
         generators = generators.map((generator, index) => ({
           ...generator,
           nextAt: startAt + index * 0.035
@@ -84,6 +112,10 @@
         updateSpatial();
         onStatus("Source generators playing.");
         return true;
+      },
+      async availableMidiOutputs() {
+        await refreshMidiOutputs();
+        return midiOutputs.map(serializeMidiOutput);
       },
       updateSpatial
     };
@@ -133,6 +165,9 @@
         channel: clampInteger(generator.channel, 1, 16, 1),
         muted: Boolean(generator.muted),
         waveform: ["sine", "triangle", "sawtooth", "square"].includes(generator.waveform) ? generator.waveform : "triangle",
+        outputMode: generator.outputMode === "external" ? "external" : "internal",
+        outputId: typeof generator.outputId === "string" ? generator.outputId : "",
+        outputName: typeof generator.outputName === "string" ? generator.outputName : "",
         spatialization: generator.spatialization === "stereo-pan" ? "stereo-pan" : "pan-distance",
         nextAt: 0
       };
@@ -149,8 +184,33 @@
         channel: generator.channel,
         muted: generator.muted,
         waveform: generator.waveform,
+        outputMode: generator.outputMode,
+        outputId: generator.outputId,
+        outputName: generator.outputName,
         spatialization: generator.spatialization
       };
+    }
+
+    async function ensureOutputsForGenerators() {
+      const activeGenerators = generators.filter((generator) => !generator.muted);
+      const needsInternal = activeGenerators.some((generator) => generator.outputMode !== "external");
+      const needsExternal = activeGenerators.some((generator) => generator.outputMode === "external");
+
+      if (needsInternal) {
+        await ensureContext();
+        if (!context) {
+          return false;
+        }
+      }
+      if (needsExternal) {
+        await refreshMidiOutputs();
+        if (midiOutputs.length === 0) {
+          onStatus("No external MIDI output is available for source generators.");
+          return Boolean(context);
+        }
+      }
+
+      return needsInternal || (needsExternal && midiOutputs.length > 0) || generators.length > 0;
     }
 
     async function ensureContext() {
@@ -168,14 +228,31 @@
       return context;
     }
 
+    async function refreshMidiOutputs() {
+      if (!global.navigator?.requestMIDIAccess) {
+        midiOutputs = [];
+        return midiOutputs;
+      }
+
+      try {
+        midiAccess = midiAccess || await global.navigator.requestMIDIAccess();
+        midiOutputs = Array.from(midiAccess.outputs.values());
+      } catch (error) {
+        midiOutputs = [];
+        onStatus("Web MIDI outputs are not available.");
+      }
+      return midiOutputs;
+    }
+
     function scheduleDueNotes() {
-      if (!enabled || !context) {
+      if (!enabled) {
         return;
       }
 
-      const horizon = context.currentTime + SCHEDULE_AHEAD_SECONDS;
+      const now = clockSeconds();
+      const horizon = now + SCHEDULE_AHEAD_SECONDS;
       generators = generators.map((generator) => {
-        let nextAt = generator.nextAt || context.currentTime;
+        let nextAt = generator.nextAt || now;
         while (nextAt <= horizon) {
           if (!generator.muted && getSource(generator.source)) {
             scheduleNote(generator, nextAt);
@@ -187,6 +264,14 @@
     }
 
     function scheduleNote(generator, startTime) {
+      if (generator.outputMode === "external") {
+        scheduleExternalNote(generator, startTime);
+        return;
+      }
+      if (!context) {
+        return;
+      }
+
       const oscillator = context.createOscillator();
       const envelope = context.createGain();
       const panNode = context.createStereoPanner ? context.createStereoPanner() : null;
@@ -219,11 +304,74 @@
       });
     }
 
+    function scheduleExternalNote(generator, startTime) {
+      const output = midiOutputForGenerator(generator);
+      if (!output) {
+        return;
+      }
+
+      const channelIndex = clampInteger(generator.channel, 1, 16, 1) - 1;
+      const pitch = clampInteger(generator.pitch, 0, 127, 60);
+      const velocity = clampInteger(generator.velocity, 1, 127, 80);
+      const noteDelay = Math.max(0, (startTime - clockSeconds()) * 1000);
+      const offDelay = noteDelay + Math.max(10, generator.durationMs);
+      const voice = {
+        source: generator.source,
+        external: true,
+        output,
+        pitch,
+        channelIndex,
+        timeoutIds: [],
+        noteStarted: false,
+        stopped: false
+      };
+
+      const noteOnTimer = global.setTimeout(() => {
+        if (voice.stopped) {
+          return;
+        }
+        try {
+          output.send([0x90 + channelIndex, pitch, velocity]);
+          voice.noteStarted = true;
+        } catch (error) {
+          // MIDI outputs can disappear while a patch is playing.
+        }
+      }, noteDelay);
+      const noteOffTimer = global.setTimeout(() => {
+        if (voice.stopped) {
+          return;
+        }
+        try {
+          output.send([0x80 + channelIndex, pitch, 0]);
+        } catch (error) {
+          // Best effort for transient MIDI devices.
+        }
+        voice.stopped = true;
+        activeVoices = activeVoices.filter((candidate) => candidate !== voice);
+      }, offDelay);
+
+      voice.timeoutIds.push(noteOnTimer, noteOffTimer);
+      activeVoices.push(voice);
+    }
+
     function stopVoice(voice) {
       if (voice.stopped) {
         return;
       }
       voice.stopped = true;
+      if (voice.external) {
+        for (const timeoutId of voice.timeoutIds || []) {
+          global.clearTimeout(timeoutId);
+        }
+        if (voice.noteStarted) {
+          try {
+            voice.output?.send?.([0x80 + voice.channelIndex, voice.pitch, 0]);
+          } catch (error) {
+            // Best-effort MIDI cleanup; the output may have disappeared.
+          }
+        }
+        return;
+      }
       try {
         voice.envelope?.gain?.cancelScheduledValues?.(context?.currentTime || 0);
         voice.envelope?.gain?.setTargetAtTime?.(0.0001, context?.currentTime || 0, 0.01);
@@ -238,6 +386,9 @@
       }
 
       for (const voice of activeVoices) {
+        if (voice.external) {
+          continue;
+        }
         const generator = generators.find((candidate) => candidate.source === voice.source);
         const spatial = spatialValuesForSource(getSource(voice.source), generator?.spatialization);
         voice.panNode?.pan?.setTargetAtTime?.(spatial.pan, context.currentTime, 0.04);
@@ -260,6 +411,33 @@
         : clamp(1 - normalizedDistance * 0.72 - Math.max(0, dy) / 600 * 0.12, 0.16, 1);
 
       return { pan, gain };
+    }
+
+    function midiOutputForGenerator(generator) {
+      if (midiOutputs.length === 0) {
+        return null;
+      }
+      return midiOutputs.find((output) => output.id === generator.outputId)
+        || midiOutputs.find((output) => output.name === generator.outputName)
+        || midiOutputs[0];
+    }
+
+    function serializeMidiOutput(output) {
+      return {
+        id: output.id || output.name || "",
+        name: output.name || output.id || "MIDI output"
+      };
+    }
+
+    function clockSeconds() {
+      if (context) {
+        return context.currentTime;
+      }
+      const performanceNow = global.performance?.now?.();
+      if (Number.isFinite(performanceNow)) {
+        return performanceNow / 1000;
+      }
+      return Date.now() / 1000;
     }
   }
 

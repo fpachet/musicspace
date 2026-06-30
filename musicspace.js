@@ -52,6 +52,8 @@ const rotationRunningInput = document.getElementById("rotation-running");
 const rotationDisplacementInput = document.getElementById("rotation-displacement");
 const rotationPeriodInput = document.getElementById("rotation-period");
 const rotationDirectionInput = document.getElementById("rotation-direction");
+const rotationPrevButton = document.getElementById("rotation-prev");
+const rotationNextButton = document.getElementById("rotation-next");
 const rotationApplyButton = document.getElementById("rotation-apply");
 const rotationCloseButton = document.getElementById("rotation-close");
 const shuttleEditor = document.getElementById("shuttle-editor");
@@ -63,17 +65,59 @@ const shuttleEndXInput = document.getElementById("shuttle-end-x");
 const shuttleEndYInput = document.getElementById("shuttle-end-y");
 const shuttleSpeedInput = document.getElementById("shuttle-speed");
 const shuttleShowPathInput = document.getElementById("shuttle-show-path");
+const shuttlePrevButton = document.getElementById("shuttle-prev");
+const shuttleNextButton = document.getElementById("shuttle-next");
 const shuttleApplyButton = document.getElementById("shuttle-apply");
 const shuttleCloseButton = document.getElementById("shuttle-close");
+const constraintEditor = document.getElementById("constraint-editor");
+const constraintEditorSummary = document.getElementById("constraint-editor-summary");
+const constraintNodeManualInput = document.getElementById("constraint-node-manual");
+const constraintNodeXRow = document.getElementById("constraint-node-x-row");
+const constraintNodeXInput = document.getElementById("constraint-node-x");
+const constraintNodeYRow = document.getElementById("constraint-node-y-row");
+const constraintNodeYInput = document.getElementById("constraint-node-y");
+const constraintValueARow = document.getElementById("constraint-value-a-row");
+const constraintValueALabel = document.getElementById("constraint-value-a-label");
+const constraintValueAInput = document.getElementById("constraint-value-a");
+const constraintValueBRow = document.getElementById("constraint-value-b-row");
+const constraintValueBLabel = document.getElementById("constraint-value-b-label");
+const constraintValueBInput = document.getElementById("constraint-value-b");
+const constraintPrevButton = document.getElementById("constraint-prev");
+const constraintNextButton = document.getElementById("constraint-next");
+const constraintRecaptureButton = document.getElementById("constraint-recapture");
+const constraintApplyButton = document.getElementById("constraint-apply");
+const constraintCloseButton = document.getElementById("constraint-close");
 const sourceEditor = document.getElementById("source-editor");
 const sourceNameInput = document.getElementById("source-name");
 const sourceOutputTypeInput = document.getElementById("source-output-type");
 const sourceAudioFileInput = document.getElementById("source-audio-file");
+const sourceAudioFileRow = document.getElementById("source-audio-file-row");
+const sourceSpatializationRow = document.getElementById("source-spatialization-row");
 const sourceSpatializationInput = document.getElementById("source-spatialization");
+const sourceGainRow = document.getElementById("source-gain-row");
 const sourceGainInput = document.getElementById("source-gain");
+const sourceLoopRow = document.getElementById("source-loop-row");
 const sourceLoopInput = document.getElementById("source-loop");
+const sourceGeneratorPitchRow = document.getElementById("source-generator-pitch-row");
+const sourceGeneratorPitchInput = document.getElementById("source-generator-pitch");
+const sourceGeneratorPeriodRow = document.getElementById("source-generator-period-row");
+const sourceGeneratorPeriodInput = document.getElementById("source-generator-period");
+const sourceGeneratorDurationRow = document.getElementById("source-generator-duration-row");
+const sourceGeneratorDurationInput = document.getElementById("source-generator-duration");
+const sourceGeneratorVelocityRow = document.getElementById("source-generator-velocity-row");
+const sourceGeneratorVelocityInput = document.getElementById("source-generator-velocity");
+const sourceGeneratorWaveformRow = document.getElementById("source-generator-waveform-row");
+const sourceGeneratorWaveformInput = document.getElementById("source-generator-waveform");
+const sourceGeneratorOutputModeRow = document.getElementById("source-generator-output-mode-row");
+const sourceGeneratorOutputModeInput = document.getElementById("source-generator-output-mode");
+const sourceGeneratorOutputRow = document.getElementById("source-generator-output-row");
+const sourceGeneratorOutputInput = document.getElementById("source-generator-output");
+const sourceGeneratorChannelRow = document.getElementById("source-generator-channel-row");
+const sourceGeneratorChannelInput = document.getElementById("source-generator-channel");
 const sourceMutedInput = document.getElementById("source-muted");
 const sourceAudioFileName = document.getElementById("source-audio-file-name");
+const sourcePrevButton = document.getElementById("source-prev");
+const sourceNextButton = document.getElementById("source-next");
 const sourceApplyButton = document.getElementById("source-apply");
 const sourceToggleMuteButton = document.getElementById("source-toggle-mute");
 const sourceRemoveBindingButton = document.getElementById("source-remove-binding");
@@ -98,6 +142,7 @@ const RATIO_EPSILON = 0.01;
 const RELATIVE_PRODUCT_EPSILON = 0.001;
 const TOOL_SELECT = "select";
 const SOURCE_BINDING_AUDIO_FILE = "audio-file";
+const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
 const DOUBLE_CLICK_DISTANCE = 12;
@@ -1113,8 +1158,11 @@ let pendingToolEntities = [];
 let lastCanvasClick = null;
 let activeRotationMover = null;
 let activeShuttleMover = null;
+let activeConstraintEditorConstraint = null;
 let activeSourceEditorSource = null;
+let activeSourceEditorInitialOutputType = "none";
 let pendingSourceAudioFile = null;
+let cachedSourceGeneratorMidiOutputs = [];
 let undoStack = [];
 let listenerMode = LISTENER_MODE_RETARGET;
 let isAnimating = false;
@@ -1294,10 +1342,13 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   pendingToolEntities = [];
   activeRotationMover = null;
   activeShuttleMover = null;
+  activeConstraintEditorConstraint = null;
   activeSourceEditorSource = null;
+  activeSourceEditorInitialOutputType = "none";
   pendingSourceAudioFile = null;
   rotationEditor.hidden = true;
   shuttleEditor.hidden = true;
+  constraintEditor.hidden = true;
   sourceEditor.hidden = true;
   velocity = { x: 0, y: 0 };
   setConstraintStatus("");
@@ -2099,6 +2150,15 @@ function validateSourceGenerators(generators, names, add) {
     }
     if (generator.waveform && !["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)) {
       add("error", `Unsupported source generator waveform: ${generator.waveform}.`);
+    }
+    if (generator.outputMode && !["internal", "external"].includes(generator.outputMode)) {
+      add("error", `Unsupported source generator output mode: ${generator.outputMode}.`);
+    }
+    if (generator.outputId !== undefined && typeof generator.outputId !== "string") {
+      add("error", "sourceGenerators.outputId must be a string when present.");
+    }
+    if (generator.outputName !== undefined && typeof generator.outputName !== "string") {
+      add("error", "sourceGenerators.outputName must be a string when present.");
     }
     if (generator.spatialization && !["pan-distance", "stereo-pan"].includes(generator.spatialization)) {
       add("error", `Unsupported source generator spatialization: ${generator.spatialization}.`);
@@ -3784,6 +3844,80 @@ function assignTrajectoryFromTool(mover, tool) {
   }
 }
 
+function editableInspectorTargets() {
+  return [
+    ...sources.map((source) => ({ entity: source, label: entityLabel(source), open: () => openSourceEditor(source) })),
+    ...movingObjects
+      .filter((mover) => mover.trajectory?.type === "rotator" || mover.trajectory?.type === "shuttle")
+      .map((mover) => ({
+        entity: mover,
+        label: entityLabel(mover),
+        open: () => {
+          if (mover.trajectory?.type === "shuttle") {
+            openShuttleEditor(mover);
+          } else {
+            openRotationEditor(mover);
+          }
+        }
+      })),
+    ...constraints.map((constraint) => ({
+      entity: constraint.node,
+      label: constraint.node.label,
+      open: () => openConstraintEditor(constraint)
+    }))
+  ];
+}
+
+function currentInspectorEntity() {
+  if (!sourceEditor.hidden && activeSourceEditorSource) {
+    return activeSourceEditorSource;
+  }
+  if (!rotationEditor.hidden && activeRotationMover) {
+    return activeRotationMover;
+  }
+  if (!shuttleEditor.hidden && activeShuttleMover) {
+    return activeShuttleMover;
+  }
+  if (!constraintEditor.hidden && activeConstraintEditorConstraint) {
+    return activeConstraintEditorConstraint.node;
+  }
+  return selectedEntity;
+}
+
+function navigateInspector(delta) {
+  const targets = editableInspectorTargets();
+  if (targets.length === 0) {
+    setConstraintStatus("No editable items in this patch.");
+    return false;
+  }
+
+  const current = currentInspectorEntity();
+  const currentIndex = Math.max(0, targets.findIndex((target) => target.entity === current));
+  const nextIndex = (currentIndex + delta + targets.length) % targets.length;
+  const target = targets[nextIndex];
+  target.open();
+  selectedEntity = target.entity;
+  updateInspectorNavButtons();
+  drawAll();
+  return true;
+}
+
+function updateInspectorNavButtons() {
+  const canNavigate = editableInspectorTargets().length > 1;
+  for (const button of [
+    rotationPrevButton,
+    rotationNextButton,
+    shuttlePrevButton,
+    shuttleNextButton,
+    constraintPrevButton,
+    constraintNextButton,
+    sourcePrevButton,
+    sourceNextButton
+  ]) {
+    button.disabled = !canNavigate;
+  }
+}
+
 function openRotationEditor(mover) {
   if (!(mover instanceof MovingObject)) {
     return;
@@ -3795,6 +3929,7 @@ function openRotationEditor(mover) {
 
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
+  closeConstraintEditor();
   closeSourceEditor();
   activeRotationMover = mover;
   rotationRunningInput.checked = Boolean(mover.trajectory.running);
@@ -3802,6 +3937,7 @@ function openRotationEditor(mover) {
   rotationPeriodInput.value = String(mover.trajectory.periodSeconds || 20);
   rotationDirectionInput.value = String(mover.trajectory.direction || 1);
   rotationEditor.hidden = false;
+  updateInspectorNavButtons();
   setConstraintStatus(`Editing rotative object ${mover.name}.`);
   revealEditor(rotationEditor);
 }
@@ -3828,6 +3964,7 @@ function applyRotationEditor() {
 function closeRotationEditor() {
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  updateInspectorNavButtons();
 }
 
 function openShuttleEditor(mover) {
@@ -3841,6 +3978,7 @@ function openShuttleEditor(mover) {
 
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  closeConstraintEditor();
   closeSourceEditor();
   activeShuttleMover = mover;
   populateEndpointSelect(shuttleStartRefInput, mover);
@@ -3858,6 +3996,7 @@ function openShuttleEditor(mover) {
   shuttleSpeedInput.value = String(trajectory.speed ?? 0.01);
   shuttleShowPathInput.checked = trajectory.showPath !== false;
   shuttleEditor.hidden = false;
+  updateInspectorNavButtons();
   setConstraintStatus(`Editing shuttle trajectory ${mover.name}.`);
   revealEditor(shuttleEditor);
 }
@@ -3938,6 +4077,374 @@ function endpointFromEditor(refInput, xInput, yInput) {
 function closeShuttleEditor() {
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
+  updateInspectorNavButtons();
+}
+
+function findConstraintForNode(node) {
+  return constraints.find((constraint) => constraint.node === node) || null;
+}
+
+function constraintEditorSpec(constraint) {
+  if (constraint instanceof AngleConstraint) {
+    return {
+      summary: `Angle between ${entityLabel(constraint.a)} and ${entityLabel(constraint.b)} around Listener.`,
+      valueA: { label: "Angle (deg)", value: radiansToDegrees(constraint.angle), min: -360, step: 0.1 }
+    };
+  }
+  if (constraint instanceof SumConstraint) {
+    return {
+      summary: `Sum of distances for ${constraint.sources.map(entityLabel).join(", ")}.`,
+      valueA: { label: "Total distance", value: constraint.totalDistance, min: 0, step: 1 }
+    };
+  }
+  if (constraint instanceof ProductConstraint) {
+    return {
+      summary: `Product of distances for ${constraint.sources.map(entityLabel).join(", ")}.`,
+      valueA: { label: "Distance product", value: constraint.product, min: MIN_DISTANCE, step: 1 }
+    };
+  }
+  if (constraint instanceof RadialLimitConstraint) {
+    return {
+      summary: `${entityLabel(constraint.source)} distance from Listener.`,
+      valueA: { label: "Minimum distance", value: constraint.minDistance, min: 0, step: 1 },
+      valueB: { label: "Maximum distance", value: constraint.maxDistance, min: 0, step: 1 }
+    };
+  }
+  if (constraint instanceof FixedDistanceConstraint) {
+    return {
+      summary: `${entityLabel(constraint.target)} fixed from ${entityLabel(constraint.anchor)}.`,
+      valueA: { label: "Distance", value: constraint.distance, min: MIN_DISTANCE, step: 1 }
+    };
+  }
+  if (constraint instanceof DistanceRatioConstraint) {
+    return {
+      summary: `${entityLabel(constraint.a)} / ${entityLabel(constraint.b)} distance ratio from Listener.`,
+      valueA: { label: "Ratio", value: constraint.ratio, min: 0.001, step: 0.001 }
+    };
+  }
+  if (constraint instanceof PinConstraint) {
+    return {
+      summary: `${entityLabel(constraint.target)} pinned position.`,
+      valueA: { label: "Pinned X", value: constraint.fixedX, step: 1 },
+      valueB: { label: "Pinned Y", value: constraint.fixedY, step: 1 }
+    };
+  }
+  if (constraint instanceof SolidAttachmentConstraint) {
+    return {
+      summary: `${entityLabel(constraint.attached)} follows ${entityLabel(constraint.carrier)}.`,
+      valueA: { label: "Offset X", value: constraint.offsetX, step: 1 },
+      valueB: { label: "Offset Y", value: constraint.offsetY, step: 1 }
+    };
+  }
+  if (constraint instanceof MinimumSeparationConstraint) {
+    return {
+      summary: `${entityLabel(constraint.a)} and ${entityLabel(constraint.b)} minimum distance.`,
+      valueA: { label: "Minimum distance", value: constraint.minDistance, min: 0, step: 1 }
+    };
+  }
+  if (constraint instanceof AngleSectorConstraint) {
+    return {
+      summary: `${entityLabel(constraint.source)} angle sector around Listener.`,
+      valueA: { label: "Center angle (deg)", value: radiansToDegrees(constraint.centerAngle), step: 0.1 },
+      valueB: { label: "Width (deg)", value: radiansToDegrees(constraint.width), min: 0.1, step: 0.1 }
+    };
+  }
+  return {
+    summary: "Constraint parameters.",
+    valueA: null,
+    valueB: null
+  };
+}
+
+function fillConstraintEditorField(row, label, input, spec) {
+  row.hidden = !spec;
+  if (!spec) {
+    return;
+  }
+  label.textContent = spec.label;
+  input.value = String(roundEditorValue(spec.value));
+  input.step = String(spec.step ?? 0.001);
+  input.min = spec.min === undefined ? "" : String(spec.min);
+}
+
+function openConstraintEditor(constraint) {
+  if (!constraint) {
+    return;
+  }
+
+  rotationEditor.hidden = true;
+  activeRotationMover = null;
+  shuttleEditor.hidden = true;
+  activeShuttleMover = null;
+  closeSourceEditor();
+  activeConstraintEditorConstraint = constraint;
+
+  const spec = constraintEditorSpec(constraint);
+  constraintEditorSummary.textContent = spec.summary;
+  constraintNodeManualInput.checked = Boolean(constraint.node.isManual);
+  constraintNodeXInput.value = String(roundEditorValue(constraint.node.x));
+  constraintNodeYInput.value = String(roundEditorValue(constraint.node.y));
+  constraintNodeXRow.hidden = false;
+  constraintNodeYRow.hidden = false;
+  fillConstraintEditorField(constraintValueARow, constraintValueALabel, constraintValueAInput, spec.valueA);
+  fillConstraintEditorField(constraintValueBRow, constraintValueBLabel, constraintValueBInput, spec.valueB);
+  constraintEditor.hidden = false;
+  updateInspectorNavButtons();
+  setConstraintStatus(`Editing ${constraint.node.label} constraint.`);
+  revealEditor(constraintEditor);
+}
+
+function applyConstraintEditor() {
+  const constraint = activeConstraintEditorConstraint;
+  if (!constraint) {
+    return;
+  }
+
+  const values = readConstraintEditorValues(constraint);
+  if (!values.ok) {
+    setConstraintStatus(values.message);
+    return;
+  }
+
+  pushUndoSnapshot(`edit ${constraint.node.label} constraint`);
+  applyConstraintEditorValues(constraint, values);
+  constraint.node.isManual = constraintNodeManualInput.checked;
+  constraint.node.x = clampNumberInput(constraintNodeXInput.value, 0, WIDTH, constraint.node.x);
+  constraint.node.y = clampNumberInput(constraintNodeYInput.value, 0, HEIGHT, constraint.node.y);
+  if (!constraint.node.isManual) {
+    constraint.updateNode?.();
+  }
+  const primary = primaryEntityForConstraint(constraint);
+  if (primary) {
+    enforceConstraints(primary);
+  }
+  updatePatchInspector();
+  drawAll();
+  setConstraintStatus(`${constraint.node.label} constraint updated.`);
+}
+
+function readConstraintEditorValues(constraint) {
+  const valueA = Number(constraintValueAInput.value);
+  const valueB = Number(constraintValueBInput.value);
+
+  if (!constraintValueARow.hidden && !Number.isFinite(valueA)) {
+    return { ok: false, message: `${constraintValueALabel.textContent} must be a number.` };
+  }
+  if (!constraintValueBRow.hidden && !Number.isFinite(valueB)) {
+    return { ok: false, message: `${constraintValueBLabel.textContent} must be a number.` };
+  }
+  if (constraint instanceof RadialLimitConstraint && valueA > valueB) {
+    return { ok: false, message: "Minimum distance must be less than or equal to maximum distance." };
+  }
+  if ((constraint instanceof ProductConstraint ||
+      constraint instanceof FixedDistanceConstraint ||
+      constraint instanceof DistanceRatioConstraint) && valueA <= 0) {
+    return { ok: false, message: `${constraintValueALabel.textContent} must be positive.` };
+  }
+  if (constraint instanceof AngleSectorConstraint && valueB <= 0) {
+    return { ok: false, message: "Width must be positive." };
+  }
+
+  return { ok: true, valueA, valueB };
+}
+
+function applyConstraintEditorValues(constraint, values) {
+  if (constraint instanceof AngleConstraint) {
+    constraint.angle = degreesToRadians(values.valueA);
+  } else if (constraint instanceof SumConstraint) {
+    constraint.totalDistance = Math.max(0, values.valueA);
+  } else if (constraint instanceof ProductConstraint) {
+    constraint.product = Math.max(MIN_DISTANCE, values.valueA);
+  } else if (constraint instanceof RadialLimitConstraint) {
+    constraint.minDistance = Math.max(0, values.valueA);
+    constraint.maxDistance = Math.max(constraint.minDistance, values.valueB);
+  } else if (constraint instanceof FixedDistanceConstraint) {
+    constraint.distance = Math.max(MIN_DISTANCE, values.valueA);
+  } else if (constraint instanceof DistanceRatioConstraint) {
+    constraint.ratio = Math.max(0.001, values.valueA);
+  } else if (constraint instanceof PinConstraint) {
+    constraint.fixedX = clamp(values.valueA, 0, WIDTH);
+    constraint.fixedY = clamp(values.valueB, 0, HEIGHT);
+  } else if (constraint instanceof SolidAttachmentConstraint) {
+    constraint.offsetX = values.valueA;
+    constraint.offsetY = values.valueB;
+  } else if (constraint instanceof MinimumSeparationConstraint) {
+    constraint.minDistance = Math.max(0, values.valueA);
+  } else if (constraint instanceof AngleSectorConstraint) {
+    constraint.centerAngle = degreesToRadians(values.valueA);
+    constraint.width = degreesToRadians(Math.max(0.1, values.valueB));
+  }
+}
+
+function recaptureConstraintFromGeometry() {
+  const constraint = activeConstraintEditorConstraint;
+  if (!constraint) {
+    return;
+  }
+
+  pushUndoSnapshot(`recapture ${constraint.node.label} constraint`);
+  constraint.refresh?.();
+  openConstraintEditor(constraint);
+  updatePatchInspector();
+  drawAll();
+  setConstraintStatus(`${constraint.node.label} constraint recaptured from current geometry.`);
+}
+
+function closeConstraintEditor() {
+  constraintEditor.hidden = true;
+  activeConstraintEditorConstraint = null;
+  updateInspectorNavButtons();
+}
+
+function primaryEntityForConstraint(constraint) {
+  if (constraint instanceof RadialLimitConstraint || constraint instanceof AngleSectorConstraint) {
+    return constraint.source;
+  }
+  if (constraint instanceof FixedDistanceConstraint || constraint instanceof PinConstraint) {
+    return constraint.target;
+  }
+  if (constraint instanceof SolidAttachmentConstraint) {
+    return constraint.carrier;
+  }
+  if (constraint instanceof DistanceRatioConstraint || constraint instanceof AngleConstraint) {
+    return constraint.a;
+  }
+  if (constraint instanceof MinimumSeparationConstraint) {
+    return constraint.a;
+  }
+  if (constraint instanceof SumConstraint || constraint instanceof ProductConstraint) {
+    return constraint.sources[0];
+  }
+  return null;
+}
+
+function roundEditorValue(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function radiansToDegrees(value) {
+  return value * 180 / Math.PI;
+}
+
+function degreesToRadians(value) {
+  return value * Math.PI / 180;
+}
+
+function updateSourceEditorVisibility() {
+  const outputType = sourceOutputTypeInput.value;
+  const isAudio = outputType === SOURCE_BINDING_AUDIO_FILE;
+  const isGenerator = outputType === SOURCE_OUTPUT_MIDI_OSTINATO;
+
+  sourceAudioFileRow.hidden = !isAudio;
+  sourceGainRow.hidden = !isAudio;
+  sourceLoopRow.hidden = !isAudio;
+  sourceSpatializationRow.hidden = !(isAudio || isGenerator);
+  sourceGeneratorPitchRow.hidden = !isGenerator;
+  sourceGeneratorPeriodRow.hidden = !isGenerator;
+  sourceGeneratorDurationRow.hidden = !isGenerator;
+  sourceGeneratorVelocityRow.hidden = !isGenerator;
+  sourceGeneratorWaveformRow.hidden = !isGenerator;
+  sourceGeneratorOutputModeRow.hidden = !isGenerator;
+  sourceGeneratorOutputRow.hidden = !isGenerator || sourceGeneratorOutputModeInput.value !== "external";
+  sourceGeneratorChannelRow.hidden = !isGenerator;
+}
+
+async function refreshSourceGeneratorMidiOutputs() {
+  if (sourceOutputTypeInput.value !== SOURCE_OUTPUT_MIDI_OSTINATO
+      || sourceGeneratorOutputModeInput.value !== "external") {
+    return;
+  }
+
+  const selectedOutputId = sourceGeneratorOutputInput.value;
+  cachedSourceGeneratorMidiOutputs = await generatorClient.availableMidiOutputs();
+  sourceGeneratorOutputInput.replaceChildren();
+
+  if (cachedSourceGeneratorMidiOutputs.length === 0) {
+    const option = document.createElement("option");
+    option.value = selectedOutputId || "";
+    option.textContent = selectedOutputId ? "Saved MIDI output unavailable" : "No MIDI outputs";
+    sourceGeneratorOutputInput.append(option);
+    sourceGeneratorOutputInput.value = option.value;
+    sourceGeneratorOutputInput.disabled = true;
+    return;
+  }
+
+  sourceGeneratorOutputInput.disabled = false;
+  for (const output of cachedSourceGeneratorMidiOutputs) {
+    const option = document.createElement("option");
+    option.value = output.id;
+    option.textContent = output.name;
+    sourceGeneratorOutputInput.append(option);
+  }
+  sourceGeneratorOutputInput.value = selectedOutputId || cachedSourceGeneratorMidiOutputs[0].id;
+}
+
+function fillSourceGeneratorEditor(generator) {
+  const nextGenerator = generator || {
+    pitch: 60,
+    periodMs: 1000,
+    durationMs: 160,
+    velocity: 80,
+    channel: 1,
+    muted: false,
+    waveform: "triangle",
+    outputMode: "internal",
+    outputId: "",
+    spatialization: "pan-distance"
+  };
+
+  sourceGeneratorPitchInput.value = String(nextGenerator.pitch ?? 60);
+  sourceGeneratorPeriodInput.value = String(nextGenerator.periodMs ?? 1000);
+  sourceGeneratorDurationInput.value = String(nextGenerator.durationMs ?? 160);
+  sourceGeneratorVelocityInput.value = String(nextGenerator.velocity ?? 80);
+  sourceGeneratorWaveformInput.value = nextGenerator.waveform || "triangle";
+  sourceGeneratorOutputModeInput.value = nextGenerator.outputMode === "external" ? "external" : "internal";
+  sourceGeneratorOutputInput.value = nextGenerator.outputId || "";
+  sourceGeneratorChannelInput.value = String(nextGenerator.channel ?? 1);
+  sourceSpatializationInput.value = nextGenerator.spatialization || "pan-distance";
+  sourceMutedInput.checked = Boolean(nextGenerator.muted);
+}
+
+function sourceGeneratorFromEditor(sourceName) {
+  const outputId = sourceGeneratorOutputModeInput.value === "external"
+    ? sourceGeneratorOutputInput.value
+    : "";
+  const output = cachedSourceGeneratorMidiOutputs.find((candidate) => candidate.id === outputId);
+  const [existingGenerator] = activeSourceEditorSource
+    ? generatorClient.generatorsForSource(activeSourceEditorSource.name)
+    : [];
+
+  return {
+    source: sourceName,
+    type: SOURCE_OUTPUT_MIDI_OSTINATO,
+    pitch: clampIntegerInput(sourceGeneratorPitchInput.value, 0, 127, 60),
+    periodMs: clampNumberInput(sourceGeneratorPeriodInput.value, 40, 60000, 1000),
+    durationMs: clampNumberInput(sourceGeneratorDurationInput.value, 10, 10000, 160),
+    velocity: clampIntegerInput(sourceGeneratorVelocityInput.value, 1, 127, 80),
+    channel: clampIntegerInput(sourceGeneratorChannelInput.value, 1, 16, 1),
+    muted: sourceMutedInput.checked,
+    waveform: sourceGeneratorWaveformInput.value || "triangle",
+    outputMode: sourceGeneratorOutputModeInput.value === "external" ? "external" : "internal",
+    outputId,
+    outputName: output?.name || existingGenerator?.outputName || "",
+    spatialization: sourceSpatializationInput.value || "pan-distance"
+  };
+}
+
+function clampNumberInput(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+  return clamp(number, min, max);
+}
+
+function clampIntegerInput(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isInteger(number)) {
+    return fallback;
+  }
+  return clamp(number, min, max);
 }
 
 function openSourceEditor(source) {
@@ -3949,21 +4456,40 @@ function openSourceEditor(source) {
   activeRotationMover = null;
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
+  closeConstraintEditor();
   activeSourceEditorSource = source;
   pendingSourceAudioFile = null;
 
   const [binding] = sourceAudioClient.bindingsForSource(source.name);
+  const [generator] = generatorClient.generatorsForSource(source.name);
   sourceNameInput.value = source.name;
-  sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE ? SOURCE_BINDING_AUDIO_FILE : "none";
-  sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
+  sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE
+    ? SOURCE_BINDING_AUDIO_FILE
+    : generator?.type === SOURCE_OUTPUT_MIDI_OSTINATO
+    ? SOURCE_OUTPUT_MIDI_OSTINATO
+    : "none";
+  activeSourceEditorInitialOutputType = sourceOutputTypeInput.value;
+  sourceSpatializationInput.value = binding?.spatialization || generator?.spatialization || "pan-distance";
   sourceGainInput.value = String(binding?.gain ?? 1);
   sourceLoopInput.checked = binding?.loop !== false;
-  sourceMutedInput.checked = Boolean(binding?.muted);
+  sourceMutedInput.checked = Boolean(generator ? generator.muted : binding?.muted);
+  fillSourceGeneratorEditor(generator);
+  if (sourceOutputTypeInput.value === SOURCE_BINDING_AUDIO_FILE) {
+    sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
+    sourceMutedInput.checked = Boolean(binding?.muted);
+  } else if (!generator) {
+    sourceSpatializationInput.value = "pan-distance";
+  }
   sourceAudioFileInput.value = "";
-  sourceAudioFileName.textContent = binding?.name
+  sourceAudioFileName.textContent = generator
+    ? "MIDI ostinato generator assigned."
+    : binding?.name
     ? `Selected: ${binding.name}`
     : "No audio file assigned.";
+  updateSourceEditorVisibility();
+  refreshSourceGeneratorMidiOutputs();
   sourceEditor.hidden = false;
+  updateInspectorNavButtons();
   setConstraintStatus(`Editing source ${source.name}.`);
   revealEditor(sourceEditor);
 }
@@ -3982,6 +4508,7 @@ async function handleSourceAudioFileChange() {
       dataUrl
     };
     sourceOutputTypeInput.value = SOURCE_BINDING_AUDIO_FILE;
+    updateSourceEditorVisibility();
     sourceAudioFileName.textContent = `Selected: ${file.name}`;
   } catch (error) {
     pendingSourceAudioFile = null;
@@ -4005,7 +4532,8 @@ function applySourceEditor() {
 
   const [existingBinding] = sourceAudioClient.bindingsForSource(previousName);
   const audioFile = pendingSourceAudioFile || existingBinding;
-  if (sourceOutputTypeInput.value === SOURCE_BINDING_AUDIO_FILE && !audioFile?.dataUrl && !audioFile?.url) {
+  const outputType = sourceOutputTypeInput.value;
+  if (outputType === SOURCE_BINDING_AUDIO_FILE && !audioFile?.dataUrl && !audioFile?.url) {
     setConstraintStatus(`Choose an audio file for ${requestedName}.`);
     return;
   }
@@ -4014,14 +4542,36 @@ function applySourceEditor() {
   renameSource(activeSourceEditorSource, requestedName);
   const sourceName = activeSourceEditorSource.name;
 
-  if (sourceOutputTypeInput.value !== SOURCE_BINDING_AUDIO_FILE) {
+  if (outputType === "none") {
     sourceAudioClient.removeBinding(sourceName);
-    setConstraintStatus(`${sourceName} has no sound binding.`);
+    generatorClient.removeGenerator(sourceName);
+    pendingSourceAudioFile = null;
+    sourceAudioFileName.textContent = "No sound assigned.";
+    setConstraintStatus(`${sourceName} has no sound or generator binding.`);
     updatePatchInspector();
     drawAll();
     return;
   }
 
+  if (outputType === SOURCE_OUTPUT_MIDI_OSTINATO) {
+    sourceAudioClient.removeBinding(sourceName);
+    const generator = generatorClient.upsertGenerator(sourceGeneratorFromEditor(sourceName));
+    pendingSourceAudioFile = null;
+    sourceAudioFileInput.value = "";
+    sourceAudioFileName.textContent = generator
+      ? "MIDI ostinato generator assigned."
+      : "Could not create MIDI ostinato generator.";
+    setConstraintStatus(generator
+      ? `${sourceName} MIDI ostinato updated.`
+      : `${sourceName} MIDI ostinato could not be updated.`);
+    updatePatchInspector();
+    drawAll();
+    return;
+  }
+
+  if (outputType !== activeSourceEditorInitialOutputType) {
+    generatorClient.removeGenerator(sourceName);
+  }
   const gain = Number(sourceGainInput.value);
   sourceAudioClient.upsertBinding({
     source: sourceName,
@@ -4091,12 +4641,14 @@ function removeSourceBindingFromEditor() {
 
   pushUndoSnapshot("remove source audio");
   sourceAudioClient.removeBinding(activeSourceEditorSource.name);
+  generatorClient.removeGenerator(activeSourceEditorSource.name);
   pendingSourceAudioFile = null;
   sourceOutputTypeInput.value = "none";
   sourceMutedInput.checked = false;
   sourceAudioFileInput.value = "";
-  sourceAudioFileName.textContent = "No audio file assigned.";
-  setConstraintStatus(`${activeSourceEditorSource.name} sound binding removed.`);
+  sourceAudioFileName.textContent = "No sound assigned.";
+  updateSourceEditorVisibility();
+  setConstraintStatus(`${activeSourceEditorSource.name} sound binding or generator removed.`);
   updatePatchInspector();
   drawAll();
 }
@@ -4104,7 +4656,9 @@ function removeSourceBindingFromEditor() {
 function closeSourceEditor() {
   sourceEditor.hidden = true;
   activeSourceEditorSource = null;
+  activeSourceEditorInitialOutputType = "none";
   pendingSourceAudioFile = null;
+  updateInspectorNavButtons();
 }
 
 function readFileAsDataUrl(file) {
@@ -4133,6 +4687,9 @@ function deleteSelectedEntity() {
   const constraintIndex = constraints.findIndex((constraint) => constraint.node === entity);
   if (constraintIndex >= 0) {
     const [removed] = constraints.splice(constraintIndex, 1);
+    if (activeConstraintEditorConstraint === removed) {
+      closeConstraintEditor();
+    }
     selectedEntity = null;
     setConstraintStatus(`${removed.node.label} constraint deleted.`);
     drawAll();
@@ -4266,6 +4823,14 @@ function handleEntityDoubleClick(entity) {
     return true;
   }
 
+  const constraint = findConstraintForNode(entity);
+  if (constraint) {
+    openConstraintEditor(constraint);
+    selectedEntity = constraint.node;
+    drawAll();
+    return true;
+  }
+
   return false;
 }
 
@@ -4341,22 +4906,25 @@ function toggleSelectedSourceMute() {
   }
 
   const [binding] = sourceAudioClient.bindingsForSource(selectedEntity.name);
-  if (!binding) {
-    setConstraintStatus(`${selectedEntity.name} has no audio binding to mute.`);
+  const [generator] = generatorClient.generatorsForSource(selectedEntity.name);
+  if (!binding && !generator) {
+    setConstraintStatus(`${selectedEntity.name} has no sound binding or generator to mute.`);
     return;
   }
 
   pushUndoSnapshot(`toggle mute for ${selectedEntity.name}`);
-  const updatedBinding = sourceAudioClient.toggleSourceMuted(selectedEntity.name);
-  if (!updatedBinding) {
-    setConstraintStatus(`${selectedEntity.name} has no audio binding to mute.`);
+  const updated = binding
+    ? sourceAudioClient.toggleSourceMuted(selectedEntity.name)
+    : generatorClient.toggleSourceMuted(selectedEntity.name);
+  if (!updated) {
+    setConstraintStatus(`${selectedEntity.name} has no sound binding or generator to mute.`);
     return;
   }
 
   if (activeSourceEditorSource === selectedEntity) {
-    sourceMutedInput.checked = Boolean(updatedBinding.muted);
+    sourceMutedInput.checked = Boolean(updated.muted);
   }
-  setConstraintStatus(`${selectedEntity.name} ${updatedBinding.muted ? "muted" : "unmuted"}.`);
+  setConstraintStatus(`${selectedEntity.name} ${updated.muted ? "muted" : "unmuted"}.`);
   updatePatchInspector();
   drawAll();
 }
@@ -4919,8 +5487,32 @@ rotationApplyButton.addEventListener("click", applyRotationEditor);
 rotationCloseButton.addEventListener("click", closeRotationEditor);
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
+rotationPrevButton.addEventListener("click", () => navigateInspector(-1));
+rotationNextButton.addEventListener("click", () => navigateInspector(1));
+shuttlePrevButton.addEventListener("click", () => navigateInspector(-1));
+shuttleNextButton.addEventListener("click", () => navigateInspector(1));
+constraintPrevButton.addEventListener("click", () => navigateInspector(-1));
+constraintNextButton.addEventListener("click", () => navigateInspector(1));
+constraintRecaptureButton.addEventListener("click", recaptureConstraintFromGeometry);
+constraintApplyButton.addEventListener("click", applyConstraintEditor);
+constraintCloseButton.addEventListener("click", closeConstraintEditor);
 sourceAudioFileInput.addEventListener("change", handleSourceAudioFileChange);
+sourceOutputTypeInput.addEventListener("change", () => {
+  updateSourceEditorVisibility();
+  refreshSourceGeneratorMidiOutputs();
+  if (sourceOutputTypeInput.value === SOURCE_OUTPUT_MIDI_OSTINATO) {
+    sourceAudioFileName.textContent = "MIDI ostinato generator assigned.";
+  } else if (sourceOutputTypeInput.value === "none") {
+    sourceAudioFileName.textContent = "No sound assigned.";
+  }
+});
+sourceGeneratorOutputModeInput.addEventListener("change", () => {
+  updateSourceEditorVisibility();
+  refreshSourceGeneratorMidiOutputs();
+});
 sourceApplyButton.addEventListener("click", applySourceEditor);
+sourcePrevButton.addEventListener("click", () => navigateInspector(-1));
+sourceNextButton.addEventListener("click", () => navigateInspector(1));
 sourceToggleMuteButton.addEventListener("click", toggleSelectedSourceMute);
 sourceRemoveBindingButton.addEventListener("click", removeSourceBindingFromEditor);
 sourceCloseButton.addEventListener("click", closeSourceEditor);

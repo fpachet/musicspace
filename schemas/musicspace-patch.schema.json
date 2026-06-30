@@ -357,6 +357,15 @@
         "waveform": {
           "enum": ["sine", "triangle", "sawtooth", "square"]
         },
+        "outputMode": {
+          "enum": ["internal", "external"]
+        },
+        "outputId": {
+          "type": "string"
+        },
+        "outputName": {
+          "type": "string"
+        },
         "spatialization": {
           "enum": ["pan-distance", "stereo-pan"]
         }

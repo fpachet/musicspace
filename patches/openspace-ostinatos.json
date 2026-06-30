@@ -75,6 +75,7 @@
       "durationMs": 160,
       "velocity": 72,
       "channel": 1,
+      "outputMode": "internal",
       "waveform": "triangle",
       "spatialization": "pan-distance"
     },
@@ -86,6 +87,7 @@
       "durationMs": 120,
       "velocity": 62,
       "channel": 1,
+      "outputMode": "internal",
       "waveform": "sine",
       "spatialization": "pan-distance"
     },
@@ -97,6 +99,7 @@
       "durationMs": 95,
       "velocity": 54,
       "channel": 1,
+      "outputMode": "internal",
       "waveform": "triangle",
       "spatialization": "pan-distance"
     },
@@ -108,6 +111,7 @@
       "durationMs": 220,
       "velocity": 48,
       "channel": 1,
+      "outputMode": "internal",
       "waveform": "sine",
       "spatialization": "pan-distance"
     }

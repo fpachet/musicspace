@@ -297,8 +297,26 @@ function createEngineHarness() {
           hasGeneratorForSource(sourceName) {
             return generators.some((generator) => generator.source === sourceName);
           },
+          isSourceMuted(sourceName) {
+            const generator = generators.find((candidate) => candidate.source === sourceName);
+            return generator ? Boolean(generator.muted) : false;
+          },
           isEnabled() {
             return enabled;
+          },
+          upsertGenerator(generator) {
+            generators = generators.filter((candidate) => candidate.source !== generator.source);
+            const normalized = { ...generator, muted: Boolean(generator.muted) };
+            generators.push(normalized);
+            return { ...normalized };
+          },
+          toggleSourceMuted(sourceName) {
+            const generator = generators.find((candidate) => candidate.source === sourceName);
+            if (!generator) {
+              return null;
+            }
+            generator.muted = !generator.muted;
+            return { ...generator };
           },
           renameSource(oldName, newName) {
             generators = generators.map((generator) => (
@@ -315,6 +333,12 @@ function createEngineHarness() {
           async setEnabled(nextEnabled) {
             enabled = Boolean(nextEnabled && generators.length > 0);
             return enabled;
+          },
+          async availableMidiOutputs() {
+            return [
+              { id: "midi-out-a", name: "MIDI Out A" },
+              { id: "midi-out-b", name: "MIDI Out B" }
+            ];
           },
           updateSpatial() {}
         };
@@ -341,6 +365,7 @@ function createEngineHarness() {
     .replace(/\ninitializeApp\(\);\s*$/, "\n");
   const exposedSource = `${source}
 globalThis.__musicspaceTestApi = {
+  applyConstraintEditor,
   applySourceEditor,
   enforceConstraints,
   enforceConstraintsWithXpbd,
@@ -361,7 +386,15 @@ globalThis.__musicspaceTestApi = {
   serializePatch,
   sourceEmitterCapability,
   stopAllDrawing,
-  validatePatch
+  validatePatch,
+  openConstraintEditorByIndex(index) {
+    const constraint = constraints[index];
+    if (!constraint) {
+      return false;
+    }
+    openConstraintEditor(constraint);
+    return true;
+  }
 };`;
   vm.runInContext(exposedSource, sandbox, { filename: "musicspace.js" });
 
@@ -451,8 +484,75 @@ globalThis.__musicspaceTestApi = {
         outputType: document.getElementById("source-output-type").value,
         loop: Boolean(document.getElementById("source-loop").checked),
         muted: Boolean(document.getElementById("source-muted").checked),
+        generatorPitch: document.getElementById("source-generator-pitch").value,
+        generatorPeriod: document.getElementById("source-generator-period").value,
+        generatorDuration: document.getElementById("source-generator-duration").value,
+        generatorVelocity: document.getElementById("source-generator-velocity").value,
+        generatorWaveform: document.getElementById("source-generator-waveform").value,
+        generatorOutputMode: document.getElementById("source-generator-output-mode").value,
+        generatorOutputId: document.getElementById("source-generator-output").value,
+        generatorChannel: document.getElementById("source-generator-channel").value,
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
+    },
+    openConstraintInspector(index = 0) {
+      return api.openConstraintEditorByIndex(index);
+    },
+    constraintInspectorState() {
+      return {
+        hidden: document.getElementById("constraint-editor").hidden,
+        summary: document.getElementById("constraint-editor-summary").textContent,
+        manualNode: Boolean(document.getElementById("constraint-node-manual").checked),
+        nodeX: document.getElementById("constraint-node-x").value,
+        nodeY: document.getElementById("constraint-node-y").value,
+        labelA: document.getElementById("constraint-value-a-label").textContent,
+        valueA: document.getElementById("constraint-value-a").value,
+        hiddenA: document.getElementById("constraint-value-a-row").hidden,
+        labelB: document.getElementById("constraint-value-b-label").textContent,
+        valueB: document.getElementById("constraint-value-b").value,
+        hiddenB: document.getElementById("constraint-value-b-row").hidden
+      };
+    },
+    applyOpenConstraint(values) {
+      if (values.manualNode !== undefined) {
+        document.getElementById("constraint-node-manual").checked = Boolean(values.manualNode);
+      }
+      if (values.nodeX !== undefined) {
+        document.getElementById("constraint-node-x").value = String(values.nodeX);
+      }
+      if (values.nodeY !== undefined) {
+        document.getElementById("constraint-node-y").value = String(values.nodeY);
+      }
+      if (values.valueA !== undefined) {
+        document.getElementById("constraint-value-a").value = String(values.valueA);
+      }
+      if (values.valueB !== undefined) {
+        document.getElementById("constraint-value-b").value = String(values.valueB);
+      }
+      api.applyConstraintEditor();
+      return api.serializePatch();
+    },
+    clickInspectorNext() {
+      const buttons = [
+        "source-next",
+        "rotation-next",
+        "shuttle-next",
+        "constraint-next"
+      ].map((id) => document.getElementById(id));
+      const button = buttons.find((candidate) => !candidate.disabled);
+      assert.ok(button, "Expected an enabled next inspector button");
+      button.click();
+    },
+    clickInspectorPrevious() {
+      const buttons = [
+        "source-prev",
+        "rotation-prev",
+        "shuttle-prev",
+        "constraint-prev"
+      ].map((id) => document.getElementById(id));
+      const button = buttons.find((candidate) => !candidate.disabled);
+      assert.ok(button, "Expected an enabled previous inspector button");
+      button.click();
     },
     sourceEmitterCapability(name) {
       return api.sourceEmitterCapability(name);
@@ -473,6 +573,21 @@ globalThis.__musicspaceTestApi = {
     },
     setOpenSourceLoop(loop) {
       document.getElementById("source-loop").checked = Boolean(loop);
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
+    setOpenSourceGenerator(values) {
+      document.getElementById("source-output-type").value = "midi-ostinato";
+      document.getElementById("source-generator-pitch").value = String(values.pitch ?? 60);
+      document.getElementById("source-generator-period").value = String(values.periodMs ?? 1000);
+      document.getElementById("source-generator-duration").value = String(values.durationMs ?? 160);
+      document.getElementById("source-generator-velocity").value = String(values.velocity ?? 80);
+      document.getElementById("source-generator-waveform").value = values.waveform || "triangle";
+      document.getElementById("source-generator-output-mode").value = values.outputMode || "internal";
+      document.getElementById("source-generator-output").value = values.outputId || "";
+      document.getElementById("source-generator-channel").value = String(values.channel ?? 1);
+      document.getElementById("source-spatialization").value = values.spatialization || "pan-distance";
+      document.getElementById("source-muted").checked = Boolean(values.muted);
       api.applySourceEditor();
       return api.serializePatch();
     },
@@ -1022,6 +1137,87 @@ test("source generators serialize with the patch", () => {
   assert.equal(patch.sourceGenerators[0].periodMs, 1200);
 });
 
+test("source inspector edits MIDI ostinato generator parameters", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Edit Generator",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 160,
+        velocity: 80,
+        channel: 1,
+        waveform: "triangle",
+        outputMode: "internal",
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Pulse"), true);
+  const state = engine.sourceInspectorState();
+  assert.equal(state.outputType, "midi-ostinato");
+  assert.equal(state.generatorPitch, "60");
+  assert.equal(state.generatorPeriod, "1200");
+
+  const patch = engine.setOpenSourceGenerator({
+    pitch: 67,
+    periodMs: 750,
+    durationMs: 90,
+    velocity: 96,
+    channel: 2,
+    waveform: "square",
+    outputMode: "external",
+    outputId: "midi-out-a",
+    spatialization: "stereo-pan",
+    muted: true
+  });
+  assert.equal(patch.sourceGenerators.length, 1);
+  assert.equal(patch.sourceGenerators[0].pitch, 67);
+  assert.equal(patch.sourceGenerators[0].periodMs, 750);
+  assert.equal(patch.sourceGenerators[0].durationMs, 90);
+  assert.equal(patch.sourceGenerators[0].velocity, 96);
+  assert.equal(patch.sourceGenerators[0].channel, 2);
+  assert.equal(patch.sourceGenerators[0].waveform, "square");
+  assert.equal(patch.sourceGenerators[0].outputMode, "external");
+  assert.equal(patch.sourceGenerators[0].outputId, "midi-out-a");
+  assert.equal(patch.sourceGenerators[0].muted, true);
+  assert.equal(patch.sourceBindings?.length || 0, 0);
+});
+
+test("source inspector creates a MIDI ostinato generator for a plain source", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Create Generator",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Pulse"), true);
+  const patch = engine.setOpenSourceGenerator({
+    pitch: 72,
+    periodMs: 500,
+    durationMs: 100,
+    velocity: 70,
+    channel: 3
+  });
+
+  assert.equal(patch.sourceGenerators.length, 1);
+  assert.equal(patch.sourceGenerators[0].source, "Pulse");
+  assert.equal(patch.sourceGenerators[0].type, "midi-ostinato");
+  assert.equal(patch.sourceGenerators[0].pitch, 72);
+  assert.equal(patch.sourceGenerators[0].channel, 3);
+});
+
 test("source inspector edits the audio loop parameter", () => {
   const engine = createEngineHarness();
   engine.loadPatch({
@@ -1087,6 +1283,41 @@ test("m key toggles mute for the selected source audio binding", () => {
   engine.pressCanvasKey("m");
   patch = engine.api.serializePatch();
   assert.equal(patch.sourceBindings[0].muted, false);
+  assert.equal(engine.sourceInspectorState().muted, false);
+});
+
+test("m key toggles mute for the selected MIDI ostinato generator", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Generator Mute",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 160,
+        velocity: 80,
+        channel: 1,
+        muted: false
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Pulse"), true);
+  engine.pressCanvasKey("m");
+
+  let patch = engine.api.serializePatch();
+  assert.equal(patch.sourceGenerators[0].muted, true);
+  assert.equal(engine.sourceInspectorState().muted, true);
+
+  engine.pressCanvasKey("m");
+  patch = engine.api.serializePatch();
+  assert.equal(patch.sourceGenerators[0].muted, false);
   assert.equal(engine.sourceInspectorState().muted, false);
 });
 
@@ -1392,6 +1623,91 @@ test("double-clicking a source opens the source inspector", () => {
   assert.equal(inspector.name, "A");
   assert.equal(inspector.outputType, "none");
   assert.equal(inspector.fileLabel, "No audio file assigned.");
+});
+
+test("constraint inspector edits radial limit distances", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Constraint Inspector Limit",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: [
+      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }
+    ]
+  });
+
+  assert.equal(engine.openConstraintInspector(0), true);
+  const state = engine.constraintInspectorState();
+  assert.equal(state.hidden, false);
+  assert.equal(state.labelA, "Minimum distance");
+  assert.equal(state.valueA, "50");
+  assert.equal(state.labelB, "Maximum distance");
+  assert.equal(state.valueB, "250");
+
+  const patch = engine.applyOpenConstraint({ valueA: 80, valueB: 180, manualNode: true, nodeX: 360, nodeY: 220 });
+  assert.equal(patch.constraints[0].minDistance, 80);
+  assert.equal(patch.constraints[0].maxDistance, 180);
+  assert.equal(patch.constraints[0].node.isManual, true);
+  assert.equal(patch.constraints[0].node.x, 360);
+  assert.equal(patch.constraints[0].node.y, 220);
+});
+
+test("constraint inspector edits angle sector degrees", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Constraint Inspector Sector",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 500, y: 300 }],
+    constraints: [
+      { type: "angleSector", source: "A", centerAngle: 0, width: Math.PI / 2 }
+    ]
+  });
+
+  assert.equal(engine.openConstraintInspector(0), true);
+  const state = engine.constraintInspectorState();
+  assert.equal(state.labelA, "Center angle (deg)");
+  assert.equal(state.valueA, "0");
+  assert.equal(state.labelB, "Width (deg)");
+  assert.equal(state.valueB, "90");
+
+  const patch = engine.applyOpenConstraint({ valueA: 45, valueB: 60 });
+  assert.ok(Math.abs(patch.constraints[0].centerAngle - Math.PI / 4) < 0.000001);
+  assert.ok(Math.abs(patch.constraints[0].width - Math.PI / 3) < 0.000001);
+});
+
+test("inspector arrows navigate sources and constraint nodes in order", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Inspector Navigation",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [
+      { name: "A", x: 250, y: 300 },
+      { name: "B", x: 500, y: 300 }
+    ],
+    constraints: [
+      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }
+    ]
+  });
+
+  assert.equal(engine.openSourceInspector("A"), true);
+  assert.equal(engine.sourceInspectorState().name, "A");
+
+  engine.clickInspectorNext();
+  assert.equal(engine.sourceInspectorState().hidden, false);
+  assert.equal(engine.sourceInspectorState().name, "B");
+
+  engine.clickInspectorNext();
+  assert.equal(engine.sourceInspectorState().hidden, true);
+  assert.equal(engine.constraintInspectorState().hidden, false);
+  assert.equal(engine.constraintInspectorState().labelA, "Minimum distance");
+
+  engine.clickInspectorPrevious();
+  assert.equal(engine.constraintInspectorState().hidden, true);
+  assert.equal(engine.sourceInspectorState().hidden, false);
+  assert.equal(engine.sourceInspectorState().name, "B");
 });
 
 test("source inspector rename updates patch references", () => {

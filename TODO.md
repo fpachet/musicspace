@@ -10,7 +10,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 - Expand the patch menu with more built-in scenes as new constraints and trajectories are introduced.
 - Add visible delete affordances for sources, movers, and constraints beyond keyboard deletion.
-- Expand popup editors to cover all constraint nodes and movers with type-specific parameters.
+- Expand popup editors to cover the remaining non-rotative mover trajectories with type-specific parameters.
 - Add a reset option for manually moved constraint nodes.
 - Add richer hover tooltips that identify listener, sources, and constraint types without cluttering the canvas. Long source labels now render outside source markers.
 - Add parameter controls for newly created constraints and non-rotative trajectories instead of relying only on defaults.
@@ -38,7 +38,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Add a server-backed audio stem-splitting import flow. The first trial used `audio-separator` with the Demucs `htdemucs` model to produce vocals, drums, bass, and other stems; MusicSpace can then create one source binding per stem.
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Add a patch-level editor for generic parameter mappings instead of defining them only in built-in JSON.
-- Expand `sourceGenerators` beyond the first `midi-ostinato` prototype with inspector editing, pattern generators, and mappings from spatial features to pitch, period, velocity, or density.
+- Expand `sourceGenerators` beyond the first editable `midi-ostinato` prototype with pattern generators and mappings from spatial features to pitch, period, velocity, or density.
 - Explore OpenSpace-style musical constraints over generated source parameters without folding generator scheduling into the geometric constraint engine.
 - Expand the Faust target backend beyond the current adapter-based `faust-wasm` bridge, including compiled DSP loading/introspection workflows.
 - Expand the MIDI/MusicXML client with richer instrument rendering, MIDI output selection persistence, and mapping presets.

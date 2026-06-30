@@ -62,6 +62,7 @@ npm run smoke
   - **Preserve** moves the listener while preserving active constraints.
 - Use the **Solver** control to switch between the default Propagation solver and the experimental XPBD solver.
 - Drag the listener, sources, movers, or constraint nodes on the canvas.
+- Double-click a source, rotative/shuttle mover, or constraint node to edit its parameters in a popup inspector. Use the arrow buttons in an inspector to move to the previous or next editable item.
 - Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
@@ -70,7 +71,7 @@ npm run smoke
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding.
+- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
@@ -150,7 +151,7 @@ npm run smoke
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
-- Per-source MIDI-style ostinato generators for small OpenSpace-inspired generated-note patches.
+- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

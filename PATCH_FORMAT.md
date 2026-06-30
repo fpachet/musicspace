@@ -103,9 +103,9 @@ Source bindings make a source a direct audio emitter. The Source Inspector write
 }
 ```
 
-`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, or serialized audio file. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, source generators, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
+`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, serialized audio file, or generator parameters. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, source generators, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
 
-Source generators make a source emit generated musical events without requiring an audio file or imported MIDI sequence. The first generator type is `midi-ostinato`, inspired by the OpenSpace prototype: it repeats one MIDI pitch at a fixed period and renders through the browser synth used by **Play Sound**.
+Source generators make a source emit generated musical events without requiring an audio file or imported MIDI sequence. The first generator type is `midi-ostinato`, inspired by the OpenSpace prototype: it repeats one MIDI pitch at a fixed period. The Source Inspector edits pitch, period, duration, velocity, waveform, spatialization, mute state, and MIDI output/channel settings. `outputMode: "internal"` renders through the browser synth used by **Play Sound**. `outputMode: "external"` sends note events through Web MIDI using `outputId`/`outputName` and `channel`.
 
 ```json
 {
@@ -116,12 +116,13 @@ Source generators make a source emit generated musical events without requiring 
   "durationMs": 160,
   "velocity": 72,
   "channel": 1,
+  "outputMode": "internal",
   "waveform": "triangle",
   "spatialization": "pan-distance"
 }
 ```
 
-Generator sources use the same listener-relative pan and distance gain model as direct audio sources. They are currently authored in patch JSON; source-inspector editing and musical constraints over pitch, period, density, or register are future extensions.
+Generator sources using the internal browser synth use the same listener-relative pan and distance gain model as direct audio sources. External MIDI generator output keeps the source geometry and timing in MusicSpace while leaving sound rendering to the selected MIDI device.
 
 ## Target Backend Binding
 
