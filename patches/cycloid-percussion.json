@@ -9,38 +9,38 @@
   "sources": [
     {
       "name": "Marimba",
-      "x": 565,
-      "y": 210
+      "x": 670,
+      "y": 230
     },
     {
       "name": "Timbale",
-      "x": 520,
-      "y": 405
+      "x": 575,
+      "y": 455
     },
     {
       "name": "Bells",
-      "x": 290,
+      "x": 205,
       "y": 245
     }
   ],
   "movingObjects": [
     {
       "name": "Orbit",
-      "x": 400,
+      "x": 360,
       "y": 220,
       "trajectory": {
         "type": "rotation",
         "centerX": 400,
         "centerY": 300,
-        "radius": 80,
-        "phase": -1.5708,
+        "radius": 89.44,
+        "phase": -2.0344,
         "angularSpeed": 0.0105
       }
     },
     {
       "name": "Spin",
-      "x": 440,
-      "y": 250,
+      "x": 505,
+      "y": 255,
       "trajectory": {
         "type": "rotator",
         "running": true,
@@ -53,8 +53,8 @@
     },
     {
       "name": "Counter",
-      "x": 500,
-      "y": 290,
+      "x": 585,
+      "y": 345,
       "trajectory": {
         "type": "rotator",
         "running": true,
