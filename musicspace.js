@@ -69,8 +69,10 @@ const sourceAudioFileInput = document.getElementById("source-audio-file");
 const sourceSpatializationInput = document.getElementById("source-spatialization");
 const sourceGainInput = document.getElementById("source-gain");
 const sourceLoopInput = document.getElementById("source-loop");
+const sourceMutedInput = document.getElementById("source-muted");
 const sourceAudioFileName = document.getElementById("source-audio-file-name");
 const sourceApplyButton = document.getElementById("source-apply");
+const sourceToggleMuteButton = document.getElementById("source-toggle-mute");
 const sourceRemoveBindingButton = document.getElementById("source-remove-binding");
 const sourceCloseButton = document.getElementById("source-close");
 
@@ -1897,6 +1899,9 @@ function validateSourceBindings(bindings, names, add) {
     if (binding.gain !== undefined) {
       validateNonNegativeNumber(binding.gain, "sourceBindings.gain", add);
     }
+    if (binding.muted !== undefined && typeof binding.muted !== "boolean") {
+      add("error", "sourceBindings.muted must be a boolean when present.");
+    }
     if (binding.spatialization && !["pan-distance", "stereo-pan"].includes(binding.spatialization)) {
       add("error", `Unsupported source spatialization: ${binding.spatialization}.`);
     }
@@ -2043,6 +2048,7 @@ function drawAll() {
   listener.draw(ctx);
   for (const source of sources) {
     source.draw(ctx);
+    drawSourceMuteCue(ctx, source);
   }
 
   if (selectedEntity) {
@@ -2155,6 +2161,26 @@ function drawSelection(ctx, entity) {
   ctx.strokeStyle = "#f59e0b";
   ctx.lineWidth = 3;
   ctx.stroke();
+}
+
+function drawSourceMuteCue(ctx, source) {
+  if (!sourceAudioClient.isSourceMuted(source.name)) {
+    return;
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "#111827";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(source.x, source.y, source.radius + 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(source.x - source.radius - 4, source.y + source.radius + 4);
+  ctx.lineTo(source.x + source.radius + 4, source.y - source.radius - 4);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawRadialLimit(ctx, anchor, minDistance, maxDistance, color) {
@@ -3709,6 +3735,7 @@ function openSourceEditor(source) {
   sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
   sourceGainInput.value = String(binding?.gain ?? 1);
   sourceLoopInput.checked = binding?.loop !== false;
+  sourceMutedInput.checked = Boolean(binding?.muted);
   sourceAudioFileInput.value = "";
   sourceAudioFileName.textContent = binding?.name
     ? `Selected: ${binding.name}`
@@ -3782,6 +3809,7 @@ function applySourceEditor() {
     url: audioFile.url || "",
     loop: sourceLoopInput.checked,
     gain: Number.isFinite(gain) ? clamp(gain, 0, 2) : 1,
+    muted: sourceMutedInput.checked,
     spatialization: sourceSpatializationInput.value || "pan-distance"
   });
   pendingSourceAudioFile = null;
@@ -3841,6 +3869,7 @@ function removeSourceBindingFromEditor() {
   sourceAudioClient.removeBinding(activeSourceEditorSource.name);
   pendingSourceAudioFile = null;
   sourceOutputTypeInput.value = "none";
+  sourceMutedInput.checked = false;
   sourceAudioFileInput.value = "";
   sourceAudioFileName.textContent = "No audio file assigned.";
   setConstraintStatus(`${activeSourceEditorSource.name} sound binding removed.`);
@@ -4077,6 +4106,33 @@ function updateTraceSelectedButton() {
   const canTrace = selectedEntity && selectedEntity !== null;
   traceSelectedButton.disabled = !canTrace;
   traceSelectedButton.setAttribute("aria-pressed", String(Boolean(selectedEntity?.drawTrace)));
+}
+
+function toggleSelectedSourceMute() {
+  if (!(selectedEntity instanceof SoundSource)) {
+    setConstraintStatus("Select a source to mute or unmute.");
+    return;
+  }
+
+  const [binding] = sourceAudioClient.bindingsForSource(selectedEntity.name);
+  if (!binding) {
+    setConstraintStatus(`${selectedEntity.name} has no audio binding to mute.`);
+    return;
+  }
+
+  pushUndoSnapshot(`toggle mute for ${selectedEntity.name}`);
+  const updatedBinding = sourceAudioClient.toggleSourceMuted(selectedEntity.name);
+  if (!updatedBinding) {
+    setConstraintStatus(`${selectedEntity.name} has no audio binding to mute.`);
+    return;
+  }
+
+  if (activeSourceEditorSource === selectedEntity) {
+    sourceMutedInput.checked = Boolean(updatedBinding.muted);
+  }
+  setConstraintStatus(`${selectedEntity.name} ${updatedBinding.muted ? "muted" : "unmuted"}.`);
+  updatePatchInspector();
+  drawAll();
 }
 
 function toggleSelectedTrace() {
@@ -4498,6 +4554,18 @@ canvas.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "m") {
+    toggleSelectedSourceMute();
+    event.preventDefault();
+    return;
+  }
+
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && (event.key === " " || event.key === "Spacebar")) {
+    toggleSoundOutput();
+    event.preventDefault();
+    return;
+  }
+
   const directions = {
     ArrowUp: { x: 0, y: -1 },
     ArrowDown: { x: 0, y: 1 },
@@ -4596,6 +4664,7 @@ shuttleApplyButton.addEventListener("click", applyShuttleEditor);
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
 sourceAudioFileInput.addEventListener("change", handleSourceAudioFileChange);
 sourceApplyButton.addEventListener("click", applySourceEditor);
+sourceToggleMuteButton.addEventListener("click", toggleSelectedSourceMute);
 sourceRemoveBindingButton.addEventListener("click", removeSourceBindingFromEditor);
 sourceCloseButton.addEventListener("click", closeSourceEditor);
 

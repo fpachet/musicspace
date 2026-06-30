@@ -1,6 +1,8 @@
 .DS_Store
 .idea/
 .venv/
+.venv-audio-separator/
 node_modules/
+trials/
 *.log
 musicspace_trace.png

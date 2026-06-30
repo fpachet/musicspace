@@ -76,6 +76,17 @@ function createElement(id = "") {
         listener({ target: this, preventDefault() {} });
       }
     },
+    dispatchEvent(event) {
+      const nextEvent = {
+        target: this,
+        preventDefault() {},
+        ...event
+      };
+      for (const listener of listeners.get(nextEvent.type) || []) {
+        listener(nextEvent);
+      }
+      return true;
+    },
     focus() {},
     getBoundingClientRect() {
       return { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
@@ -199,6 +210,7 @@ function createEngineHarness() {
     MusicSpaceSourceAudioClient: {
       createSourceAudioClient() {
         let bindings = [];
+        let enabled = false;
         return {
           bindingsForSource(sourceName) {
             return bindings.filter((binding) => binding.source === sourceName).map((binding) => ({ ...binding }));
@@ -206,12 +218,15 @@ function createEngineHarness() {
           hasBindings() {
             return bindings.length > 0;
           },
+          isSourceMuted(sourceName) {
+            return Boolean(bindings.find((binding) => binding.source === sourceName)?.muted);
+          },
           isEnabled() {
-            return false;
+            return enabled;
           },
           loadPatch(patch = {}) {
             bindings = Array.isArray(patch.sourceBindings)
-              ? patch.sourceBindings.map((binding) => ({ ...binding }))
+              ? patch.sourceBindings.map((binding) => ({ ...binding, muted: Boolean(binding.muted) }))
               : [];
           },
           removeBinding(sourceName) {
@@ -229,14 +244,24 @@ function createEngineHarness() {
           serialize() {
             return { sourceBindings: bindings.map((binding) => ({ ...binding })) };
           },
-          async setEnabled() {
-            return false;
+          toggleSourceMuted(sourceName) {
+            const binding = bindings.find((candidate) => candidate.source === sourceName);
+            if (!binding) {
+              return null;
+            }
+            binding.muted = !binding.muted;
+            return { ...binding };
+          },
+          async setEnabled(nextEnabled) {
+            enabled = Boolean(nextEnabled && bindings.length > 0);
+            return enabled;
           },
           updateSpatial() {},
           upsertBinding(binding) {
             bindings = bindings.filter((candidate) => candidate.source !== binding.source);
-            bindings.push({ ...binding });
-            return { ...binding };
+            const normalized = { ...binding, muted: Boolean(binding.muted) };
+            bindings.push(normalized);
+            return { ...normalized };
           }
         };
       }
@@ -343,6 +368,9 @@ globalThis.__musicspaceTestApi = {
     solverMode() {
       return api.getSolverMode();
     },
+    soundButtonPressed() {
+      return document.getElementById("target-toggle").attributes.get("aria-pressed");
+    },
     openSourceInspector(name) {
       const entity = api.getObjectByName(name);
       assert.ok(entity, `Expected entity ${name} to exist`);
@@ -353,8 +381,18 @@ globalThis.__musicspaceTestApi = {
         hidden: document.getElementById("source-editor").hidden,
         name: document.getElementById("source-name").value,
         outputType: document.getElementById("source-output-type").value,
+        muted: Boolean(document.getElementById("source-muted").checked),
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
+    },
+    pressCanvasKey(key) {
+      document.getElementById("canvas").dispatchEvent({ type: "keydown", key });
+    },
+    async pressCanvasKeyAndSettle(key) {
+      this.pressCanvasKey(key);
+      await Promise.resolve();
+      await Promise.resolve();
+      await new Promise((resolve) => setImmediate(resolve));
     },
     renameOpenSource(name) {
       document.getElementById("source-name").value = name;
@@ -792,6 +830,73 @@ test("source audio bindings serialize with the patch", () => {
   assert.equal(patch.sourceBindings[0].type, "audio-file");
   assert.equal(patch.sourceBindings[0].name, "voice.wav");
   assert.equal(patch.sourceBindings[0].gain, 0.75);
+  assert.equal(patch.sourceBindings[0].muted, false);
+});
+
+test("m key toggles mute for the selected source audio binding", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Source Mute",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        muted: false,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("A"), true);
+  engine.pressCanvasKey("m");
+
+  let patch = engine.api.serializePatch();
+  assert.equal(patch.sourceBindings[0].muted, true);
+  assert.equal(engine.sourceInspectorState().muted, true);
+
+  engine.pressCanvasKey("m");
+  patch = engine.api.serializePatch();
+  assert.equal(patch.sourceBindings[0].muted, false);
+  assert.equal(engine.sourceInspectorState().muted, false);
+});
+
+test("spacebar toggles sound playback for source audio bindings", async () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Space Playback",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.soundButtonPressed(), "false");
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "true");
+
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "false");
 });
 
 test("sound clients do not enable without mappings or source bindings", async () => {

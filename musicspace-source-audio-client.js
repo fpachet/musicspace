@@ -33,6 +33,23 @@
       bindingsForSource(sourceName) {
         return bindings.filter((binding) => binding.source === sourceName).map(serializeBinding);
       },
+      isSourceMuted(sourceName) {
+        return Boolean(bindings.find((binding) => binding.source === sourceName)?.muted);
+      },
+      toggleSourceMuted(sourceName) {
+        const binding = bindings.find((candidate) => candidate.source === sourceName);
+        if (!binding) {
+          return null;
+        }
+
+        binding.muted = !binding.muted;
+        const player = players.get(sourceName);
+        if (player) {
+          player.binding.muted = binding.muted;
+        }
+        updateSpatial();
+        return serializeBinding(binding);
+      },
       upsertBinding(binding) {
         const normalized = normalizeBinding(binding);
         if (!normalized) {
@@ -128,6 +145,7 @@
         url: binding.url || "",
         loop: binding.loop !== false,
         gain: finiteOrDefault(binding.gain, 1),
+        muted: Boolean(binding.muted),
         spatialization: binding.spatialization || DEFAULT_SPATIALIZATION
       };
     }
@@ -142,6 +160,7 @@
         url: binding.url,
         loop: binding.loop,
         gain: binding.gain,
+        muted: binding.muted,
         spatialization: binding.spatialization
       };
     }
@@ -246,7 +265,7 @@
         const attenuation = player.binding.spatialization === "stereo-pan"
           ? 1
           : clamp(1 - distance / MAX_DISTANCE, 0.05, 1);
-        const gain = clamp(player.binding.gain, 0, 2) * attenuation;
+        const gain = player.binding.muted ? 0 : clamp(player.binding.gain, 0, 2) * attenuation;
 
         setParam(player.gainNode.gain, gain, time);
         if (player.panNode) {

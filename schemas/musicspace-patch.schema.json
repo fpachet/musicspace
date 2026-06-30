@@ -246,6 +246,9 @@
           "type": "number",
           "minimum": 0
         },
+        "muted": {
+          "type": "boolean"
+        },
         "spatialization": {
           "enum": ["pan-distance", "stereo-pan"]
         }
