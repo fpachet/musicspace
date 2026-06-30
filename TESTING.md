@@ -8,6 +8,15 @@ npm test
 
 The tests load `musicspace.js` in a mocked DOM/canvas sandbox, then drive patches directly through the engine. They assert propagation reports and residual measurements rather than relying on screenshots.
 
+Run the browser smoke test with:
+
+```sh
+npx playwright install chromium
+npm run smoke
+```
+
+The smoke test starts a local HTTP server, loads `musicspace.html` in Chromium, checks for console/page errors, verifies that built-in patches populate, loads Cycloid Percussion, and exercises mover, sound, and reset controls.
+
 Current coverage:
 
 - Sum redistribution.
@@ -26,7 +35,7 @@ Current coverage:
 - XPBD iteration sweep and release-refinement regression tests.
 - Patch validation for object references, backend declarations, source bindings, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
 - Source Inspector and source-audio coverage for source binding serialization, source renaming across patch references, per-source mute state, keyboard mute/playback shortcuts, and the no-default-sound rule when a patch has no `sourceBindings` or `parameterMappings`.
-- UI interaction regression coverage for canvas focus without page scrolling, the passive undo indicator, solver selector state, and toolbar-independent keyboard workflows.
+- UI interaction regression coverage for canvas focus without page scrolling, the passive undo indicator, solver selector state, toolbar-independent keyboard workflows, and a real-browser smoke test for page loading and core controls.
 
 Optional diagnostic output:
 
@@ -35,4 +44,4 @@ MUSICSPACE_PRINT_SOLVER_COMPARISON=1 node --test --test-name-pattern "solver ser
 MUSICSPACE_PRINT_XPBD_SWEEP=1 node --test --test-name-pattern "xpbd iteration sweep" tests/constraint-engine.test.js
 ```
 
-Keep these tests focused on engine behavior. Browser/UI rendering checks should stay separate.
+Keep the engine tests focused on model behavior. Browser/UI rendering checks should stay in Playwright smoke or visual-regression tests.

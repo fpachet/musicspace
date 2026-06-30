@@ -36,6 +36,13 @@ Run the engine regression suite with:
 npm test
 ```
 
+Run the browser smoke test with:
+
+```sh
+npx playwright install chromium
+npm run smoke
+```
+
 ## Controls
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.

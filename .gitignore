@@ -4,5 +4,8 @@
 .venv-audio-separator/
 node_modules/
 trials/
+test-results/
+playwright-report/
+blob-report/
 *.log
 musicspace_trace.png
