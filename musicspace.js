@@ -39,6 +39,8 @@ const patchJsonApplyButton = document.getElementById("patch-json-apply");
 const patchValidateButton = document.getElementById("patch-validate");
 const constraintStatus = document.getElementById("constraint-status");
 const solverIndicator = document.getElementById("solver-indicator");
+const solverModePropagationButton = document.getElementById("solver-mode-propagation");
+const solverModeXpbdButton = document.getElementById("solver-mode-xpbd");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
 const toolButtons = Array.from(document.querySelectorAll("[data-tool]"));
@@ -3133,9 +3135,12 @@ function getLastPropagationReport() {
   };
 }
 
-function setSolverMode(nextMode) {
+function setSolverMode(nextMode, { updateUrl = false } = {}) {
   solverMode = nextMode === SOLVER_MODE_XPBD ? SOLVER_MODE_XPBD : SOLVER_MODE_PROPAGATION;
   updateSolverIndicator();
+  if (updateUrl) {
+    updateSolverModeUrl();
+  }
 }
 
 function getSolverMode() {
@@ -3150,6 +3155,22 @@ function updateSolverIndicator() {
   const isXpbd = solverMode === SOLVER_MODE_XPBD;
   solverIndicator.textContent = `Solver: ${isXpbd ? "XPBD" : "Propagation"}`;
   solverIndicator.classList.toggle("xpbd", isXpbd);
+  solverModePropagationButton?.setAttribute("aria-pressed", String(!isXpbd));
+  solverModeXpbdButton?.setAttribute("aria-pressed", String(isXpbd));
+}
+
+function updateSolverModeUrl() {
+  if (!window.history?.replaceState) {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  if (solverMode === SOLVER_MODE_XPBD) {
+    url.searchParams.set("solver", SOLVER_MODE_XPBD);
+  } else {
+    url.searchParams.delete("solver");
+  }
+  window.history.replaceState(null, "", url.href);
 }
 
 function refreshConstraints() {
@@ -4217,6 +4238,14 @@ listenerModeRetargetButton.addEventListener("click", () => {
 });
 listenerModePreserveButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_PRESERVE);
+});
+solverModePropagationButton.addEventListener("click", () => {
+  setSolverMode(SOLVER_MODE_PROPAGATION, { updateUrl: true });
+  setConstraintStatus("Solver mode: Propagation.");
+});
+solverModeXpbdButton.addEventListener("click", () => {
+  setSolverMode(SOLVER_MODE_XPBD, { updateUrl: true });
+  setConstraintStatus("Solver mode: XPBD.");
 });
 patchSelect.addEventListener("change", () => {
   stopAnimation();

@@ -20,7 +20,7 @@ Then open <http://localhost:8000/musicspace.html>.
 
 The built-in patch library is loaded from JSON files, so the page needs HTTP. Browsers usually block `fetch()` for local `file://` assets.
 
-The current propagation solver remains the default. To try the experimental XPBD solver prototype, open <http://localhost:8000/musicspace.html?solver=xpbd>. The canvas shows a solver badge so you can confirm which mode is active.
+The current propagation solver remains the default. Use the Solver segmented control above the canvas to switch between Propagation and the experimental XPBD solver. You can also open <http://localhost:8000/musicspace.html?solver=xpbd> directly; the canvas shows a solver badge so you can confirm which mode is active.
 
 No build step or package installation is required.
 

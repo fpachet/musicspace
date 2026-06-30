@@ -28,14 +28,28 @@ function createCanvasContext() {
 }
 
 function createElement(id = "") {
+  const listeners = new Map();
+  const classes = new Set();
   const element = {
     id,
     attributes: new Map(),
     children: [],
     classList: {
-      add() {},
-      remove() {},
-      toggle() {}
+      add(name) {
+        classes.add(name);
+      },
+      remove(name) {
+        classes.delete(name);
+      },
+      toggle(name, force) {
+        const shouldAdd = force ?? !classes.has(name);
+        if (shouldAdd) {
+          classes.add(name);
+        } else {
+          classes.delete(name);
+        }
+        return shouldAdd;
+      }
     },
     dataset: {},
     disabled: false,
@@ -45,14 +59,23 @@ function createElement(id = "") {
     style: {},
     textContent: "",
     value: "",
-    addEventListener() {},
+    addEventListener(type, listener) {
+      if (!listeners.has(type)) {
+        listeners.set(type, []);
+      }
+      listeners.get(type).push(listener);
+    },
     append(child) {
       this.children.push(child);
       if (child && "value" in child) {
         this.options.push(child);
       }
     },
-    click() {},
+    click() {
+      for (const listener of listeners.get("click") || []) {
+        listener({ target: this, preventDefault() {} });
+      }
+    },
     focus() {},
     getBoundingClientRect() {
       return { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
@@ -147,7 +170,12 @@ function createEngineHarness() {
       }
     },
     window: {
-      location: { href: "http://127.0.0.1/musicspace.html" }
+      location: { href: "http://127.0.0.1/musicspace.html" },
+      history: {
+        replaceState(_state, _title, href) {
+          sandbox.window.location.href = href;
+        }
+      }
     },
     cancelAnimationFrame() {},
     requestAnimationFrame() {
@@ -225,6 +253,13 @@ globalThis.__musicspaceTestApi = {
     },
     setSolverMode(mode) {
       api.setSolverMode(mode);
+    },
+    clickSolverMode(mode) {
+      const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
+      document.getElementById(id).click();
+    },
+    currentHref() {
+      return sandbox.window.location.href;
     },
     createConstraintWithTool(tool, names) {
       api.handleToolButtonClick(tool);
@@ -1232,6 +1267,12 @@ test("solver indicator reflects the active solver mode", () => {
   assert.equal(engine.solverIndicatorText(), "Solver: Propagation");
   engine.setSolverMode("xpbd");
   assert.equal(engine.solverIndicatorText(), "Solver: XPBD");
+  engine.clickSolverMode("propagation");
+  assert.equal(engine.solverIndicatorText(), "Solver: Propagation");
+  assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html");
+  engine.clickSolverMode("xpbd");
+  assert.equal(engine.solverIndicatorText(), "Solver: XPBD");
+  assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html?solver=xpbd");
 });
 
 test("solver series comparison tracks propagated sources and cpu", () => {

@@ -625,6 +625,22 @@
       color: #5b21b6;
     }
 
+    .solver-control {
+      flex: 0 0 auto;
+    }
+
+    .solver-control .mode-label {
+      font-size: 11px;
+      padding: 0 8px;
+    }
+
+    .solver-control button {
+      min-height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .stage {
       position: relative;
       width: 100%;
@@ -1138,6 +1154,11 @@
       <div class="canvas-column">
         <div class="status-row">
           <span id="solver-indicator" class="solver-badge">Solver: Propagation</span>
+          <div class="mode-group solver-control" aria-label="Solver mode">
+            <span class="mode-label">Solver</span>
+            <button id="solver-mode-propagation" type="button" title="Use bounded propagation solver">Propagation</button>
+            <button id="solver-mode-xpbd" type="button" title="Use experimental XPBD solver">XPBD</button>
+          </div>
           <p id="constraint-status" class="status" aria-live="polite"></p>
         </div>
         <div id="stage" class="stage">
