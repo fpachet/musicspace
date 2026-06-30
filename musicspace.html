@@ -587,14 +587,42 @@
       color: #ffffff;
     }
 
+    .status-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-height: 24px;
+      margin: 0 0 12px;
+    }
+
     .status {
       min-height: 22px;
-      margin: 0 0 12px;
+      margin: 0;
       width: 100%;
       padding: 0 2px;
       color: #5f3416;
       font-size: 13px;
       line-height: 1.4;
+    }
+
+    .solver-badge {
+      flex: 0 0 auto;
+      min-height: 22px;
+      padding: 4px 8px;
+      border: 1px solid #b9c1c9;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #52616f;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .solver-badge.xpbd {
+      border-color: #7c3aed;
+      background: #f5f3ff;
+      color: #5b21b6;
     }
 
     .stage {
@@ -1108,7 +1136,10 @@
         </section>
       </nav>
       <div class="canvas-column">
-        <p id="constraint-status" class="status" aria-live="polite"></p>
+        <div class="status-row">
+          <span id="solver-indicator" class="solver-badge">Solver: Propagation</span>
+          <p id="constraint-status" class="status" aria-live="polite"></p>
+        </div>
         <div id="stage" class="stage">
           <canvas id="trace" width="800" height="600"></canvas>
           <canvas

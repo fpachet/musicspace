@@ -38,6 +38,7 @@ const patchJsonTextarea = document.getElementById("patch-json");
 const patchJsonApplyButton = document.getElementById("patch-json-apply");
 const patchValidateButton = document.getElementById("patch-validate");
 const constraintStatus = document.getElementById("constraint-status");
+const solverIndicator = document.getElementById("solver-indicator");
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
 const toolButtons = Array.from(document.querySelectorAll("[data-tool]"));
@@ -67,6 +68,13 @@ const CONSTRAINT_EPSILON = 0.5;
 const PRODUCT_EPSILON = 0.01;
 const MAX_PROPAGATION_STEPS = 96;
 const MAX_ENTITY_PROPAGATION_COUNT = 8;
+const SOLVER_MODE_PROPAGATION = "propagation";
+const SOLVER_MODE_XPBD = "xpbd";
+const DEFAULT_SOLVER_MODE = SOLVER_MODE_PROPAGATION;
+const XPBD_ITERATIONS_DRAG = 10;
+const XPBD_ITERATIONS_RELEASE = 40;
+const MAX_XPBD_COMPONENT_ENTITIES = 48;
+const MAX_XPBD_COMPONENT_CONSTRAINTS = 96;
 const ANGLE_EPSILON = 0.01;
 const RATIO_EPSILON = 0.01;
 const RELATIVE_PRODUCT_EPSILON = 0.001;
@@ -973,6 +981,7 @@ let velocity = { x: 0, y: 0 };
 let activePatch = null;
 let lastPropagationReport = null;
 let propagationPaused = false;
+let solverMode = getInitialSolverMode();
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   toggleButton: targetToggleButton,
@@ -1044,9 +1053,18 @@ async function loadBuiltInPatchLibrary() {
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) {
-    throw new Error(`Could not load ${url}`);
+    throw new Error(`Could not load ${url} (${response.status} ${response.statusText})`);
   }
   return response.json();
+}
+
+function getInitialSolverMode() {
+  try {
+    const mode = new URL(window.location.href).searchParams.get("solver");
+    return mode === SOLVER_MODE_XPBD ? SOLVER_MODE_XPBD : DEFAULT_SOLVER_MODE;
+  } catch (error) {
+    return DEFAULT_SOLVER_MODE;
+  }
 }
 
 function selectPatchOptionForPatch(patch) {
@@ -1679,7 +1697,7 @@ function validateConstraintSpecs(constraints, names, add) {
     if (spec.type === "angle") {
       validateNamedList(spec.sources, 2, spec.type, names, add);
     } else if (spec.type === "sum" || spec.type === "product") {
-      validateNamedList(spec.sources, 1, spec.type, names, add);
+      validateNamedList(spec.sources, 2, spec.type, names, add);
     } else if (spec.type === "radialLimit") {
       validateReference(spec.source, "radialLimit.source", names, add);
       validateMinMax(spec.minDistance, spec.maxDistance, "radialLimit distance", add);
@@ -2439,7 +2457,512 @@ function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
   return { satisfied: false, usedBackoff, movedEntities: [...movedEntities] };
 }
 
-function enforceConstraints(moved) {
+function enforceConstraints(moved, options = {}) {
+  if (solverMode === SOLVER_MODE_XPBD) {
+    const xpbdReport = enforceConstraintsWithXpbd(moved, options);
+    if (xpbdReport) {
+      lastPropagationReport = xpbdReport;
+      setConstraintStatus(formatPropagationStatus(lastPropagationReport));
+      return;
+    }
+  }
+
+  enforceConstraintsByPropagation(moved);
+}
+
+function refineXpbdAfterDrag(entity) {
+  if (solverMode !== SOLVER_MODE_XPBD || !entity) {
+    return false;
+  }
+
+  const xpbdReport = enforceConstraintsWithXpbd(entity, { iterations: XPBD_ITERATIONS_RELEASE });
+  if (!xpbdReport) {
+    return false;
+  }
+
+  lastPropagationReport = xpbdReport;
+  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
+  return true;
+}
+
+function enforceConstraintsWithXpbd(moved, {
+  iterations = XPBD_ITERATIONS_DRAG,
+  preserveTrajectoryFrame = false
+} = {}) {
+  const component = buildConstraintComponent(moved);
+  if (!component ||
+    component.entities.length > MAX_XPBD_COMPONENT_ENTITIES ||
+    component.constraints.length > MAX_XPBD_COMPONENT_CONSTRAINTS) {
+    return null;
+  }
+
+  applyXpbdRotatorFrameDeltas(component.constraints);
+
+  const positions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
+  const originalPositions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
+  const mobility = createXpbdMobility(component, moved);
+  const intent = moved && component.indexByEntity.has(moved)
+    ? {
+        index: component.indexByEntity.get(moved),
+        x: moved.x,
+        y: moved.y,
+        stiffness: 0.35
+      }
+    : null;
+
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    applyXpbdSoftIntent(positions, mobility, intent);
+
+    for (const constraint of orderedXpbdConstraints(component.constraints)) {
+      projectXpbdConstraint(constraint, component.indexByEntity, positions, mobility);
+    }
+  }
+
+  for (const constraint of component.constraints) {
+    projectXpbdHardConstraint(constraint, component.indexByEntity, positions, mobility);
+  }
+
+  const movedEntities = [];
+  for (let index = 0; index < component.entities.length; index += 1) {
+    const entity = component.entities[index];
+    const next = positions[index];
+    const dx = next.x - entity.x;
+    const dy = next.y - entity.y;
+    if (Math.hypot(dx, dy) > 0.001) {
+      commitXpbdEntityPosition(entity, next, { preserveTrajectoryFrame });
+    }
+    if (Math.hypot(next.x - originalPositions[index].x, next.y - originalPositions[index].y) > CONSTRAINT_EPSILON) {
+      movedEntities.push(entity);
+    }
+  }
+
+  for (const constraint of component.constraints) {
+    constraint.updateNode?.();
+  }
+
+  return createPropagationReport({
+    hitEntityCap: false,
+    hitStepCap: false,
+    messages: [],
+    movedEntities,
+    processCounts: new Map(),
+    propagationSteps: iterations * component.constraints.length,
+    solverMode: SOLVER_MODE_XPBD
+  });
+}
+
+function orderedXpbdConstraints(componentConstraints) {
+  const hard = [];
+  const structural = [];
+  const aggregate = [];
+
+  for (const constraint of componentConstraints) {
+    if (constraint instanceof PinConstraint ||
+      constraint instanceof RadialLimitConstraint ||
+      constraint instanceof AngleSectorConstraint) {
+      hard.push(constraint);
+    } else if (constraint instanceof SolidAttachmentConstraint ||
+      constraint instanceof FixedDistanceConstraint ||
+      constraint instanceof MinimumSeparationConstraint) {
+      structural.push(constraint);
+    } else {
+      aggregate.push(constraint);
+    }
+  }
+
+  return [...hard, ...structural, ...aggregate];
+}
+
+function applyXpbdRotatorFrameDeltas(componentConstraints) {
+  for (const constraint of componentConstraints) {
+    if (constraint instanceof SolidAttachmentConstraint) {
+      constraint.applyCarrierRotation();
+    }
+  }
+}
+
+function commitXpbdEntityPosition(entity, next, { preserveTrajectoryFrame = false } = {}) {
+  if (preserveTrajectoryFrame && entity instanceof MovingObject) {
+    entity.x = next.x;
+    entity.y = next.y;
+    return;
+  }
+
+  translateEntity(entity, next.x - entity.x, next.y - entity.y);
+}
+
+function buildConstraintComponent(startEntity) {
+  if (!startEntity) {
+    return null;
+  }
+
+  const entities = [];
+  const componentConstraints = [];
+  const entitySet = new Set();
+  const constraintSet = new Set();
+  const queue = [startEntity];
+  entitySet.add(startEntity);
+
+  while (queue.length > 0) {
+    const entity = queue.shift();
+    for (const constraint of constraints) {
+      if (constraintSet.has(constraint)) {
+        continue;
+      }
+
+      const affected = constraint.affectedEntities?.().filter(Boolean) || [];
+      if (!affected.includes(entity)) {
+        continue;
+      }
+
+      constraintSet.add(constraint);
+      componentConstraints.push(constraint);
+
+      for (const affectedEntity of affected) {
+        if (!entitySet.has(affectedEntity)) {
+          entitySet.add(affectedEntity);
+          queue.push(affectedEntity);
+        }
+      }
+    }
+  }
+
+  for (const entity of entitySet) {
+    entities.push(entity);
+  }
+
+  return {
+    constraints: componentConstraints,
+    entities,
+    indexByEntity: new Map(entities.map((entity, index) => [entity, index]))
+  };
+}
+
+function createXpbdMobility(component, moved) {
+  const pinned = new Set(
+    component.constraints
+      .filter((constraint) => constraint instanceof PinConstraint)
+      .map((constraint) => constraint.target)
+  );
+
+  return component.entities.map((entity) => {
+    if (pinned.has(entity)) {
+      return 0;
+    }
+
+    if (entity === listener && entity !== moved) {
+      return 0;
+    }
+
+    return 1;
+  });
+}
+
+function applyXpbdSoftIntent(positions, mobility, intent) {
+  if (!intent || mobility[intent.index] <= 0) {
+    return;
+  }
+
+  const position = positions[intent.index];
+  position.x += (intent.x - position.x) * intent.stiffness;
+  position.y += (intent.y - position.y) * intent.stiffness;
+}
+
+function projectXpbdConstraint(constraint, indexByEntity, positions, mobility) {
+  if (constraint instanceof PinConstraint ||
+    constraint instanceof RadialLimitConstraint ||
+    constraint instanceof AngleSectorConstraint) {
+    projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility);
+    return;
+  }
+
+  if (constraint instanceof FixedDistanceConstraint) {
+    projectXpbdDistance(indexByEntity.get(constraint.anchor), indexByEntity.get(constraint.target), constraint.distance, positions, mobility);
+  } else if (constraint instanceof SolidAttachmentConstraint) {
+    projectXpbdSolid(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof MinimumSeparationConstraint) {
+    projectXpbdMinSeparation(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof SumConstraint) {
+    projectXpbdSum(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof ProductConstraint) {
+    projectXpbdProduct(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof DistanceRatioConstraint) {
+    projectXpbdRatio(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof AngleConstraint) {
+    projectXpbdAngle(constraint, indexByEntity, positions, mobility);
+  }
+}
+
+function projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility) {
+  if (constraint instanceof PinConstraint) {
+    const index = indexByEntity.get(constraint.target);
+    if (index === undefined) {
+      return;
+    }
+    positions[index].x = constraint.fixedX;
+    positions[index].y = constraint.fixedY;
+  } else if (constraint instanceof RadialLimitConstraint) {
+    projectXpbdRadialLimit(constraint, indexByEntity, positions, mobility);
+  } else if (constraint instanceof AngleSectorConstraint) {
+    projectXpbdAngleSector(constraint, indexByEntity, positions, mobility);
+  }
+}
+
+function projectXpbdDistance(aIndex, bIndex, targetDistance, positions, mobility) {
+  if (aIndex === undefined || bIndex === undefined) {
+    return;
+  }
+
+  const a = positions[aIndex];
+  const b = positions[bIndex];
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.000001) {
+    return;
+  }
+
+  const aMobility = mobility[aIndex];
+  const bMobility = mobility[bIndex];
+  const mobilitySum = aMobility + bMobility;
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  const residual = distance - targetDistance;
+  const nx = dx / distance;
+  const ny = dy / distance;
+  a.x += nx * residual * (aMobility / mobilitySum);
+  a.y += ny * residual * (aMobility / mobilitySum);
+  b.x -= nx * residual * (bMobility / mobilitySum);
+  b.y -= ny * residual * (bMobility / mobilitySum);
+}
+
+function projectXpbdRadialLimit(constraint, indexByEntity, positions, mobility) {
+  const sourceIndex = indexByEntity.get(constraint.source);
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  if (sourceIndex === undefined || listenerIndex === undefined || mobility[sourceIndex] <= 0) {
+    return;
+  }
+
+  const source = positions[sourceIndex];
+  const anchor = positions[listenerIndex];
+  const dx = source.x - anchor.x;
+  const dy = source.y - anchor.y;
+  const distance = Math.hypot(dx, dy);
+  const clampedDistance = clamp(distance, constraint.minDistance, constraint.maxDistance);
+  if (Math.abs(distance - clampedDistance) <= CONSTRAINT_EPSILON) {
+    return;
+  }
+
+  const angle = distance === 0 ? 0 : Math.atan2(dy, dx);
+  source.x = anchor.x + clampedDistance * Math.cos(angle);
+  source.y = anchor.y + clampedDistance * Math.sin(angle);
+}
+
+function projectXpbdAngleSector(constraint, indexByEntity, positions, mobility) {
+  const sourceIndex = indexByEntity.get(constraint.source);
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  if (sourceIndex === undefined || listenerIndex === undefined || mobility[sourceIndex] <= 0) {
+    return;
+  }
+
+  const source = positions[sourceIndex];
+  const anchor = positions[listenerIndex];
+  const distance = Math.hypot(source.x - anchor.x, source.y - anchor.y);
+  const angle = Math.atan2(source.y - anchor.y, source.x - anchor.x);
+  const delta = normalizeAngle(angle - constraint.centerAngle);
+  const halfWidth = constraint.width / 2;
+  if (Math.abs(delta) <= halfWidth) {
+    return;
+  }
+
+  const clampedAngle = constraint.centerAngle + clamp(delta, -halfWidth, halfWidth);
+  source.x = anchor.x + distance * Math.cos(clampedAngle);
+  source.y = anchor.y + distance * Math.sin(clampedAngle);
+}
+
+function projectXpbdSolid(constraint, indexByEntity, positions, mobility) {
+  const carrierIndex = indexByEntity.get(constraint.carrier);
+  const attachedIndex = indexByEntity.get(constraint.attached);
+  if (carrierIndex === undefined || attachedIndex === undefined) {
+    return;
+  }
+
+  const carrier = positions[carrierIndex];
+  const attached = positions[attachedIndex];
+  const errorX = attached.x - carrier.x - constraint.offsetX;
+  const errorY = attached.y - carrier.y - constraint.offsetY;
+  const carrierMobility = mobility[carrierIndex];
+  const attachedMobility = mobility[attachedIndex];
+  const mobilitySum = carrierMobility + attachedMobility;
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  carrier.x += errorX * (carrierMobility / mobilitySum);
+  carrier.y += errorY * (carrierMobility / mobilitySum);
+  attached.x -= errorX * (attachedMobility / mobilitySum);
+  attached.y -= errorY * (attachedMobility / mobilitySum);
+}
+
+function projectXpbdMinSeparation(constraint, indexByEntity, positions, mobility) {
+  const aIndex = indexByEntity.get(constraint.a);
+  const bIndex = indexByEntity.get(constraint.b);
+  if (aIndex === undefined || bIndex === undefined) {
+    return;
+  }
+
+  const a = positions[aIndex];
+  const b = positions[bIndex];
+  const distance = Math.hypot(b.x - a.x, b.y - a.y);
+  if (distance >= constraint.minDistance) {
+    return;
+  }
+
+  projectXpbdDistance(aIndex, bIndex, constraint.minDistance, positions, mobility);
+}
+
+function projectXpbdSum(constraint, indexByEntity, positions, mobility) {
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  if (listenerIndex === undefined) {
+    return;
+  }
+
+  const anchor = positions[listenerIndex];
+  const sourceIndexes = constraint.sources
+    .map((source) => indexByEntity.get(source))
+    .filter((index) => index !== undefined && mobility[index] > 0);
+  const total = constraint.sources.reduce((sum, source) => {
+    const index = indexByEntity.get(source);
+    if (index === undefined) {
+      return sum;
+    }
+    return sum + Math.hypot(positions[index].x - anchor.x, positions[index].y - anchor.y);
+  }, 0);
+  const mobilitySum = sourceIndexes.reduce((sum, index) => sum + mobility[index], 0);
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  const residual = total - constraint.totalDistance;
+  for (const index of sourceIndexes) {
+    const source = positions[index];
+    const dx = source.x - anchor.x;
+    const dy = source.y - anchor.y;
+    const distance = Math.hypot(dx, dy);
+    const angle = distance === 0 ? 0 : Math.atan2(dy, dx);
+    const nextDistance = Math.max(MIN_DISTANCE, distance - residual * (mobility[index] / mobilitySum));
+    source.x = anchor.x + nextDistance * Math.cos(angle);
+    source.y = anchor.y + nextDistance * Math.sin(angle);
+  }
+}
+
+function projectXpbdProduct(constraint, indexByEntity, positions, mobility) {
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  if (listenerIndex === undefined || constraint.product <= 0) {
+    return;
+  }
+
+  const anchor = positions[listenerIndex];
+  const sourceIndexes = constraint.sources
+    .map((source) => indexByEntity.get(source))
+    .filter((index) => index !== undefined && mobility[index] > 0);
+  const mobilitySum = sourceIndexes.reduce((sum, index) => sum + mobility[index], 0);
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  const currentLogProduct = constraint.sources.reduce((sum, source) => {
+    const index = indexByEntity.get(source);
+    if (index === undefined) {
+      return sum;
+    }
+    return sum + Math.log(Math.max(MIN_DISTANCE, Math.hypot(positions[index].x - anchor.x, positions[index].y - anchor.y)));
+  }, 0);
+  const logResidual = currentLogProduct - Math.log(Math.max(1, constraint.product));
+
+  for (const index of sourceIndexes) {
+    const source = positions[index];
+    const dx = source.x - anchor.x;
+    const dy = source.y - anchor.y;
+    const distance = Math.max(MIN_DISTANCE, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx);
+    const nextDistance = distance * Math.exp(-logResidual * (mobility[index] / mobilitySum));
+    source.x = anchor.x + nextDistance * Math.cos(angle);
+    source.y = anchor.y + nextDistance * Math.sin(angle);
+  }
+}
+
+function projectXpbdRatio(constraint, indexByEntity, positions, mobility) {
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  const aIndex = indexByEntity.get(constraint.a);
+  const bIndex = indexByEntity.get(constraint.b);
+  if (listenerIndex === undefined || aIndex === undefined || bIndex === undefined || constraint.ratio <= 0) {
+    return;
+  }
+
+  const anchor = positions[listenerIndex];
+  const a = positions[aIndex];
+  const b = positions[bIndex];
+  const distanceA = Math.max(MIN_DISTANCE, Math.hypot(a.x - anchor.x, a.y - anchor.y));
+  const distanceB = Math.max(MIN_DISTANCE, Math.hypot(b.x - anchor.x, b.y - anchor.y));
+  const mobilitySum = mobility[aIndex] + mobility[bIndex];
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  const logResidual = Math.log(distanceA / distanceB) - Math.log(constraint.ratio);
+  if (mobility[aIndex] > 0) {
+    setXpbdPolarDistance(a, anchor, distanceA * Math.exp(-logResidual * (mobility[aIndex] / mobilitySum)));
+  }
+  if (mobility[bIndex] > 0) {
+    setXpbdPolarDistance(b, anchor, distanceB * Math.exp(logResidual * (mobility[bIndex] / mobilitySum)));
+  }
+}
+
+function projectXpbdAngle(constraint, indexByEntity, positions, mobility) {
+  const listenerIndex = indexByEntity.get(constraint.listener);
+  const aIndex = indexByEntity.get(constraint.a);
+  const bIndex = indexByEntity.get(constraint.b);
+  if (listenerIndex === undefined || aIndex === undefined || bIndex === undefined) {
+    return;
+  }
+
+  const anchor = positions[listenerIndex];
+  const a = positions[aIndex];
+  const b = positions[bIndex];
+  const angleA = Math.atan2(a.y - anchor.y, a.x - anchor.x);
+  const angleB = Math.atan2(b.y - anchor.y, b.x - anchor.x);
+  const residual = normalizeAngle(angleB - angleA - constraint.angle);
+  const mobilitySum = mobility[aIndex] + mobility[bIndex];
+  if (mobilitySum <= 0) {
+    return;
+  }
+
+  if (mobility[aIndex] > 0) {
+    rotateXpbdAround(a, anchor, residual * (mobility[aIndex] / mobilitySum));
+  }
+  if (mobility[bIndex] > 0) {
+    rotateXpbdAround(b, anchor, -residual * (mobility[bIndex] / mobilitySum));
+  }
+}
+
+function setXpbdPolarDistance(position, anchor, distance) {
+  const angle = Math.atan2(position.y - anchor.y, position.x - anchor.x);
+  position.x = anchor.x + Math.max(MIN_DISTANCE, distance) * Math.cos(angle);
+  position.y = anchor.y + Math.max(MIN_DISTANCE, distance) * Math.sin(angle);
+}
+
+function rotateXpbdAround(position, anchor, deltaAngle) {
+  const dx = position.x - anchor.x;
+  const dy = position.y - anchor.y;
+  const rotated = rotateVector(dx, dy, deltaAngle);
+  position.x = anchor.x + rotated.x;
+  position.y = anchor.y + rotated.y;
+}
+
+function enforceConstraintsByPropagation(moved) {
   const messages = [];
   const queue = [];
   const queuedEntities = new Set();
@@ -2508,7 +3031,8 @@ function createPropagationReport({
   movedEntities,
   processCounts,
   propagationPaused = false,
-  propagationSteps
+  propagationSteps,
+  solverMode = SOLVER_MODE_PROPAGATION
 }) {
   const residuals = measureConstraintResiduals();
 
@@ -2521,6 +3045,7 @@ function createPropagationReport({
     propagationPaused,
     propagationSteps,
     residuals,
+    solverMode,
     satisfied: residuals.length === 0 && !hitEntityCap && !hitStepCap && !propagationPaused
   };
 }
@@ -2553,10 +3078,16 @@ function normalizeConstraintMeasurement(constraint) {
 function formatPropagationStatus(report) {
   const statusParts = [...report.messages];
 
-  if (report.hitStepCap) {
-    statusParts.push(`Propagation stopped after ${MAX_PROPAGATION_STEPS} steps.`);
-  } else if (report.hitEntityCap) {
-    statusParts.push(`Propagation capped one entity after ${MAX_ENTITY_PROPAGATION_COUNT} passes.`);
+  if (report.solverMode === SOLVER_MODE_XPBD) {
+    if (report.residuals.length > 0) {
+      statusParts.push("Best fit.");
+    }
+  } else {
+    if (report.hitStepCap) {
+      statusParts.push(`Propagation stopped after ${MAX_PROPAGATION_STEPS} steps.`);
+    } else if (report.hitEntityCap) {
+      statusParts.push(`Propagation capped one entity after ${MAX_ENTITY_PROPAGATION_COUNT} passes.`);
+    }
   }
 
   if (report.residuals.length > 0) {
@@ -2597,8 +3128,28 @@ function getLastPropagationReport() {
       tolerance: measurement.tolerance,
       unit: measurement.unit
     })),
+    solverMode: lastPropagationReport.solverMode,
     satisfied: lastPropagationReport.satisfied
   };
+}
+
+function setSolverMode(nextMode) {
+  solverMode = nextMode === SOLVER_MODE_XPBD ? SOLVER_MODE_XPBD : SOLVER_MODE_PROPAGATION;
+  updateSolverIndicator();
+}
+
+function getSolverMode() {
+  return solverMode;
+}
+
+function updateSolverIndicator() {
+  if (!solverIndicator) {
+    return;
+  }
+
+  const isXpbd = solverMode === SOLVER_MODE_XPBD;
+  solverIndicator.textContent = `Solver: ${isXpbd ? "XPBD" : "Propagation"}`;
+  solverIndicator.classList.toggle("xpbd", isXpbd);
 }
 
 function refreshConstraints() {
@@ -2611,6 +3162,10 @@ function refreshConstraints() {
 }
 
 function setActiveTool(tool) {
+  if (tool !== TOOL_SELECT) {
+    stopAnimation();
+  }
+
   activeTool = tool;
   pendingToolEntities = [];
 
@@ -2630,8 +3185,8 @@ function toolPrompt(tool) {
     source: "Click empty space to create a source.",
     mover: "Click empty space to create a moving object.",
     angle: "Angle: click two sources or movers.",
-    sum: "Sum: click three sources or movers.",
-    product: "Product: click three sources or movers.",
+    sum: "Sum: click two or more sources or movers; click Sum again to finish.",
+    product: "Product: click two or more sources or movers; click Product again to finish.",
     radialLimit: "Limit: click one source or mover.",
     fixedDistance: "Distance: click anchor, then target.",
     distanceRatio: "Ratio: click two sources or movers.",
@@ -2651,8 +3206,8 @@ function toolPrompt(tool) {
 function requiredEntityCount(tool) {
   const counts = {
     angle: 2,
-    sum: 3,
-    product: 3,
+    sum: 2,
+    product: 2,
     radialLimit: 1,
     fixedDistance: 2,
     distanceRatio: 2,
@@ -2662,6 +3217,10 @@ function requiredEntityCount(tool) {
     angleSector: 1
   };
   return counts[tool] || 0;
+}
+
+function isVariableArityConstraintTool(tool) {
+  return tool === "sum" || tool === "product";
 }
 
 function canUseEntityForTool(tool, entity) {
@@ -2735,6 +3294,17 @@ function handleToolClick(x, y, entity) {
     return true;
   }
 
+  if (isVariableArityConstraintTool(activeTool)) {
+    setConstraintStatus(`${capitalize(activeTool)}: ${pendingToolEntities.length} selected. Click more, or click ${capitalize(activeTool)} again to finish.`);
+    drawAll();
+    return true;
+  }
+
+  finishPendingConstraintTool();
+  return true;
+}
+
+function finishPendingConstraintTool() {
   const constraint = createConstraintFromTool(activeTool, pendingToolEntities);
   let addedMessage = "";
   if (constraint) {
@@ -2747,7 +3317,19 @@ function handleToolClick(x, y, entity) {
   setActiveTool(TOOL_SELECT);
   setConstraintStatus(addedMessage);
   drawAll();
-  return true;
+}
+
+function handleToolButtonClick(tool) {
+  if (
+    tool === activeTool &&
+    isVariableArityConstraintTool(tool) &&
+    pendingToolEntities.length >= requiredEntityCount(tool)
+  ) {
+    finishPendingConstraintTool();
+    return;
+  }
+
+  setActiveTool(tool);
 }
 
 function createConstraintFromTool(tool, entities) {
@@ -3288,7 +3870,7 @@ function animate() {
     for (const mover of movingObjects) {
       const moved = mover.tick();
       if (moved) {
-        enforceConstraints(mover);
+        enforceConstraints(mover, { preserveTrajectoryFrame: true });
       }
     }
 
@@ -3524,6 +4106,7 @@ function endDrag(event) {
 
   const clickEntity = dragged.doubleClickEntity || dragged.entity;
   const wasClick = !dragged.didSnapshot;
+  const releasedEntity = dragged.entity;
   const startX = dragged.startX;
   const startY = dragged.startY;
   const wasPropagationPaused = propagationPaused;
@@ -3550,6 +4133,10 @@ function endDrag(event) {
     resumePropagationAfterPausedDrag();
   } else {
     propagationPaused = false;
+  }
+  if (!wasClick && !wasPropagationPaused && refineXpbdAfterDrag(releasedEntity)) {
+    drawTracesForChangedEntities();
+    drawAll();
   }
   if (wasPropagationPaused) {
     drawAll();
@@ -3611,7 +4198,7 @@ canvas.addEventListener("keydown", (event) => {
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
-    setActiveTool(button.dataset.tool);
+    handleToolButtonClick(button.dataset.tool);
   });
 }
 
@@ -3685,6 +4272,7 @@ async function initializeApp() {
 
   setActiveTool(TOOL_SELECT);
   setListenerMode(LISTENER_MODE_RETARGET);
+  updateSolverIndicator();
 
   try {
     await loadBuiltInPatchLibrary();
@@ -3698,7 +4286,7 @@ async function initializeApp() {
     const errorOption = document.createElement("option");
     errorOption.textContent = "Patch JSON unavailable";
     patchSelect.append(errorOption);
-    setConstraintStatus("Could not load built-in patch JSON. Serve this directory over HTTP, then reload.");
+    setConstraintStatus(`Could not load built-in patch JSON: ${error.message}. Serve this directory over HTTP, then reload.`);
   }
 }
 

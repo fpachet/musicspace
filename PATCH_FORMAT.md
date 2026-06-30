@@ -173,7 +173,7 @@ Mappings then connect scene features to Faust parameter addresses:
 Supported constraint `type` values:
 
 - `angle`: preserves the angle relation between two sources around the listener.
-- `sum`: preserves the total listener distance of one or more sources.
+- `sum`: preserves the total listener distance of two or more sources.
 - `product`: preserves the product of listener distances.
 - `radialLimit`: clamps one source between `minDistance` and `maxDistance` from the listener.
 - `fixedDistance`: preserves a fixed distance between `anchor` and `target`.

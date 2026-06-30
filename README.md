@@ -20,6 +20,8 @@ Then open <http://localhost:8000/musicspace.html>.
 
 The built-in patch library is loaded from JSON files, so the page needs HTTP. Browsers usually block `fetch()` for local `file://` assets.
 
+The current propagation solver remains the default. To try the experimental XPBD solver prototype, open <http://localhost:8000/musicspace.html?solver=xpbd>. The canvas shows a solver badge so you can confirm which mode is active.
+
 No build step or package installation is required.
 
 If you have Node.js available, you can run a syntax check:
@@ -28,12 +30,19 @@ If you have Node.js available, you can run a syntax check:
 npm run check
 ```
 
+Run the engine regression suite with:
+
+```sh
+node --test tests/constraint-engine.test.js
+```
+
 ## Controls
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Save Patch** / **Load Patch** to export and import scene JSON.
 - Use **Patch Inspector** to read the active patch summary, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
+- Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
 - Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
@@ -87,6 +96,7 @@ npm run check
 - `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.
 - `PATCH_FORMAT.md` explains how to author and register patch JSON files.
 - `CONSTRAINT_SEMANTICS.md` documents current constraint invariants and propagation behavior.
+- `OPTIMAL_SOLVER_PLAN.md` documents the proposed real-time XPBD/least-squares solver roadmap.
 - `TARGET_BACKENDS.md` describes Web Audio, Faust WebAssembly, MIDI, OSC, and other parameterized clients.
 - `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.

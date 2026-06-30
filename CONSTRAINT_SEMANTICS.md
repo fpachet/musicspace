@@ -4,6 +4,8 @@ This document describes the semantics implemented by the current MusicSpace prot
 
 MusicSpace uses a deterministic local propagation engine. A user drag, keyboard nudge, or trajectory tick proposes a new position for one entity; constraints that mention that entity may move other entities; those moved entities are then propagated in turn until the queue drains to a fixed point or the bounded solver reports remaining residuals. This is not a global optimizer and it does not search all possible solutions, but it does give the interaction a stable, inspectable repair semantics.
 
+An experimental XPBD-style solver is also available with `?solver=xpbd`. The propagation solver remains the default. XPBD solves only the affected connected component, projects constraints in deterministic phases, uses 10 iterations during drag/animation, and runs a 40-iteration refinement when an unpaused drag is released. The visible solver badge reports the active mode.
+
 ## Core Concepts
 
 ### Entities
@@ -56,6 +58,27 @@ Current bounds:
 
 When the queue drains without residuals, the scene has reached the fixed point induced by the edit and the active local repair rules. The solver does not roll back a whole edit when a later constraint remains unsatisfied. Instead, it reports residuals and caps in the status line. Some individual constraints perform local backoff or clamping; for example, product propagation can drop a limited source from its active correction set once a radial limit clamps it, then continue propagating over the remaining sources.
 
+## Experimental XPBD Mode
+
+XPBD mode is selected by opening `musicspace.html?solver=xpbd`. It is currently intended for comparison and tuning, not as the default behavior.
+
+The XPBD solver:
+
+- builds the connected component affected by the moved entity;
+- falls back to propagation if the component exceeds the configured XPBD size limits;
+- applies rotator solid-link frame deltas before projection;
+- projects constraints in phase order: hard (`pin`, `radialLimit`, `angleSector`), structural (`solid`, `fixedDistance`, `separation`), then aggregate (`sum`, `product`, `distanceRatio`, `angle`);
+- runs a final hard-constraint projection pass;
+- preserves authored trajectory frames during animation ticks;
+- reports best-fit residuals without entity-pass caps.
+
+Current XPBD bounds:
+
+- drag/animation iterations: `XPBD_ITERATIONS_DRAG = 10`
+- release refinement iterations: `XPBD_ITERATIONS_RELEASE = 40`
+- component entity cap: `MAX_XPBD_COMPONENT_ENTITIES = 48`
+- component constraint cap: `MAX_XPBD_COMPONENT_CONSTRAINTS = 96`
+
 ## Numeric Tolerances
 
 - Position/distance tolerance: `CONSTRAINT_EPSILON = 0.5 px`
@@ -100,6 +123,8 @@ JSON shape:
 { "type": "sum", "sources": ["A", "B", "C"] }
 ```
 
+`sources` may contain two or more entities.
+
 Invariant:
 
 ```text
@@ -125,6 +150,8 @@ JSON shape:
 ```json
 { "type": "product", "sources": ["A", "B", "C"] }
 ```
+
+`sources` may contain two or more entities.
 
 Invariant:
 
