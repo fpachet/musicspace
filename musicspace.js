@@ -10,7 +10,7 @@ const ctx = canvas.getContext("2d");
 const stage = document.getElementById("stage");
 
 const animationToggle = document.getElementById("animation-toggle");
-const undoButton = document.getElementById("undo");
+const undoStatus = document.getElementById("undo-status");
 const traceSelectedButton = document.getElementById("trace-selected");
 const traceNoneButton = document.getElementById("trace-none");
 const patchSelect = document.getElementById("patch-select");
@@ -1131,6 +1131,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
 
   if (clearUndo) {
     undoStack = [];
+    updateUndoStatus();
   }
 
   listener = new Listener(patch.listener.x, patch.listener.y);
@@ -1188,18 +1189,32 @@ function pushUndoSnapshot(reason = "edit") {
   if (undoStack.length > 60) {
     undoStack.shift();
   }
+  updateUndoStatus();
 }
 
 function undoLastEdit() {
   const snapshot = undoStack.pop();
   if (!snapshot) {
     setConstraintStatus("Nothing to undo.");
+    updateUndoStatus();
     return;
   }
 
   stopAnimation();
   loadPatch(snapshot.patch, { preserveAsActive: true, clearUndo: false });
   setConstraintStatus(`Undid ${snapshot.reason}.`);
+  updateUndoStatus();
+}
+
+function updateUndoStatus() {
+  if (!undoStatus) {
+    return;
+  }
+
+  const nextUndo = undoStack[undoStack.length - 1];
+  undoStatus.hidden = !nextUndo;
+  undoStatus.textContent = nextUndo ? `Undo: ${nextUndo.reason}` : "";
+  undoStatus.title = nextUndo ? "Press Cmd/Ctrl+Z to undo." : "";
 }
 
 function createObjectMap() {
@@ -4610,7 +4625,6 @@ animationToggle.addEventListener("click", () => {
 targetToggleButton.addEventListener("click", () => {
   toggleSoundOutput();
 });
-undoButton.addEventListener("click", undoLastEdit);
 traceSelectedButton.addEventListener("click", toggleSelectedTrace);
 traceNoneButton.addEventListener("click", stopAllDrawing);
 

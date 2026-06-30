@@ -57,7 +57,7 @@ node --test tests/constraint-engine.test.js
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use **Stop Drawing All** to turn off drawing for every object without erasing the current trace.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
-- Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
+- Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
 - Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings and parameter target backends only when the patch actually contains `sourceBindings` or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.

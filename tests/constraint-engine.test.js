@@ -378,6 +378,14 @@ globalThis.__musicspaceTestApi = {
     soundButtonPressed() {
       return document.getElementById("target-toggle").attributes.get("aria-pressed");
     },
+    undoStatus() {
+      const status = document.getElementById("undo-status");
+      return {
+        hidden: status.hidden,
+        text: status.textContent,
+        title: status.title
+      };
+    },
     openSourceInspector(name) {
       const entity = api.getObjectByName(name);
       assert.ok(entity, `Expected entity ${name} to exist`);
@@ -392,8 +400,8 @@ globalThis.__musicspaceTestApi = {
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
     },
-    pressCanvasKey(key) {
-      document.getElementById("canvas").dispatchEvent({ type: "keydown", key });
+    pressCanvasKey(key, options = {}) {
+      document.getElementById("canvas").dispatchEvent({ type: "keydown", key, ...options });
     },
     async pressCanvasKeyAndSettle(key) {
       this.pressCanvasKey(key);
@@ -910,6 +918,27 @@ test("canvas pointer focus does not request page scrolling", () => {
   const engine = createEngineHarness();
   const focusOptions = engine.focusCanvasWithoutScrolling();
   assert.equal(focusOptions.preventScroll, true);
+});
+
+test("undo status shows pending undo without a toolbar command button", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Undo Status",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.undoStatus().hidden, true);
+
+  engine.pressCanvasKey("ArrowRight");
+  assert.equal(engine.undoStatus().hidden, false);
+  assert.equal(engine.undoStatus().text, "Undo: nudge Listener");
+  assert.equal(engine.undoStatus().title, "Press Cmd/Ctrl+Z to undo.");
+
+  engine.pressCanvasKey("z", { metaKey: true });
+  assert.equal(engine.undoStatus().hidden, true);
 });
 
 test("sound clients do not enable without mappings or source bindings", async () => {

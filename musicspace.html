@@ -69,6 +69,28 @@
       background: rgba(255, 255, 255, 0.78);
     }
 
+    .undo-status {
+      display: inline-flex;
+      align-items: center;
+      max-width: 160px;
+      min-height: 30px;
+      padding: 0 9px;
+      border: 1px solid #d1d8de;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #52616f;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .undo-status[hidden] {
+      display: none;
+    }
+
     .mode-group {
       display: inline-flex;
       align-items: center;
@@ -1088,7 +1110,7 @@
           <select id="midi-output" aria-label="MIDI output" hidden disabled></select>
         </div>
         <div class="toolbar-group" aria-label="Edit and trace controls">
-          <button id="undo" type="button" title="Undo last edit">Undo</button>
+          <span id="undo-status" class="undo-status" aria-live="polite" hidden></span>
           <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
           <button id="trace-none" type="button" title="Turn drawing off for every object">Stop Drawing All</button>
           <button id="reset" type="button">Reset</button>
