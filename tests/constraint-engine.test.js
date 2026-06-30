@@ -14,6 +14,7 @@ function createCanvasContext() {
     clearRect: noop,
     closePath: noop,
     fill: noop,
+    fillRect: noop,
     fillText: noop,
     lineTo: noop,
     moveTo: noop,

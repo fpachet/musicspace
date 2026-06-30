@@ -231,13 +231,8 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
     return;
   }
 
-  const badgeText = emitterCapability.audio && emitterCapability.midi
-    ? "A+M"
-    : emitterCapability.audio
-      ? "A"
-      : "M";
-  const badgeWidth = badgeText.length > 1 ? 28 : 18;
-  const badgeHeight = 14;
+  const badgeWidth = emitterCapability.audio && emitterCapability.midi ? 30 : 18;
+  const badgeHeight = 16;
   const badgeX = clamp(source.x + source.radius - 5, 4, WIDTH - badgeWidth - 4);
   const badgeY = clamp(source.y - source.radius - 8, 4, HEIGHT - badgeHeight - 4);
 
@@ -249,12 +244,44 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
   ctx.strokeStyle = emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : "#f97316";
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.fillStyle = emitterCapability.midi && !emitterCapability.audio ? "#5b21b6" : "#9a3412";
-  ctx.font = "800 9px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+
+  let iconX = badgeX + 5;
+  if (emitterCapability.audio) {
+    drawAudioEmitterIcon(ctx, iconX, badgeY + badgeHeight / 2);
+    iconX += 12;
+  }
+  if (emitterCapability.midi) {
+    drawMidiEmitterIcon(ctx, iconX + 1, badgeY + 3);
+  }
   ctx.restore();
+}
+
+function drawAudioEmitterIcon(ctx, x, centerY) {
+  ctx.strokeStyle = "#9a3412";
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, centerY);
+  ctx.lineTo(x + 2, centerY - 4);
+  ctx.lineTo(x + 5, centerY + 4);
+  ctx.lineTo(x + 8, centerY - 4);
+  ctx.lineTo(x + 10, centerY);
+  ctx.stroke();
+}
+
+function drawMidiEmitterIcon(ctx, x, y) {
+  ctx.fillStyle = "#5b21b6";
+  ctx.beginPath();
+  ctx.arc(x + 2, y + 9, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x + 4, y, 2, 10);
+  ctx.beginPath();
+  ctx.moveTo(x + 5, y);
+  ctx.lineTo(x + 10, y + 2);
+  ctx.lineTo(x + 10, y + 5);
+  ctx.lineTo(x + 5, y + 3);
+  ctx.closePath();
+  ctx.fill();
 }
 
 class MovingObject extends Entity {
