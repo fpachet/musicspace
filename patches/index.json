@@ -48,6 +48,11 @@
       "file": "cycloid-percussion.json"
     },
     {
+      "key": "openspace-ostinatos",
+      "name": "OpenSpace Ostinatos",
+      "file": "openspace-ostinatos.json"
+    },
+    {
       "key": "beatles-trajectory-study",
       "name": "Beatles Trajectory Study",
       "file": "beatles-trajectory-study.json"

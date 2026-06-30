@@ -61,6 +61,12 @@
         "$ref": "#/$defs/sourceBinding"
       }
     },
+    "sourceGenerators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceGenerator"
+      }
+    },
     "target": {
       "type": "object",
       "additionalProperties": true,
@@ -308,6 +314,51 @@
       "properties": {
         "type": {
           "enum": ["rotator", "rotation", "shuttle", "bounce"]
+        }
+      }
+    },
+    "sourceGenerator": {
+      "type": "object",
+      "required": ["source", "type", "pitch", "periodMs", "durationMs", "velocity", "channel"],
+      "additionalProperties": true,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/entityName"
+        },
+        "type": {
+          "enum": ["midi-ostinato"]
+        },
+        "pitch": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "periodMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "durationMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 127
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "muted": {
+          "type": "boolean"
+        },
+        "waveform": {
+          "enum": ["sine", "triangle", "sawtooth", "square"]
+        },
+        "spatialization": {
+          "enum": ["pan-distance", "stereo-pan"]
         }
       }
     },

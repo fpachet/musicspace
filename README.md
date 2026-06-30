@@ -4,7 +4,7 @@ MusicSpace is an old idea: bringing together the power of constraint propagation
 
 This project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
-MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, source generators, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -70,7 +70,7 @@ npm run smoke
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings and parameter target backends only when the patch actually contains `sourceBindings` or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding.
+- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
@@ -89,6 +89,7 @@ npm run smoke
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Cycloid Percussion** binds three short bundled marimba, timbale, and bell loops to nested cycloid-style source motion, so Play Sound immediately demonstrates spatialized audio-file playback with changing rhythmic perspective.
+- **OpenSpace Ostinatos** revives the Agon/Delerue OpenSpace idea in miniature: each source is a generated MIDI-style ostinato, and a rotative object moves the pulses through the stereo field.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 - **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
@@ -101,6 +102,7 @@ npm run smoke
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan, distance gain, and distance reverb send for `sourceBindings`.
+- `musicspace-generator-client.js` owns lightweight per-source generated note playback for `sourceGenerators`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
 - `assets/` contains the favicon and README screenshot.
@@ -147,6 +149,7 @@ npm run smoke
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
+- Per-source MIDI-style ostinato generators for small OpenSpace-inspired generated-note patches.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

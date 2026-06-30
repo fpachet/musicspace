@@ -1146,6 +1146,11 @@ const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
   getSource: getObjectByName,
   getListener: () => listener
 });
+const generatorClient = MusicSpaceGeneratorClient.createGeneratorClient({
+  onStatus: setConstraintStatus,
+  getSource: getObjectByName,
+  getListener: () => listener
+});
 
 function resetScene() {
   if (!activePatch) {
@@ -1275,6 +1280,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   parameterClient.loadPatch(patch);
   sourceAudioClient.loadPatch(patch);
   midiFileClient.loadPatch(patch);
+  generatorClient.loadPatch(patch);
   soundOutputEnabled = false;
   updateSoundToggleButton();
   dragged = null;
@@ -1504,6 +1510,7 @@ function serializePatch() {
   const parameterState = parameterClient.serialize();
   const sourceAudioState = sourceAudioClient.serialize();
   const midiState = midiFileClient.serialize();
+  const generatorState = generatorClient.serialize();
 
   return {
     version: 1,
@@ -1525,7 +1532,8 @@ function serializePatch() {
     constraints: constraints.map(serializeConstraint).filter(Boolean),
     ...parameterState,
     ...sourceAudioState,
-    ...midiState
+    ...midiState,
+    ...generatorState
   };
 }
 
@@ -1668,6 +1676,7 @@ function renderPatchSummary(patch) {
   const mappingLines = (patch.parameterMappings || []).map(describeParameterMapping);
   const sourceAudioLines = (patch.sourceBindings || []).map(describeSourceBinding);
   const midiLines = (patch.midiFile?.trackBindings || []).map(describeMidiBinding);
+  const generatorLines = (patch.sourceGenerators || []).map(describeSourceGenerator);
   const backendLines = describePatchBackend(patch);
 
   patchSummary.append(
@@ -1684,6 +1693,7 @@ function renderPatchSummary(patch) {
     createInspectorSection("Backend", backendLines),
     createInspectorSection("Constraints", constraintLines.length ? constraintLines : ["None"]),
     createInspectorSection("Source Audio", sourceAudioLines.length ? sourceAudioLines : ["None"]),
+    createInspectorSection("Generators", generatorLines.length ? generatorLines : ["None"]),
     createInspectorSection("Mappings", mappingLines.length ? mappingLines : ["None"]),
     createInspectorSection("MIDI", midiLines.length ? midiLines : ["None"])
   );
@@ -1786,6 +1796,14 @@ function describeMidiBinding(binding) {
   return `${binding.track || `track ${binding.trackIndex ?? "?"}`} -> ${binding.source}${channel}${program}`;
 }
 
+function describeSourceGenerator(generator) {
+  if (generator?.type === "midi-ostinato") {
+    const channel = generator.channel ? ` ch ${generator.channel}` : "";
+    return `${generator.source} -> ostinato pitch ${generator.pitch}, every ${generator.periodMs} ms${channel}`;
+  }
+  return `${generator?.source || "?"} -> ${generator?.type || "unknown"}`;
+}
+
 function renderPatchValidation(findings) {
   patchValidation.replaceChildren();
 
@@ -1814,11 +1832,12 @@ function validatePatch(patch) {
   validateConstraintSpecs(patch.constraints || [], scene.names, add);
   validateBackendSpec(patch, add);
   validateSourceBindings(patch.sourceBindings || [], scene.names, add);
+  validateSourceGenerators(patch.sourceGenerators || [], scene.names, add);
   validateParameterMappings(patch.parameterMappings || patch.audioMappings || [], scene.names, patch.target || patch.audioSynth, add);
   validateMidiSpec(patch.midiFile, scene.names, patch.target || patch.audioSynth, add);
 
   if (!findings.some((finding) => finding.level === "error" || finding.level === "warning")) {
-    add("ok", "Patch structure, references, constraints, source bindings, mappings, and backend declaration look coherent.");
+    add("ok", "Patch structure, references, constraints, source bindings, generators, mappings, and backend declaration look coherent.");
   }
 
   return findings;
@@ -2044,6 +2063,53 @@ function validateSourceBindings(bindings, names, add) {
   }
 }
 
+function validateSourceGenerators(generators, names, add) {
+  if (!Array.isArray(generators)) {
+    add("error", "sourceGenerators must be an array.");
+    return;
+  }
+
+  const seenSources = new Set();
+  for (const generator of generators) {
+    if (!generator || typeof generator !== "object") {
+      add("error", "Every source generator must be an object.");
+      continue;
+    }
+
+    validateReference(generator.source, "sourceGenerators.source", names, add);
+    if (seenSources.has(generator.source)) {
+      add("warning", `Source ${generator.source} has multiple source generators.`);
+    }
+    seenSources.add(generator.source);
+
+    if (generator.type !== "midi-ostinato") {
+      add("error", `Unsupported source generator type: ${generator.type || "(missing)"}.`);
+      continue;
+    }
+    validateMidiValue(generator.pitch, 0, 127, `sourceGenerators.pitch for ${generator.source || "generator"}`, add);
+    validateMidiValue(generator.channel, 1, 16, `sourceGenerators.channel for ${generator.source || "generator"}`, add);
+    validatePositiveNumber(generator.periodMs, `sourceGenerators.periodMs for ${generator.source || "generator"}`, add);
+    validatePositiveNumber(generator.durationMs, `sourceGenerators.durationMs for ${generator.source || "generator"}`, add);
+    validateMidiValue(generator.velocity, 1, 127, `sourceGenerators.velocity for ${generator.source || "generator"}`, add);
+    if (generator.muted !== undefined && typeof generator.muted !== "boolean") {
+      add("error", "sourceGenerators.muted must be a boolean when present.");
+    }
+    if (generator.waveform && !["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)) {
+      add("error", `Unsupported source generator waveform: ${generator.waveform}.`);
+    }
+    if (generator.spatialization && !["pan-distance", "stereo-pan"].includes(generator.spatialization)) {
+      add("error", `Unsupported source generator spatialization: ${generator.spatialization}.`);
+    }
+  }
+}
+
+function validateMidiValue(value, min, max, label, add) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) {
+    add("error", `${label} must be an integer from ${min} to ${max}.`);
+  }
+}
+
 function targetParameterNames(target) {
   if (target?.parameters && typeof target.parameters === "object") {
     return new Set(Object.keys(target.parameters));
@@ -2168,7 +2234,8 @@ function sourceEmitterCapability(sourceOrName) {
     binding.type === SOURCE_BINDING_AUDIO_FILE && Boolean(binding.dataUrl || binding.url)
   ));
   const midi = Boolean(midiFileClient.hasTrackBindingForSource?.(sourceName));
-  return { audio, midi, emits: audio || midi };
+  const generatedMidi = Boolean(generatorClient.hasGeneratorForSource?.(sourceName));
+  return { audio, midi: midi || generatedMidi, generator: generatedMidi, emits: audio || midi || generatedMidi };
 }
 
 function drawAll() {
@@ -2177,6 +2244,7 @@ function drawAll() {
   drawGrid(ctx);
   parameterClient.update();
   midiFileClient.updateSpatial();
+  generatorClient.updateSpatial();
 
   for (const constraint of constraints) {
     constraint.draw(ctx);
@@ -3421,12 +3489,13 @@ async function toggleSoundOutput() {
   soundOutputEnabled = nextEnabled;
   updateSoundToggleButton();
 
-  const [parameterEnabled, sourceAudioEnabled] = await Promise.all([
+  const [parameterEnabled, sourceAudioEnabled, generatorEnabled] = await Promise.all([
     parameterClient.setEnabled(nextEnabled),
-    sourceAudioClient.setEnabled(nextEnabled)
+    sourceAudioClient.setEnabled(nextEnabled),
+    generatorClient.setEnabled(nextEnabled)
   ]);
 
-  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled);
+  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled || generatorEnabled);
   updateSoundToggleButton();
   drawAll();
 }
@@ -3995,6 +4064,7 @@ function renameSource(source, nextName) {
   parameterClient.renameSource(previousName, nextName);
   sourceAudioClient.renameSource(previousName, nextName);
   midiFileClient.renameSource(previousName, nextName);
+  generatorClient.renameSource(previousName, nextName);
 }
 
 function renameTrajectoryEndpointReferences(previousName, nextName) {
@@ -4079,8 +4149,10 @@ function deleteSelectedEntity() {
   }
   if (entity instanceof SoundSource) {
     sourceAudioClient.removeBinding(entity.name);
+    generatorClient.removeGenerator(entity.name);
   }
   sourceAudioClient.removeBindingsForMissingSources(sources.map((source) => source.name));
+  generatorClient.removeGeneratorsForMissingSources(sources.map((source) => source.name));
 
   selectedEntity = null;
   pendingToolEntities = pendingToolEntities.filter((candidate) => candidate !== entity);

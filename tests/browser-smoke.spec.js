@@ -36,8 +36,16 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "false");
 
+  await patchSelect.selectOption("openspace-ostinatos");
+  await expect(page.locator("#patch-summary")).toContainText("OpenSpace Ostinatos");
+  await expect(page.locator("#patch-summary")).toContainText("ostinato pitch");
+  await soundToggle.click();
+  await expect(soundToggle).toHaveAttribute("aria-pressed", "true");
+  await soundToggle.click();
+  await expect(soundToggle).toHaveAttribute("aria-pressed", "false");
+
   await page.locator("#reset").click();
-  await expect(patchSelect).toHaveValue("cycloid-percussion");
+  await expect(patchSelect).toHaveValue("openspace-ostinatos");
 
   expect(failures).toEqual([]);
 });

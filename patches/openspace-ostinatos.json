@@ -1,0 +1,116 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "openspace-ostinatos",
+  "name": "OpenSpace Ostinatos",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Pulse C",
+      "x": 535,
+      "y": 300
+    },
+    {
+      "name": "Pulse E",
+      "x": 400,
+      "y": 435
+    },
+    {
+      "name": "Pulse G",
+      "x": 265,
+      "y": 300
+    },
+    {
+      "name": "Pulse B",
+      "x": 400,
+      "y": 165
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Ostinato Wheel",
+      "x": 400,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 20,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Ostinato Wheel",
+      "attached": "Pulse C"
+    },
+    {
+      "type": "solid",
+      "carrier": "Ostinato Wheel",
+      "attached": "Pulse E"
+    },
+    {
+      "type": "solid",
+      "carrier": "Ostinato Wheel",
+      "attached": "Pulse G"
+    },
+    {
+      "type": "solid",
+      "carrier": "Ostinato Wheel",
+      "attached": "Pulse B"
+    }
+  ],
+  "sourceGenerators": [
+    {
+      "source": "Pulse C",
+      "type": "midi-ostinato",
+      "pitch": 60,
+      "periodMs": 1200,
+      "durationMs": 160,
+      "velocity": 72,
+      "channel": 1,
+      "waveform": "triangle",
+      "spatialization": "pan-distance"
+    },
+    {
+      "source": "Pulse E",
+      "type": "midi-ostinato",
+      "pitch": 64,
+      "periodMs": 900,
+      "durationMs": 120,
+      "velocity": 62,
+      "channel": 1,
+      "waveform": "sine",
+      "spatialization": "pan-distance"
+    },
+    {
+      "source": "Pulse G",
+      "type": "midi-ostinato",
+      "pitch": 67,
+      "periodMs": 700,
+      "durationMs": 95,
+      "velocity": 54,
+      "channel": 1,
+      "waveform": "triangle",
+      "spatialization": "pan-distance"
+    },
+    {
+      "source": "Pulse B",
+      "type": "midi-ostinato",
+      "pitch": 71,
+      "periodMs": 1500,
+      "durationMs": 220,
+      "velocity": 48,
+      "channel": 1,
+      "waveform": "sine",
+      "spatialization": "pan-distance"
+    }
+  ],
+  "version": 1
+}

@@ -1,6 +1,6 @@
 # MusicSpace Patch Format
 
-MusicSpace patches are JSON files that describe a complete scene: listener, sources, optional moving objects, constraints, source audio bindings, target mappings, and optional sequence-file settings.
+MusicSpace patches are JSON files that describe a complete scene: listener, sources, optional moving objects, constraints, source audio bindings, source generators, target mappings, and optional sequence-file settings.
 
 Built-in patches live in `patches/*.json` and are listed by `patches/index.json`. User-saved patches use the same `version: 1` format, but do not need a `key` unless they are added to the built-in menu.
 
@@ -15,7 +15,7 @@ The app includes a Patch Inspector under the canvas. It summarizes the active pa
 
 Use **JSON** in the inspector to open an editable snapshot of the active patch. **Apply JSON** parses that snapshot, validates it, and loads it as a separate edited patch entry instead of overwriting a built-in patch.
 
-Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, source audio bindings, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
+Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, source audio bindings, source generators, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
 
 ## Minimal Patch
 
@@ -48,6 +48,7 @@ Validation checks MusicSpace-level semantics that JSON Schema cannot fully expre
 - `movingObjects`: optional named movers with trajectory descriptions.
 - `constraints`: optional geometric/relational constraints.
 - `sourceBindings`: optional direct audio emitters bound to sources.
+- `sourceGenerators`: optional generated note emitters bound to sources.
 - `target`: optional parameter target selection.
 - `parameterMappings`: optional mappings from scene features to target parameters.
 - `midiFile`: optional MIDI/MusicXML sequence-file binding.
@@ -102,13 +103,31 @@ Source bindings make a source a direct audio emitter. The Source Inspector write
 }
 ```
 
-`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, or serialized audio file. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
+`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, or serialized audio file. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, source generators, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
+
+Source generators make a source emit generated musical events without requiring an audio file or imported MIDI sequence. The first generator type is `midi-ostinato`, inspired by the OpenSpace prototype: it repeats one MIDI pitch at a fixed period and renders through the browser synth used by **Play Sound**.
+
+```json
+{
+  "source": "Pulse C",
+  "type": "midi-ostinato",
+  "pitch": 60,
+  "periodMs": 1200,
+  "durationMs": 160,
+  "velocity": 72,
+  "channel": 1,
+  "waveform": "triangle",
+  "spatialization": "pan-distance"
+}
+```
+
+Generator sources use the same listener-relative pan and distance gain model as direct audio sources. They are currently authored in patch JSON; source-inspector editing and musical constraints over pitch, period, density, or register are future extensions.
 
 ## Target Backend Binding
 
 Patches bind to parameter backends with the top-level `target` object. If `target` is omitted, MusicSpace uses the built-in `subtractive` Web Audio backend for validating and applying `parameterMappings`.
 
-`Play Sound` only starts browser audio when there is something explicit to play: at least one `sourceBindings` entry or at least one `parameterMappings` entry. A patch that only has geometry, constraints, and an omitted `target` stays silent.
+`Play Sound` only starts browser audio when there is something explicit to play: at least one `sourceBindings` entry, at least one `sourceGenerators` entry, or at least one `parameterMappings` entry. A patch that only has geometry, constraints, and an omitted `target` stays silent.
 
 Current target types:
 

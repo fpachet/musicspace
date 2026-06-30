@@ -272,6 +272,54 @@ function createEngineHarness() {
         };
       }
     },
+    MusicSpaceGeneratorClient: {
+      createGeneratorClient() {
+        let generators = [];
+        let enabled = false;
+        return {
+          loadPatch(patch = {}) {
+            generators = Array.isArray(patch.sourceGenerators)
+              ? patch.sourceGenerators.map((generator) => ({ ...generator }))
+              : [];
+            enabled = false;
+          },
+          serialize() {
+            return generators.length > 0
+              ? { sourceGenerators: generators.map((generator) => ({ ...generator })) }
+              : {};
+          },
+          generatorsForSource(sourceName) {
+            return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
+          },
+          hasGenerators() {
+            return generators.length > 0;
+          },
+          hasGeneratorForSource(sourceName) {
+            return generators.some((generator) => generator.source === sourceName);
+          },
+          isEnabled() {
+            return enabled;
+          },
+          renameSource(oldName, newName) {
+            generators = generators.map((generator) => (
+              generator.source === oldName ? { ...generator, source: newName } : generator
+            ));
+          },
+          removeGenerator(sourceName) {
+            generators = generators.filter((generator) => generator.source !== sourceName);
+          },
+          removeGeneratorsForMissingSources(sourceNames) {
+            const validNames = new Set(sourceNames);
+            generators = generators.filter((generator) => validNames.has(generator.source));
+          },
+          async setEnabled(nextEnabled) {
+            enabled = Boolean(nextEnabled && generators.length > 0);
+            return enabled;
+          },
+          updateSpatial() {}
+        };
+      }
+    },
     window: {
       location: { href: "http://127.0.0.1/musicspace.html" },
       history: {
@@ -888,6 +936,7 @@ test("source emitter capability distinguishes audio, midi, and geometric sources
     sources: [
       { name: "Audio", x: 250, y: 300 },
       { name: "Midi", x: 400, y: 300 },
+      { name: "Generator", x: 475, y: 300 },
       { name: "Control", x: 550, y: 300 }
     ],
     sourceBindings: [
@@ -906,6 +955,17 @@ test("source emitter capability distinguishes audio, midi, and geometric sources
       url: "Midifiles/example.mid",
       trackBindings: [{ track: "Lead", source: "Midi", channel: 1, program: 1 }]
     },
+    sourceGenerators: [
+      {
+        source: "Generator",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 160,
+        velocity: 80,
+        channel: 1
+      }
+    ],
     constraints: []
   });
 
@@ -919,10 +979,47 @@ test("source emitter capability distinguishes audio, midi, and geometric sources
   assert.equal(midiCapability.midi, true);
   assert.equal(midiCapability.emits, true);
 
+  const generatorCapability = engine.sourceEmitterCapability("Generator");
+  assert.equal(generatorCapability.audio, false);
+  assert.equal(generatorCapability.midi, true);
+  assert.equal(generatorCapability.generator, true);
+  assert.equal(generatorCapability.emits, true);
+
   const controlCapability = engine.sourceEmitterCapability("Control");
   assert.equal(controlCapability.audio, false);
   assert.equal(controlCapability.midi, false);
   assert.equal(controlCapability.emits, false);
+});
+
+test("source generators serialize with the patch", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Source Generator",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 180,
+        velocity: 80,
+        channel: 1,
+        waveform: "triangle",
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  const patch = engine.api.serializePatch();
+  assert.equal(patch.sourceGenerators.length, 1);
+  assert.equal(patch.sourceGenerators[0].source, "Pulse");
+  assert.equal(patch.sourceGenerators[0].type, "midi-ostinato");
+  assert.equal(patch.sourceGenerators[0].pitch, 60);
+  assert.equal(patch.sourceGenerators[0].periodMs, 1200);
 });
 
 test("source inspector edits the audio loop parameter", () => {
@@ -1010,6 +1107,35 @@ test("spacebar toggles sound playback for source audio bindings", async () => {
         loop: true,
         gain: 0.75,
         spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.soundButtonPressed(), "false");
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "true");
+
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("spacebar toggles sound playback for source generators", async () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Generator Playback",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 180,
+        velocity: 80,
+        channel: 1
       }
     ],
     constraints: []
@@ -1321,7 +1447,18 @@ test("source inspector rename updates patch references", () => {
     midiFile: {
       sequenceData: { title: "Stub" },
       trackBindings: [{ track: "Lead", source: "A", channel: 1, program: 1 }]
-    }
+    },
+    sourceGenerators: [
+      {
+        source: "A",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 180,
+        velocity: 80,
+        channel: 1
+      }
+    ]
   });
 
   assert.equal(engine.openSourceInspector("A"), true);
@@ -1335,6 +1472,7 @@ test("source inspector rename updates patch references", () => {
   assert.equal(patch.sourceBindings[0].source, "Lead");
   assert.equal(patch.parameterMappings[0].source, "Lead");
   assert.equal(patch.midiFile.trackBindings[0].source, "Lead");
+  assert.equal(patch.sourceGenerators[0].source, "Lead");
   assert.equal(patch.movingObjects[0].trajectory.start.name, "Lead");
 });
 
@@ -1356,6 +1494,28 @@ test("patch validation checks source audio bindings", () => {
   assert.ok(findings.some((finding) => finding.message.includes("unknown object Missing")));
   assert.ok(findings.some((finding) => finding.message.includes("needs a dataUrl or url")));
   assert.ok(findings.some((finding) => finding.message.includes("Unsupported source binding type")));
+});
+
+test("patch validation checks source generators", () => {
+  const engine = createEngineHarness();
+  const findings = engine.api.validatePatch({
+    name: "Broken source generators",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceGenerators: [
+      { source: "Missing", type: "midi-ostinato", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
+      { source: "A", type: "loop", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
+      { source: "A", type: "midi-ostinato", pitch: 140, periodMs: -1, durationMs: 0, velocity: 200, channel: 20 }
+    ],
+    constraints: []
+  });
+
+  assert.ok(findings.some((finding) => finding.message.includes("unknown object Missing")));
+  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator type")));
+  assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.pitch")));
+  assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.periodMs")));
+  assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.velocity")));
 });
 
 test("over-constrained graphs expose residual diagnostics", () => {
