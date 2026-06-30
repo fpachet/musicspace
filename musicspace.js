@@ -116,6 +116,9 @@ const sourceGeneratorOutputRow = document.getElementById("source-generator-outpu
 const sourceGeneratorOutputInput = document.getElementById("source-generator-output");
 const sourceGeneratorChannelRow = document.getElementById("source-generator-channel-row");
 const sourceGeneratorChannelInput = document.getElementById("source-generator-channel");
+const sourceGeneratorMappingsPanel = document.getElementById("source-generator-mappings");
+const sourceGeneratorMappingList = document.getElementById("source-generator-mapping-list");
+const sourceGeneratorMappingAddButton = document.getElementById("source-generator-mapping-add");
 const sourceMutedInput = document.getElementById("source-muted");
 const sourceAudioFileName = document.getElementById("source-audio-file-name");
 const sourcePrevButton = document.getElementById("source-prev");
@@ -145,6 +148,9 @@ const RELATIVE_PRODUCT_EPSILON = 0.001;
 const TOOL_SELECT = "select";
 const SOURCE_BINDING_AUDIO_FILE = "audio-file";
 const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
+const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
+const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel"];
+const SOURCE_GENERATOR_MAPPING_CURVES = ["linear", "exp"];
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
 const DOUBLE_CLICK_DISTANCE = 12;
@@ -4425,6 +4431,7 @@ function updateSourceEditorVisibility() {
   sourceGeneratorOutputModeRow.hidden = !isGenerator;
   sourceGeneratorOutputRow.hidden = !isGenerator || sourceGeneratorOutputModeInput.value !== "external";
   sourceGeneratorChannelRow.hidden = !isGenerator;
+  sourceGeneratorMappingsPanel.hidden = !isGenerator;
 }
 
 async function refreshSourceGeneratorMidiOutputs() {
@@ -4481,6 +4488,108 @@ function fillSourceGeneratorEditor(generator) {
   sourceGeneratorChannelInput.value = String(nextGenerator.channel ?? 1);
   sourceSpatializationInput.value = nextGenerator.spatialization || "pan-distance";
   sourceMutedInput.checked = Boolean(nextGenerator.muted);
+}
+
+function fillSourceGeneratorMappingsEditor(mappings = []) {
+  sourceGeneratorMappingList.replaceChildren();
+  for (const mapping of mappings) {
+    addSourceGeneratorMappingRow(mapping);
+  }
+}
+
+function defaultSourceGeneratorMapping() {
+  return {
+    feature: "distance",
+    parameter: "pitch",
+    inputMin: 0,
+    inputMax: 400,
+    outputMin: 48,
+    outputMax: 72,
+    curve: "linear"
+  };
+}
+
+function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping()) {
+  const row = document.createElement("div");
+  row.className = "mapping-row";
+  row.append(
+    createMappingSelect("Feature", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
+    createMappingSelect("Parameter", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
+    createMappingNumber("Input min", "input-min", mapping.inputMin),
+    createMappingNumber("Input max", "input-max", mapping.inputMax),
+    createMappingNumber("Output min", "output-min", mapping.outputMin),
+    createMappingNumber("Output max", "output-max", mapping.outputMax),
+    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
+  );
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "mapping-remove";
+  removeButton.title = "Remove mapping";
+  removeButton.setAttribute("aria-label", "Remove mapping");
+  removeButton.textContent = "X";
+  removeButton.addEventListener("click", () => row.remove());
+  row.append(removeButton);
+  sourceGeneratorMappingList.append(row);
+}
+
+function createMappingSelect(labelText, key, options, value) {
+  const label = document.createElement("label");
+  const select = document.createElement("select");
+  select.dataset.mappingField = key;
+  for (const optionValue of options) {
+    const option = document.createElement("option");
+    option.value = optionValue;
+    option.textContent = formatMappingOption(optionValue);
+    select.append(option);
+  }
+  select.value = options.includes(value) ? value : options[0];
+  label.append(labelText, select);
+  return label;
+}
+
+function createMappingNumber(labelText, key, value) {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.dataset.mappingField = key;
+  input.type = "number";
+  input.step = "0.001";
+  input.value = String(Number.isFinite(Number(value)) ? value : 0);
+  label.append(labelText, input);
+  return label;
+}
+
+function formatMappingOption(value) {
+  if (value === "periodMs") {
+    return "Period";
+  }
+  if (value === "durationMs") {
+    return "Duration";
+  }
+  if (value === "linear") {
+    return "Linear";
+  }
+  if (value === "exp") {
+    return "Exponential";
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function sourceGeneratorMappingsFromEditor() {
+  return Array.from(sourceGeneratorMappingList.querySelectorAll(".mapping-row")).map((row) => ({
+    feature: row.querySelector("[data-mapping-field='feature']").value,
+    parameter: row.querySelector("[data-mapping-field='parameter']").value,
+    inputMin: numberFromMappingField(row, "input-min", 0),
+    inputMax: numberFromMappingField(row, "input-max", 1),
+    outputMin: numberFromMappingField(row, "output-min", 0),
+    outputMax: numberFromMappingField(row, "output-max", 1),
+    curve: row.querySelector("[data-mapping-field='curve']").value
+  }));
+}
+
+function numberFromMappingField(row, field, fallback) {
+  const input = row.querySelector(`[data-mapping-field='${field}']`);
+  const value = Number(input?.value);
+  return Number.isFinite(value) ? value : fallback;
 }
 
 function sourceGeneratorFromEditor(sourceName) {
@@ -4540,6 +4649,7 @@ function openSourceEditor(source) {
 
   const [binding] = sourceAudioClient.bindingsForSource(source.name);
   const [generator] = generatorClient.generatorsForSource(source.name);
+  const generatorMappings = generatorClient.mappingsForSource(source.name);
   sourceNameInput.value = source.name;
   sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE
     ? SOURCE_BINDING_AUDIO_FILE
@@ -4552,6 +4662,7 @@ function openSourceEditor(source) {
   sourceLoopInput.checked = binding?.loop !== false;
   sourceMutedInput.checked = Boolean(generator ? generator.muted : binding?.muted);
   fillSourceGeneratorEditor(generator);
+  fillSourceGeneratorMappingsEditor(generatorMappings);
   if (sourceOutputTypeInput.value === SOURCE_BINDING_AUDIO_FILE) {
     sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
     sourceMutedInput.checked = Boolean(binding?.muted);
@@ -4634,6 +4745,7 @@ function applySourceEditor() {
   if (outputType === SOURCE_OUTPUT_MIDI_OSTINATO) {
     sourceAudioClient.removeBinding(sourceName);
     const generator = generatorClient.upsertGenerator(sourceGeneratorFromEditor(sourceName));
+    generatorClient.setMappingsForSource(sourceName, sourceGeneratorMappingsFromEditor());
     pendingSourceAudioFile = null;
     sourceAudioFileInput.value = "";
     sourceAudioFileName.textContent = generator
@@ -5606,6 +5718,9 @@ sourceOutputTypeInput.addEventListener("change", () => {
 sourceGeneratorOutputModeInput.addEventListener("change", () => {
   updateSourceEditorVisibility();
   refreshSourceGeneratorMidiOutputs();
+});
+sourceGeneratorMappingAddButton.addEventListener("click", () => {
+  addSourceGeneratorMappingRow();
 });
 sourceApplyButton.addEventListener("click", applySourceEditor);
 sourcePrevButton.addEventListener("click", () => navigateInspector(-1));

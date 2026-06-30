@@ -54,7 +54,7 @@ npm run smoke
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
-- Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be renamed and bound to an audio file.
+- Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be renamed and bound to an audio file or MIDI ostinato generator. MIDI ostinatos can also map source position features to pitch, period, duration, velocity, or channel.
 - Double-click a rotative mover to open its popup editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
 - Double-click a shuttle mover to open its popup editor, change endpoints, and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
@@ -151,7 +151,7 @@ npm run smoke
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
-- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel, and patch JSON can map spatial features to generator pitch, period, duration, velocity, or channel.
+- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel, and Source Inspector mappings can connect spatial features to generator pitch, period, duration, velocity, or channel.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

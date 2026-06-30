@@ -42,6 +42,9 @@
       generatorsForSource(sourceName) {
         return generators.filter((generator) => generator.source === sourceName).map(serializeGenerator);
       },
+      mappingsForSource(sourceName) {
+        return generatorMappings.filter((mapping) => mapping.source === sourceName).map(serializeGeneratorMapping);
+      },
       effectiveGeneratorsForSource(sourceName) {
         return generators
           .filter((generator) => generator.source === sourceName)
@@ -68,6 +71,18 @@
         generators = generators.filter((candidate) => candidate.source !== normalized.source);
         generators.push({ ...normalized, nextAt: enabled ? clockSeconds() + 0.04 : 0 });
         return serializeGenerator(normalized);
+      },
+      setMappingsForSource(sourceName, mappings) {
+        const normalizedMappings = normalizeGeneratorMappings(
+          Array.isArray(mappings)
+            ? mappings.map((mapping) => ({ ...mapping, source: sourceName }))
+            : []
+        );
+        generatorMappings = [
+          ...generatorMappings.filter((mapping) => mapping.source !== sourceName),
+          ...normalizedMappings
+        ];
+        return normalizedMappings.map(serializeGeneratorMapping);
       },
       toggleSourceMuted(sourceName) {
         let updated = null;

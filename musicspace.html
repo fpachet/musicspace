@@ -763,6 +763,10 @@
       min-width: 34px;
     }
 
+    #source-editor {
+      width: min(620px, calc(100vw - 40px));
+    }
+
     .editor-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -793,6 +797,65 @@
 
     .editor-check input[type="checkbox"] {
       width: auto;
+    }
+
+    .mapping-editor {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #e1e7ef;
+    }
+
+    .mapping-editor[hidden] {
+      display: none;
+    }
+
+    .mapping-editor-header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .mapping-editor h3 {
+      margin: 0;
+      color: #243447;
+      font-size: 14px;
+    }
+
+    .mapping-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mapping-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+      gap: 8px;
+      align-items: end;
+      padding: 8px;
+      border: 1px solid #d7dee7;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .mapping-row label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 4px;
+      color: #52616f;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mapping-row input,
+    .mapping-row select {
+      width: 100%;
+    }
+
+    .mapping-row button {
+      min-width: 34px;
     }
 
     .editor-actions {
@@ -1109,6 +1172,14 @@
 
       #source-editor {
         width: auto;
+      }
+
+      .mapping-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .mapping-row button {
+        grid-column: 1 / -1;
       }
 
       .popup-panel {
@@ -1535,6 +1606,13 @@
           Muted
         </label>
       </div>
+      <section id="source-generator-mappings" class="mapping-editor" aria-label="MIDI ostinato control mappings" hidden>
+        <div class="mapping-editor-header">
+          <h3>Control mappings</h3>
+          <button id="source-generator-mapping-add" type="button">Add Mapping</button>
+        </div>
+        <div id="source-generator-mapping-list" class="mapping-list"></div>
+      </section>
       <p id="source-audio-file-name" class="midi-status" aria-live="polite"></p>
       <div class="editor-actions">
         <button id="source-apply" type="button">Apply</button>

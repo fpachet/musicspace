@@ -69,10 +69,15 @@ function createElement(id = "") {
       }
       listeners.get(type).push(listener);
     },
-    append(child) {
-      this.children.push(child);
-      if (child && "value" in child) {
-        this.options.push(child);
+    append(...nextChildren) {
+      for (const child of nextChildren) {
+        this.children.push(child);
+        if (child && typeof child === "object") {
+          child.parentNode = this;
+        }
+        if (child && typeof child === "object" && "value" in child) {
+          this.options.push(child);
+        }
       }
     },
     click() {
@@ -103,7 +108,41 @@ function createElement(id = "") {
     releasePointerCapture() {},
     replaceChildren(...children) {
       this.children = children;
-      this.options = children.filter((child) => child && "value" in child);
+      for (const child of children) {
+        if (child && typeof child === "object") {
+          child.parentNode = this;
+        }
+      }
+      this.options = children.filter((child) => child && typeof child === "object" && "value" in child);
+    },
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] || null;
+    },
+    querySelectorAll(selector) {
+      const matches = [];
+      const visit = (child) => {
+        if (!child || typeof child !== "object") {
+          return;
+        }
+        if (matchesSelector(child, selector)) {
+          matches.push(child);
+        }
+        for (const grandchild of child.children || []) {
+          visit(grandchild);
+        }
+      };
+      for (const child of this.children) {
+        visit(child);
+      }
+      return matches;
+    },
+    remove() {
+      if (!this.parentNode) {
+        return;
+      }
+      this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
+      this.parentNode.options = this.parentNode.options.filter((child) => child !== this);
+      this.parentNode = null;
     },
     scrollIntoView() {},
     setAttribute(name, value) {
@@ -114,7 +153,35 @@ function createElement(id = "") {
       return "data:image/png;base64,";
     }
   };
+  Object.defineProperty(element, "className", {
+    get() {
+      return Array.from(classes).join(" ");
+    },
+    set(value) {
+      classes.clear();
+      for (const name of String(value).split(/\s+/).filter(Boolean)) {
+        classes.add(name);
+      }
+    }
+  });
+  Object.defineProperty(element, "lastElementChild", {
+    get() {
+      return this.children.filter((child) => child && typeof child === "object").at(-1) || null;
+    }
+  });
   return element;
+}
+
+function matchesSelector(element, selector) {
+  if (selector.startsWith(".")) {
+    return element.className.split(/\s+/).includes(selector.slice(1));
+  }
+  const dataMatch = selector.match(/^\[data-([a-z0-9-]+)=['"]([^'"]+)['"]\]$/i);
+  if (dataMatch) {
+    const key = dataMatch[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    return element.dataset?.[key] === dataMatch[2];
+  }
+  return false;
 }
 
 function createDocument() {
@@ -301,6 +368,9 @@ function createEngineHarness() {
           generatorsForSource(sourceName) {
             return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
           },
+          mappingsForSource(sourceName) {
+            return generatorMappings.filter((mapping) => mapping.source === sourceName).map((mapping) => ({ ...mapping }));
+          },
           effectiveGeneratorsForSource(sourceName) {
             return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
           },
@@ -322,6 +392,13 @@ function createEngineHarness() {
             const normalized = { ...generator, muted: Boolean(generator.muted) };
             generators.push(normalized);
             return { ...normalized };
+          },
+          setMappingsForSource(sourceName, mappings) {
+            generatorMappings = [
+              ...generatorMappings.filter((mapping) => mapping.source !== sourceName),
+              ...mappings.map((mapping) => ({ ...mapping, source: sourceName }))
+            ];
+            return generatorMappings.filter((mapping) => mapping.source === sourceName).map((mapping) => ({ ...mapping }));
           },
           toggleSourceMuted(sourceName) {
             const generator = generators.find((candidate) => candidate.source === sourceName);
@@ -551,6 +628,7 @@ globalThis.__musicspaceTestApi = {
         generatorOutputMode: document.getElementById("source-generator-output-mode").value,
         generatorOutputId: document.getElementById("source-generator-output").value,
         generatorChannel: document.getElementById("source-generator-channel").value,
+        generatorMappingCount: document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-row").length,
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
     },
@@ -647,6 +725,23 @@ globalThis.__musicspaceTestApi = {
       document.getElementById("source-generator-channel").value = String(values.channel ?? 1);
       document.getElementById("source-spatialization").value = values.spatialization || "pan-distance";
       document.getElementById("source-muted").checked = Boolean(values.muted);
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
+    setOpenSourceGeneratorMappings(mappings) {
+      const list = document.getElementById("source-generator-mapping-list");
+      list.replaceChildren();
+      for (const mapping of mappings) {
+        document.getElementById("source-generator-mapping-add").click();
+        const row = list.lastElementChild;
+        row.querySelector("[data-mapping-field='feature']").value = mapping.feature;
+        row.querySelector("[data-mapping-field='parameter']").value = mapping.parameter;
+        row.querySelector("[data-mapping-field='input-min']").value = String(mapping.inputMin);
+        row.querySelector("[data-mapping-field='input-max']").value = String(mapping.inputMax);
+        row.querySelector("[data-mapping-field='output-min']").value = String(mapping.outputMin);
+        row.querySelector("[data-mapping-field='output-max']").value = String(mapping.outputMax);
+        row.querySelector("[data-mapping-field='curve']").value = mapping.curve || "linear";
+      }
       api.applySourceEditor();
       return api.serializePatch();
     },
@@ -1326,6 +1421,69 @@ test("source inspector edits MIDI ostinato generator parameters", () => {
   assert.equal(patch.sourceGenerators[0].outputId, "midi-out-a");
   assert.equal(patch.sourceGenerators[0].muted, true);
   assert.equal(patch.sourceBindings?.length || 0, 0);
+});
+
+test("source inspector edits MIDI ostinato control mappings", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Edit Generator Mappings",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Pulse", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 160,
+        velocity: 80,
+        channel: 1
+      }
+    ],
+    sourceGeneratorMappings: [
+      {
+        source: "Pulse",
+        feature: "distance",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Pulse"), true);
+  assert.equal(engine.sourceInspectorState().generatorMappingCount, 1);
+
+  const patch = engine.setOpenSourceGeneratorMappings([
+    {
+      feature: "angle",
+      parameter: "pitch",
+      inputMin: -3.141,
+      inputMax: 3.141,
+      outputMin: 48,
+      outputMax: 76
+    },
+    {
+      feature: "y",
+      parameter: "periodMs",
+      inputMin: 120,
+      inputMax: 520,
+      outputMin: 360,
+      outputMax: 1300,
+      curve: "exp"
+    }
+  ]);
+
+  assert.equal(patch.sourceGeneratorMappings.length, 2);
+  assert.equal(patch.sourceGeneratorMappings[0].source, "Pulse");
+  assert.equal(patch.sourceGeneratorMappings[0].feature, "angle");
+  assert.equal(patch.sourceGeneratorMappings[0].parameter, "pitch");
+  assert.equal(patch.sourceGeneratorMappings[1].parameter, "periodMs");
+  assert.equal(patch.sourceGeneratorMappings[1].curve, "exp");
 });
 
 test("source inspector creates a MIDI ostinato generator for a plain source", () => {
