@@ -8,6 +8,8 @@ MusicSpace now includes two interactive solver modes: the default bounded propag
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
+![MusicSpace Cycloid Percussion demo](assets/screenshots/musicspace-cycloid-percussion.png)
+
 ## Running
 
 Serve the directory locally:
@@ -101,6 +103,7 @@ npm run smoke
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan, distance gain, and distance reverb send for `sourceBindings`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
+- `assets/` contains the favicon and README screenshot.
 - `audio/cycloid-percussion/` contains the small bundled WAV loops used by the Cycloid Percussion patch.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.
 - `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.

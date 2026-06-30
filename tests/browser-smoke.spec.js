@@ -12,6 +12,9 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   });
 
   await page.goto("/musicspace.html");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "assets/favicon.svg");
+  const faviconResponse = await page.request.get("/assets/favicon.svg");
+  expect(faviconResponse.ok()).toBe(true);
 
   const patchSelect = page.locator("#patch-select");
   await expect(patchSelect).toBeEnabled();
