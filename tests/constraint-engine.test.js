@@ -472,6 +472,31 @@ globalThis.__musicspaceTestApi = {
         title: status.title
       };
     },
+    patchInspectorState() {
+      return {
+        hidden: document.getElementById("patch-inspector").hidden,
+        jsonHidden: document.getElementById("patch-json-editor").hidden,
+        toolbarPressed: document.getElementById("patch-inspector-toggle").attributes.get("aria-pressed"),
+        inlinePressed: document.getElementById("patch-inspector-inline-toggle").attributes.get("aria-pressed"),
+        jsonToolbarPressed: document.getElementById("patch-json-toggle").attributes.get("aria-pressed"),
+        jsonInlinePressed: document.getElementById("patch-json-inline-toggle").attributes.get("aria-pressed"),
+        jsonText: document.getElementById("patch-json").value
+      };
+    },
+    clickInlinePatchInspector() {
+      document.getElementById("patch-inspector-inline-toggle").click();
+    },
+    clickInlinePatchJson() {
+      document.getElementById("patch-json-inline-toggle").click();
+    },
+    closePatchInspectorForTest() {
+      document.getElementById("patch-inspector").hidden = true;
+      document.getElementById("patch-json-editor").hidden = true;
+      document.getElementById("patch-inspector-toggle").setAttribute("aria-pressed", "false");
+      document.getElementById("patch-inspector-inline-toggle").setAttribute("aria-pressed", "false");
+      document.getElementById("patch-json-toggle").setAttribute("aria-pressed", "false");
+      document.getElementById("patch-json-inline-toggle").setAttribute("aria-pressed", "false");
+    },
     openSourceInspector(name) {
       const entity = api.getObjectByName(name);
       assert.ok(entity, `Expected entity ${name} to exist`);
@@ -1541,6 +1566,35 @@ test("undo status shows pending undo without a toolbar command button", () => {
 
   engine.pressCanvasKey("z", { metaKey: true });
   assert.equal(engine.undoStatus().hidden, true);
+});
+
+test("edit toolbar opens patch inspector and JSON editor", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Patch Inspector Buttons",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  engine.closePatchInspectorForTest();
+
+  assert.equal(engine.patchInspectorState().hidden, true);
+  engine.clickInlinePatchInspector();
+
+  let state = engine.patchInspectorState();
+  assert.equal(state.hidden, false);
+  assert.equal(state.toolbarPressed, "true");
+  assert.equal(state.inlinePressed, "true");
+
+  engine.clickInlinePatchJson();
+  state = engine.patchInspectorState();
+  assert.equal(state.hidden, false);
+  assert.equal(state.jsonHidden, false);
+  assert.equal(state.jsonToolbarPressed, "true");
+  assert.equal(state.jsonInlinePressed, "true");
+  assert.match(state.jsonText, /Patch Inspector Buttons/);
 });
 
 test("sound clients do not enable without mappings or source bindings", async () => {

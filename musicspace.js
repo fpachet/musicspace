@@ -35,8 +35,10 @@ const patchSummary = document.getElementById("patch-summary");
 const patchValidation = document.getElementById("patch-validation");
 const patchInspector = document.getElementById("patch-inspector");
 const patchInspectorToggle = document.getElementById("patch-inspector-toggle");
+const patchInspectorInlineToggle = document.getElementById("patch-inspector-inline-toggle");
 const patchInspectorClose = document.getElementById("patch-inspector-close");
 const patchJsonToggle = document.getElementById("patch-json-toggle");
+const patchJsonInlineToggle = document.getElementById("patch-json-inline-toggle");
 const patchJsonEditor = document.getElementById("patch-json-editor");
 const patchJsonTextarea = document.getElementById("patch-json");
 const patchJsonApplyButton = document.getElementById("patch-json-apply");
@@ -5152,7 +5154,7 @@ function togglePatchJsonEditor() {
   openPatchInspector();
   const isOpening = patchJsonEditor.hidden;
   patchJsonEditor.hidden = !isOpening;
-  patchJsonToggle.setAttribute("aria-pressed", String(isOpening));
+  setPatchJsonPressedState(isOpening);
 
   if (isOpening) {
     const patch = currentPatchSnapshot();
@@ -5163,15 +5165,25 @@ function togglePatchJsonEditor() {
 
 function openPatchInspector() {
   patchInspector.hidden = false;
-  patchInspectorToggle.setAttribute("aria-pressed", "true");
+  setPatchInspectorPressedState(true);
   updatePatchInspector({ refreshJson: false });
 }
 
 function closePatchInspector() {
   patchInspector.hidden = true;
-  patchInspectorToggle.setAttribute("aria-pressed", "false");
+  setPatchInspectorPressedState(false);
   patchJsonEditor.hidden = true;
-  patchJsonToggle.setAttribute("aria-pressed", "false");
+  setPatchJsonPressedState(false);
+}
+
+function setPatchInspectorPressedState(isPressed) {
+  patchInspectorToggle.setAttribute("aria-pressed", String(isPressed));
+  patchInspectorInlineToggle.setAttribute("aria-pressed", String(isPressed));
+}
+
+function setPatchJsonPressedState(isPressed) {
+  patchJsonToggle.setAttribute("aria-pressed", String(isPressed));
+  patchJsonInlineToggle.setAttribute("aria-pressed", String(isPressed));
 }
 
 function togglePatchInspector() {
@@ -5454,6 +5466,8 @@ patchFileInput.addEventListener("change", () => {
   patchFileInput.value = "";
 });
 patchJsonToggle.addEventListener("click", togglePatchJsonEditor);
+patchInspectorInlineToggle.addEventListener("click", togglePatchInspector);
+patchJsonInlineToggle.addEventListener("click", togglePatchJsonEditor);
 patchJsonApplyButton.addEventListener("click", applyPatchJsonEditor);
 patchInspectorToggle.addEventListener("click", togglePatchInspector);
 patchInspectorClose.addEventListener("click", closePatchInspector);
