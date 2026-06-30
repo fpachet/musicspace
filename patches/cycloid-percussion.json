@@ -1,0 +1,136 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "cycloid-percussion",
+  "name": "Cycloid Percussion",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Marimba",
+      "x": 655,
+      "y": 270,
+      "drawTrace": true
+    },
+    {
+      "name": "Timbale",
+      "x": 600,
+      "y": 400,
+      "drawTrace": true
+    },
+    {
+      "name": "Bells",
+      "x": 425,
+      "y": 210,
+      "drawTrace": true
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Orbit",
+      "x": 535,
+      "y": 300,
+      "drawTrace": true,
+      "trajectory": {
+        "type": "rotation",
+        "centerX": 400,
+        "centerY": 300,
+        "radius": 135,
+        "phase": 0,
+        "angularSpeed": 0.0105
+      }
+    },
+    {
+      "name": "Spin",
+      "x": 535,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 8,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Counter",
+      "x": 600,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 4.5,
+        "direction": -1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Orbit",
+      "attached": "Spin"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Counter"
+    },
+    {
+      "type": "solid",
+      "carrier": "Spin",
+      "attached": "Marimba"
+    },
+    {
+      "type": "solid",
+      "carrier": "Counter",
+      "attached": "Timbale"
+    },
+    {
+      "type": "solid",
+      "carrier": "Orbit",
+      "attached": "Bells"
+    }
+  ],
+  "sourceBindings": [
+    {
+      "source": "Marimba",
+      "type": "audio-file",
+      "name": "marimba-cycloid.wav",
+      "mimeType": "audio/wav",
+      "url": "audio/cycloid-percussion/marimba-cycloid.wav",
+      "loop": true,
+      "gain": 0.78,
+      "muted": false,
+      "spatialization": "pan-distance"
+    },
+    {
+      "source": "Timbale",
+      "type": "audio-file",
+      "name": "timbale-pulse.wav",
+      "mimeType": "audio/wav",
+      "url": "audio/cycloid-percussion/timbale-pulse.wav",
+      "loop": true,
+      "gain": 0.7,
+      "muted": false,
+      "spatialization": "pan-distance"
+    },
+    {
+      "source": "Bells",
+      "type": "audio-file",
+      "name": "bell-ticks.wav",
+      "mimeType": "audio/wav",
+      "url": "audio/cycloid-percussion/bell-ticks.wav",
+      "loop": true,
+      "gain": 0.58,
+      "muted": false,
+      "spatialization": "pan-distance"
+    }
+  ],
+  "version": 1
+}
