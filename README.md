@@ -33,7 +33,7 @@ npm run check
 Run the engine regression suite with:
 
 ```sh
-node --test tests/constraint-engine.test.js
+npm test
 ```
 
 ## Controls

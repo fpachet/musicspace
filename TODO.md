@@ -49,11 +49,11 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Project Hygiene
 
-- Add a simple formatter or linter once the codebase grows beyond a single JavaScript file.
-- Keep the GitHub Pages workflow healthy as the public live demo changes.
-- Keep the README focused on usage and move longer research notes into separate documentation if it grows.
-- Add screenshots or a short animated capture after the UI stabilizes.
-- Decide whether this should remain a static prototype or become a packaged JavaScript module.
+- Add a simple formatter/linter before the next broad JavaScript refactor. Prefer a low-churn setup such as Prettier check-only first, then formatting in a dedicated commit.
+- Keep the GitHub Pages workflow as the public-demo gate: run `npm run check` and `npm test` before deployment, and add a browser smoke test once canvas/UI rendering stabilizes.
+- Keep the README focused on running, controls, built-in patches, and repository orientation. Move longer research notes or design rationale into dedicated docs when the background/features sections grow again.
+- Add screenshots or a short animated capture after the source/mover visual language stabilizes enough that the media will not go stale immediately.
+- Keep the app as a static prototype for now. Revisit packaging as a JavaScript module only when scene/model code is split from DOM/canvas UI and there is a clear embeddable API.
 
 ## Open Questions
 

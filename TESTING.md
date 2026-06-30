@@ -3,7 +3,7 @@
 Run the constraint-engine regression battery with:
 
 ```sh
-node --test tests/constraint-engine.test.js
+npm test
 ```
 
 The tests load `musicspace.js` in a mocked DOM/canvas sandbox, then drive patches directly through the engine. They assert propagation reports and residual measurements rather than relying on screenshots.
