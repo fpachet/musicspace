@@ -4,7 +4,7 @@ MusicSpace is an old idea: bringing together the power of constraint propagation
 
 This project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
-MusicSpace now includes a bounded constraint solver with local repair/backoff strategies, a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -51,6 +51,7 @@ node --test tests/constraint-engine.test.js
 - Choose listener mode:
   - **Re-anchor** moves the listener and retargets constraints to the new geometry.
   - **Preserve** moves the listener while preserving active constraints.
+- Use the **Solver** control to switch between the default Propagation solver and the experimental XPBD solver.
 - Drag the listener, sources, movers, or constraint nodes on the canvas.
 - Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
@@ -99,7 +100,7 @@ node --test tests/constraint-engine.test.js
 - `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.
 - `PATCH_FORMAT.md` explains how to author and register patch JSON files.
 - `CONSTRAINT_SEMANTICS.md` documents current constraint invariants and propagation behavior.
-- `OPTIMAL_SOLVER_PLAN.md` documents the proposed real-time XPBD/least-squares solver roadmap.
+- `OPTIMAL_SOLVER_PLAN.md` documents the implemented XPBD prototype and the remaining real-time XPBD/least-squares solver roadmap.
 - `TARGET_BACKENDS.md` describes Web Audio, Faust WebAssembly, MIDI, OSC, and other parameterized clients.
 - `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.
 - Saved patches now write `parameterMappings`; older patches with `audioMappings` still load.
@@ -125,6 +126,7 @@ node --test tests/constraint-engine.test.js
 
 - Browser-based MusicSpace workbench with no build step or runtime dependencies.
 - Deterministic local constraint propagation that establishes a fixed point for coherent edits, with local backoff/clamping and residual diagnostics for unsatisfied graphs.
+- Experimental XPBD solver mode for iterative best-fit projection, with release refinement and regression coverage across representative constraint graphs.
 - Versioned JSON patch loading, saving, inspection, editing, and validation.
 - Canvas palette for creating sources, movers, constraints, and trajectory assignments.
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
