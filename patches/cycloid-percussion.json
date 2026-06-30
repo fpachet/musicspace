@@ -10,20 +10,17 @@
     {
       "name": "Marimba",
       "x": 655,
-      "y": 270,
-      "drawTrace": true
+      "y": 270
     },
     {
       "name": "Timbale",
       "x": 600,
-      "y": 400,
-      "drawTrace": true
+      "y": 400
     },
     {
       "name": "Bells",
       "x": 425,
-      "y": 210,
-      "drawTrace": true
+      "y": 210
     }
   ],
   "movingObjects": [
@@ -31,7 +28,6 @@
       "name": "Orbit",
       "x": 535,
       "y": 300,
-      "drawTrace": true,
       "trajectory": {
         "type": "rotation",
         "centerX": 400,
