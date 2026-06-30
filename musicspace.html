@@ -596,6 +596,7 @@
     }
 
     .status {
+      min-width: 0;
       min-height: 22px;
       margin: 0;
       width: 100%;
@@ -606,7 +607,8 @@
     }
 
     .solver-badge {
-      flex: 0 0 auto;
+      flex: 0 0 126px;
+      width: 126px;
       min-height: 22px;
       padding: 4px 8px;
       border: 1px solid #b9c1c9;
@@ -616,6 +618,7 @@
       font-size: 11px;
       font-weight: 800;
       line-height: 1;
+      text-align: center;
       white-space: nowrap;
     }
 
@@ -626,15 +629,20 @@
     }
 
     .solver-control {
-      flex: 0 0 auto;
+      flex: 0 0 228px;
+      width: 228px;
     }
 
     .solver-control .mode-label {
+      flex: 0 0 54px;
+      justify-content: center;
       font-size: 11px;
       padding: 0 8px;
     }
 
     .solver-control button {
+      flex: 0 0 86px;
+      width: 86px;
       min-height: 24px;
       padding: 0 8px;
       font-size: 11px;
@@ -962,6 +970,16 @@
 
       .mode-group button {
         flex: 1;
+      }
+
+      .solver-control {
+        flex: 0 0 228px;
+        width: 228px;
+      }
+
+      .solver-control button {
+        flex: 0 0 86px;
+        width: 86px;
       }
 
       button,
