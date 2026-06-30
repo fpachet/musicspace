@@ -202,13 +202,14 @@ The intended boundary is:
 
 - **Acts on:** source, listener, and audio track/player node.
 - **Goal:** map visual position to audio parameters such as gain, pan, distance attenuation, reverb send, azimuth, elevation, or spatializer coordinates.
-- **Implementation note:** keep the mapping layer separate from constraints. Constraints decide geometry; mappings translate geometry to audio.
+- **Current status:** source double-click opens a Source Inspector. A source can remain a pure geometric/control object, or it can store an `audio-file` binding in `sourceBindings`. `Play Sound` starts/stops these bindings and maps source/listener geometry to stereo pan plus optional distance gain.
+- **Implementation note:** keep playback separate from constraints. Constraints decide geometry; source bindings and mappings translate geometry to audio.
 
 ### Web Audio Spatialization
 
 - **Acts on:** source and browser audio graph.
 - **Goal:** use browser-native audio to make the prototype audible.
-- **Current status:** the demo includes a simple Web Audio oscillator through a resonant low-pass filter, controlled by Faust-style parameter paths.
+- **Current status:** the demo includes per-source audio-file playback with `StereoPannerNode`/`GainNode`, plus simple Web Audio synth targets controlled by Faust-style parameter paths.
 - **Implementation note:** extend this from scalar synth parameters to `PannerNode`, gain, stereo pan, and later multichannel or custom spatializers.
 
 ### MIDI / OSC Mapping

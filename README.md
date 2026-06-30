@@ -45,6 +45,7 @@ node --test tests/constraint-engine.test.js
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
+- Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be bound to an audio file.
 - Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
 - Double-click a shuttle mover to edit its endpoints and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
@@ -58,7 +59,7 @@ node --test tests/constraint-engine.test.js
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Play Sound** / **Stop Sound** to enable or stop the browser synth when a patch exposes parameter mappings for the current target backend.
+- Use **Play Sound** / **Stop Sound** to enable or stop browser sound: source audio-file bindings and the current parameter target backend are controlled together.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
@@ -87,6 +88,7 @@ node --test tests/constraint-engine.test.js
 - `musicspace.js` contains the canvas entities, constraints, drawing, interaction, animation logic, and scene feature extraction. It does not know about Faust, Web Audio, MIDI, OSC, or concrete target clients.
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
+- `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan/distance gain for `sourceBindings`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.

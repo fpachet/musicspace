@@ -114,6 +114,29 @@ This keeps sequence-file time and note playback separate from the constraint sys
 
 When external Web MIDI playback stops, the client sends sustain-off, all-sound-off, all-notes-off, and explicit note-off messages on the active channels. It repeats that panic shortly after stop because browser-scheduled Web MIDI note-ons cannot be cancelled once queued.
 
+## Source Audio Bindings
+
+Sources can also be direct audio emitters through patch-level `sourceBindings`. This is separate from generic `parameterMappings`: the source binding owns the sound material, while the source position still comes from the ordinary scene, constraints, and trajectories.
+
+```json
+{
+  "sourceBindings": [
+    {
+      "source": "A",
+      "type": "audio-file",
+      "name": "voice.wav",
+      "mimeType": "audio/wav",
+      "dataUrl": "data:audio/wav;base64,...",
+      "loop": true,
+      "gain": 0.8,
+      "spatialization": "pan-distance"
+    }
+  ]
+}
+```
+
+`Play Sound` starts and stops source audio bindings together with the active parameter target backend. `pan-distance` maps left/right position around the listener to stereo pan and listener distance to gain attenuation; `stereo-pan` keeps gain constant and only pans.
+
 ## Faust Direction
 
 The Faust backend is a registered target backend, not a special case in MusicSpace core.

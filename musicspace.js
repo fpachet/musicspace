@@ -62,6 +62,17 @@ const shuttleSpeedInput = document.getElementById("shuttle-speed");
 const shuttleShowPathInput = document.getElementById("shuttle-show-path");
 const shuttleApplyButton = document.getElementById("shuttle-apply");
 const shuttleCloseButton = document.getElementById("shuttle-close");
+const sourceEditor = document.getElementById("source-editor");
+const sourceNameInput = document.getElementById("source-name");
+const sourceOutputTypeInput = document.getElementById("source-output-type");
+const sourceAudioFileInput = document.getElementById("source-audio-file");
+const sourceSpatializationInput = document.getElementById("source-spatialization");
+const sourceGainInput = document.getElementById("source-gain");
+const sourceLoopInput = document.getElementById("source-loop");
+const sourceAudioFileName = document.getElementById("source-audio-file-name");
+const sourceApplyButton = document.getElementById("source-apply");
+const sourceRemoveBindingButton = document.getElementById("source-remove-binding");
+const sourceCloseButton = document.getElementById("source-close");
 
 const LISTENER_MODE_RETARGET = "retarget";
 const LISTENER_MODE_PRESERVE = "preserve";
@@ -81,6 +92,7 @@ const ANGLE_EPSILON = 0.01;
 const RATIO_EPSILON = 0.01;
 const RELATIVE_PRODUCT_EPSILON = 0.001;
 const TOOL_SELECT = "select";
+const SOURCE_BINDING_AUDIO_FILE = "audio-file";
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
 const DOUBLE_CLICK_DISTANCE = 12;
@@ -975,9 +987,12 @@ let pendingToolEntities = [];
 let lastCanvasClick = null;
 let activeRotationMover = null;
 let activeShuttleMover = null;
+let activeSourceEditorSource = null;
+let pendingSourceAudioFile = null;
 let undoStack = [];
 let listenerMode = LISTENER_MODE_RETARGET;
 let isAnimating = false;
+let soundOutputEnabled = false;
 let animationFrame = null;
 let velocity = { x: 0, y: 0 };
 let activePatch = null;
@@ -986,12 +1001,16 @@ let propagationPaused = false;
 let solverMode = getInitialSolverMode();
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
-  toggleButton: targetToggleButton,
   panel: targetPanel,
   grid: targetGrid,
   onStatus: setConstraintStatus,
   getEntity: getObjectByName,
   getFeature: parameterFeatureValue
+});
+const sourceAudioClient = MusicSpaceSourceAudioClient.createSourceAudioClient({
+  onStatus: setConstraintStatus,
+  getSource: getObjectByName,
+  getListener: () => listener
 });
 const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
   playButton: midiToggleButton,
@@ -1130,7 +1149,10 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
     .map((constraint) => createConstraintFromSpec(constraint, objectByName))
     .filter(Boolean);
   parameterClient.loadPatch(patch);
+  sourceAudioClient.loadPatch(patch);
   midiFileClient.loadPatch(patch);
+  soundOutputEnabled = false;
+  updateSoundToggleButton();
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -1139,8 +1161,11 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   pendingToolEntities = [];
   activeRotationMover = null;
   activeShuttleMover = null;
+  activeSourceEditorSource = null;
+  pendingSourceAudioFile = null;
   rotationEditor.hidden = true;
   shuttleEditor.hidden = true;
+  sourceEditor.hidden = true;
   velocity = { x: 0, y: 0 };
   setConstraintStatus("");
   clearTrace();
@@ -1339,6 +1364,7 @@ function constraintReferencesEntity(constraint, entity) {
 
 function serializePatch() {
   const parameterState = parameterClient.serialize();
+  const sourceAudioState = sourceAudioClient.serialize();
   const midiState = midiFileClient.serialize();
 
   return {
@@ -1360,6 +1386,7 @@ function serializePatch() {
     })),
     constraints: constraints.map(serializeConstraint).filter(Boolean),
     ...parameterState,
+    ...sourceAudioState,
     ...midiState
   };
 }
@@ -1501,6 +1528,7 @@ function renderPatchSummary(patch) {
 
   const constraintLines = (patch.constraints || []).map(describeConstraintSpec);
   const mappingLines = (patch.parameterMappings || []).map(describeParameterMapping);
+  const sourceAudioLines = (patch.sourceBindings || []).map(describeSourceBinding);
   const midiLines = (patch.midiFile?.trackBindings || []).map(describeMidiBinding);
   const backendLines = describePatchBackend(patch);
 
@@ -1517,6 +1545,7 @@ function renderPatchSummary(patch) {
     ]),
     createInspectorSection("Backend", backendLines),
     createInspectorSection("Constraints", constraintLines.length ? constraintLines : ["None"]),
+    createInspectorSection("Source Audio", sourceAudioLines.length ? sourceAudioLines : ["None"]),
     createInspectorSection("Mappings", mappingLines.length ? mappingLines : ["None"]),
     createInspectorSection("MIDI", midiLines.length ? midiLines : ["None"])
   );
@@ -1605,6 +1634,14 @@ function describeParameterMapping(mapping) {
   return `${mapping.source}.${mapping.feature} -> ${mapping.target} (${mapping.outputMin}..${mapping.outputMax})`;
 }
 
+function describeSourceBinding(binding) {
+  if (binding?.type === SOURCE_BINDING_AUDIO_FILE) {
+    const mode = binding.spatialization === "stereo-pan" ? "pan" : "pan+distance";
+    return `${binding.source} -> ${binding.name || binding.url || "audio file"} (${mode})`;
+  }
+  return `${binding?.source || "?"} -> ${binding?.type || "unknown"}`;
+}
+
 function describeMidiBinding(binding) {
   const channel = binding.channel ? ` ch ${binding.channel}` : "";
   const program = Number.isFinite(Number(binding.program)) ? ` program ${binding.program}` : "";
@@ -1638,11 +1675,12 @@ function validatePatch(patch) {
   const scene = validateSceneObjects(patch, add);
   validateConstraintSpecs(patch.constraints || [], scene.names, add);
   validateBackendSpec(patch, add);
+  validateSourceBindings(patch.sourceBindings || [], scene.names, add);
   validateParameterMappings(patch.parameterMappings || patch.audioMappings || [], scene.names, patch.target || patch.audioSynth, add);
   validateMidiSpec(patch.midiFile, scene.names, patch.target || patch.audioSynth, add);
 
   if (!findings.some((finding) => finding.level === "error" || finding.level === "warning")) {
-    add("ok", "Patch structure, references, constraints, mappings, and backend declaration look coherent.");
+    add("ok", "Patch structure, references, constraints, source bindings, mappings, and backend declaration look coherent.");
   }
 
   return findings;
@@ -1830,6 +1868,41 @@ function validateMidiSpec(midiFile, names, target, add) {
   }
 }
 
+function validateSourceBindings(bindings, names, add) {
+  if (!Array.isArray(bindings)) {
+    add("error", "sourceBindings must be an array.");
+    return;
+  }
+
+  const seenSources = new Set();
+  for (const binding of bindings) {
+    if (!binding || typeof binding !== "object") {
+      add("error", "Every source binding must be an object.");
+      continue;
+    }
+
+    validateReference(binding.source, "sourceBindings.source", names, add);
+    if (seenSources.has(binding.source)) {
+      add("warning", `Source ${binding.source} has multiple source bindings; only one is edited by the source inspector.`);
+    }
+    seenSources.add(binding.source);
+
+    if (binding.type !== SOURCE_BINDING_AUDIO_FILE) {
+      add("error", `Unsupported source binding type: ${binding.type || "(missing)"}.`);
+      continue;
+    }
+    if (!binding.dataUrl && !binding.url) {
+      add("error", `Audio source binding for ${binding.source || "?"} needs a dataUrl or url.`);
+    }
+    if (binding.gain !== undefined) {
+      validateNonNegativeNumber(binding.gain, "sourceBindings.gain", add);
+    }
+    if (binding.spatialization && !["pan-distance", "stereo-pan"].includes(binding.spatialization)) {
+      add("error", `Unsupported source spatialization: ${binding.spatialization}.`);
+    }
+  }
+}
+
 function targetParameterNames(target) {
   if (target?.parameters && typeof target.parameters === "object") {
     return new Set(Object.keys(target.parameters));
@@ -1957,6 +2030,7 @@ function drawAll() {
   drawConstraintDiagnostics(ctx);
 
   drawParameterMappingCues(ctx);
+  sourceAudioClient.updateSpatial();
 
   for (const mover of movingObjects) {
     drawMoverTrajectory(ctx, mover);
@@ -3167,6 +3241,30 @@ function updateSolverModeUrl() {
   window.history.replaceState(null, "", url.href);
 }
 
+async function toggleSoundOutput() {
+  const nextEnabled = !soundOutputEnabled;
+  soundOutputEnabled = nextEnabled;
+  updateSoundToggleButton();
+
+  const [parameterEnabled, sourceAudioEnabled] = await Promise.all([
+    parameterClient.setEnabled(nextEnabled),
+    sourceAudioClient.setEnabled(nextEnabled)
+  ]);
+
+  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled);
+  updateSoundToggleButton();
+  drawAll();
+}
+
+function updateSoundToggleButton() {
+  if (!targetToggleButton) {
+    return;
+  }
+
+  targetToggleButton.textContent = soundOutputEnabled ? "Stop Sound" : "Play Sound";
+  targetToggleButton.setAttribute("aria-pressed", String(soundOutputEnabled));
+}
+
 function refreshConstraints() {
   for (const constraint of constraints) {
     constraint.refresh();
@@ -3589,6 +3687,127 @@ function closeShuttleEditor() {
   activeShuttleMover = null;
 }
 
+function openSourceEditor(source) {
+  if (!(source instanceof SoundSource)) {
+    return;
+  }
+
+  rotationEditor.hidden = true;
+  activeRotationMover = null;
+  shuttleEditor.hidden = true;
+  activeShuttleMover = null;
+  activeSourceEditorSource = source;
+  pendingSourceAudioFile = null;
+
+  const [binding] = sourceAudioClient.bindingsForSource(source.name);
+  sourceNameInput.value = source.name;
+  sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE ? SOURCE_BINDING_AUDIO_FILE : "none";
+  sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
+  sourceGainInput.value = String(binding?.gain ?? 1);
+  sourceLoopInput.checked = binding?.loop !== false;
+  sourceAudioFileInput.value = "";
+  sourceAudioFileName.textContent = binding?.name
+    ? `Selected: ${binding.name}`
+    : "No audio file assigned.";
+  sourceEditor.hidden = false;
+  setConstraintStatus(`Editing source ${source.name}.`);
+  revealEditor(sourceEditor);
+}
+
+async function handleSourceAudioFileChange() {
+  const file = sourceAudioFileInput.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    pendingSourceAudioFile = {
+      name: file.name,
+      mimeType: file.type || "audio/*",
+      dataUrl
+    };
+    sourceOutputTypeInput.value = SOURCE_BINDING_AUDIO_FILE;
+    sourceAudioFileName.textContent = `Selected: ${file.name}`;
+  } catch (error) {
+    pendingSourceAudioFile = null;
+    sourceAudioFileName.textContent = "Could not read audio file.";
+  }
+}
+
+function applySourceEditor() {
+  if (!activeSourceEditorSource) {
+    return;
+  }
+
+  pushUndoSnapshot("edit source audio");
+  const sourceName = activeSourceEditorSource.name;
+
+  if (sourceOutputTypeInput.value !== SOURCE_BINDING_AUDIO_FILE) {
+    sourceAudioClient.removeBinding(sourceName);
+    setConstraintStatus(`${sourceName} has no sound binding.`);
+    updatePatchInspector();
+    drawAll();
+    return;
+  }
+
+  const [existing] = sourceAudioClient.bindingsForSource(sourceName);
+  const audioFile = pendingSourceAudioFile || existing;
+  if (!audioFile?.dataUrl && !audioFile?.url) {
+    setConstraintStatus(`Choose an audio file for ${sourceName}.`);
+    return;
+  }
+
+  const gain = Number(sourceGainInput.value);
+  sourceAudioClient.upsertBinding({
+    source: sourceName,
+    type: SOURCE_BINDING_AUDIO_FILE,
+    name: audioFile.name || "Audio file",
+    mimeType: audioFile.mimeType || "",
+    dataUrl: audioFile.dataUrl || "",
+    url: audioFile.url || "",
+    loop: sourceLoopInput.checked,
+    gain: Number.isFinite(gain) ? clamp(gain, 0, 2) : 1,
+    spatialization: sourceSpatializationInput.value || "pan-distance"
+  });
+  pendingSourceAudioFile = null;
+  sourceAudioFileName.textContent = `Selected: ${audioFile.name || audioFile.url || "audio file"}`;
+  setConstraintStatus(`${sourceName} sound binding updated.`);
+  updatePatchInspector();
+  drawAll();
+}
+
+function removeSourceBindingFromEditor() {
+  if (!activeSourceEditorSource) {
+    return;
+  }
+
+  pushUndoSnapshot("remove source audio");
+  sourceAudioClient.removeBinding(activeSourceEditorSource.name);
+  pendingSourceAudioFile = null;
+  sourceOutputTypeInput.value = "none";
+  sourceAudioFileInput.value = "";
+  sourceAudioFileName.textContent = "No audio file assigned.";
+  setConstraintStatus(`${activeSourceEditorSource.name} sound binding removed.`);
+  updatePatchInspector();
+  drawAll();
+}
+
+function closeSourceEditor() {
+  sourceEditor.hidden = true;
+  activeSourceEditorSource = null;
+  pendingSourceAudioFile = null;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error || new Error("Could not read file.")));
+    reader.readAsDataURL(file);
+  });
+}
+
 function deleteSelectedEntity() {
   if (!selectedEntity) {
     setConstraintStatus("Select an object or constraint to delete.");
@@ -3622,6 +3841,13 @@ function deleteSelectedEntity() {
   if (activeShuttleMover === entity) {
     closeShuttleEditor();
   }
+  if (activeSourceEditorSource === entity) {
+    closeSourceEditor();
+  }
+  if (entity instanceof SoundSource) {
+    sourceAudioClient.removeBinding(entity.name);
+  }
+  sourceAudioClient.removeBindingsForMissingSources(sources.map((source) => source.name));
 
   selectedEntity = null;
   pendingToolEntities = pendingToolEntities.filter((candidate) => candidate !== entity);
@@ -3720,6 +3946,13 @@ function handleEntityDoubleClick(entity) {
 
   if (entity instanceof MovingObject) {
     setConstraintStatus("Use Spin to convert this mover into a rotative object.");
+    return true;
+  }
+
+  if (entity instanceof SoundSource) {
+    openSourceEditor(entity);
+    selectedEntity = entity;
+    drawAll();
     return true;
   }
 
@@ -4243,6 +4476,9 @@ animationToggle.addEventListener("click", () => {
     startAnimation();
   }
 });
+targetToggleButton.addEventListener("click", () => {
+  toggleSoundOutput();
+});
 undoButton.addEventListener("click", undoLastEdit);
 traceSelectedButton.addEventListener("click", toggleSelectedTrace);
 traceNoneButton.addEventListener("click", stopAllDrawing);
@@ -4303,6 +4539,10 @@ rotationApplyButton.addEventListener("click", applyRotationEditor);
 rotationCloseButton.addEventListener("click", closeRotationEditor);
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
+sourceAudioFileInput.addEventListener("change", handleSourceAudioFileChange);
+sourceApplyButton.addEventListener("click", applySourceEditor);
+sourceRemoveBindingButton.addEventListener("click", removeSourceBindingFromEditor);
+sourceCloseButton.addEventListener("click", closeSourceEditor);
 
 async function initializeApp() {
   patchSelect.disabled = true;
@@ -4314,6 +4554,7 @@ async function initializeApp() {
   setActiveTool(TOOL_SELECT);
   setListenerMode(LISTENER_MODE_RETARGET);
   updateSolverIndicator();
+  updateSoundToggleButton();
 
   try {
     await loadBuiltInPatchLibrary();

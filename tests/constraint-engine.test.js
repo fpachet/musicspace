@@ -165,7 +165,53 @@ function createEngineHarness() {
           serialize() {
             return {};
           },
+          isEnabled() {
+            return false;
+          },
+          async setEnabled() {
+            return false;
+          },
           update() {}
+        };
+      }
+    },
+    MusicSpaceSourceAudioClient: {
+      createSourceAudioClient() {
+        let bindings = [];
+        return {
+          bindingsForSource(sourceName) {
+            return bindings.filter((binding) => binding.source === sourceName).map((binding) => ({ ...binding }));
+          },
+          hasBindings() {
+            return bindings.length > 0;
+          },
+          isEnabled() {
+            return false;
+          },
+          loadPatch(patch = {}) {
+            bindings = Array.isArray(patch.sourceBindings)
+              ? patch.sourceBindings.map((binding) => ({ ...binding }))
+              : [];
+          },
+          removeBinding(sourceName) {
+            bindings = bindings.filter((binding) => binding.source !== sourceName);
+          },
+          removeBindingsForMissingSources(sourceNames) {
+            const validNames = new Set(sourceNames);
+            bindings = bindings.filter((binding) => validNames.has(binding.source));
+          },
+          serialize() {
+            return { sourceBindings: bindings.map((binding) => ({ ...binding })) };
+          },
+          async setEnabled() {
+            return false;
+          },
+          updateSpatial() {},
+          upsertBinding(binding) {
+            bindings = bindings.filter((candidate) => candidate.source !== binding.source);
+            bindings.push({ ...binding });
+            return { ...binding };
+          }
         };
       }
     },
@@ -195,6 +241,7 @@ globalThis.__musicspaceTestApi = {
   getLastPropagationReport,
   getObjectByName,
   getSolverMode,
+  handleEntityDoubleClick,
   handleToolButtonClick,
   handleToolClick,
   loadPatch,
@@ -268,6 +315,19 @@ globalThis.__musicspaceTestApi = {
     },
     solverMode() {
       return api.getSolverMode();
+    },
+    openSourceInspector(name) {
+      const entity = api.getObjectByName(name);
+      assert.ok(entity, `Expected entity ${name} to exist`);
+      return api.handleEntityDoubleClick(entity);
+    },
+    sourceInspectorState() {
+      return {
+        hidden: document.getElementById("source-editor").hidden,
+        name: document.getElementById("source-name").value,
+        outputType: document.getElementById("source-output-type").value,
+        fileLabel: document.getElementById("source-audio-file-name").textContent
+      };
     },
     createConstraintWithTool(tool, names) {
       api.handleToolButtonClick(tool);
@@ -657,6 +717,74 @@ test("patch validation reports dangling constraints and backend mistakes", () =>
   assert.ok(findings.some((finding) => finding.message.includes("min must be less than or equal to max")));
   assert.ok(findings.some((finding) => finding.message.includes("adapter module")));
   assert.ok(findings.some((finding) => finding.message.includes("positive outputMin/outputMax")));
+});
+
+test("source audio bindings serialize with the patch", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Source Audio",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  const patch = engine.api.serializePatch();
+  assert.equal(patch.sourceBindings.length, 1);
+  assert.equal(patch.sourceBindings[0].source, "A");
+  assert.equal(patch.sourceBindings[0].type, "audio-file");
+  assert.equal(patch.sourceBindings[0].name, "voice.wav");
+  assert.equal(patch.sourceBindings[0].gain, 0.75);
+});
+
+test("double-clicking a source opens the source inspector", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Source Inspector",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("A"), true);
+  const inspector = engine.sourceInspectorState();
+  assert.equal(inspector.hidden, false);
+  assert.equal(inspector.name, "A");
+  assert.equal(inspector.outputType, "none");
+  assert.equal(inspector.fileLabel, "No audio file assigned.");
+});
+
+test("patch validation checks source audio bindings", () => {
+  const engine = createEngineHarness();
+  const findings = engine.api.validatePatch({
+    name: "Broken source audio",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      { source: "Missing", type: "audio-file", name: "missing.wav", dataUrl: "data:audio/wav;base64,AAAA" },
+      { source: "A", type: "audio-file", name: "empty.wav" },
+      { source: "A", type: "stream", url: "stream://" }
+    ],
+    constraints: []
+  });
+
+  assert.ok(findings.some((finding) => finding.message.includes("unknown object Missing")));
+  assert.ok(findings.some((finding) => finding.message.includes("needs a dataUrl or url")));
+  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source binding type")));
 });
 
 test("over-constrained graphs expose residual diagnostics", () => {

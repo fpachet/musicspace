@@ -51,6 +51,14 @@
       parameterValues() {
         return { ...targetParamValues };
       },
+      isEnabled() {
+        return Boolean(targetController?.isEnabled());
+      },
+      async setEnabled(enabled) {
+        const nextEnabled = await targetController?.setEnabled(Boolean(enabled));
+        updateToggle();
+        return Boolean(nextEnabled);
+      },
       dispose() {
         targetController?.dispose();
       }

@@ -1288,10 +1288,52 @@
         <button id="shuttle-close" type="button">Close</button>
       </div>
     </section>
+    <section id="source-editor" class="editor-panel" aria-label="Source audio editor" hidden>
+      <h2>Source Inspector</h2>
+      <div class="editor-grid">
+        <label>
+          Name
+          <input id="source-name" type="text" readonly>
+        </label>
+        <label>
+          Output
+          <select id="source-output-type">
+            <option value="none">None</option>
+            <option value="audio-file">Audio file</option>
+          </select>
+        </label>
+        <label>
+          Audio file
+          <input id="source-audio-file" type="file" accept="audio/*,.mp3,.wav,.aiff,.aif,.ogg,.m4a,.flac">
+        </label>
+        <label>
+          Spatialization
+          <select id="source-spatialization">
+            <option value="pan-distance">Pan + distance gain</option>
+            <option value="stereo-pan">Stereo pan only</option>
+          </select>
+        </label>
+        <label>
+          Gain
+          <input id="source-gain" type="number" min="0" max="2" step="0.05" value="1">
+        </label>
+        <label class="editor-check">
+          <input id="source-loop" type="checkbox">
+          Loop audio
+        </label>
+      </div>
+      <p id="source-audio-file-name" class="midi-status" aria-live="polite"></p>
+      <div class="editor-actions">
+        <button id="source-apply" type="button">Apply</button>
+        <button id="source-remove-binding" type="button">Remove Sound</button>
+        <button id="source-close" type="button">Close</button>
+      </div>
+    </section>
   </main>
   <script src="musicspace-mapping.js"></script>
   <script src="musicspace-targets.js"></script>
   <script src="musicspace-parameter-client.js"></script>
+  <script src="musicspace-source-audio-client.js"></script>
   <script src="musicspace-midi-file-client.js"></script>
   <script src="musicspace.js"></script>
 </body>
