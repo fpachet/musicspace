@@ -22,6 +22,9 @@ function createCanvasContext() {
     restore: noop,
     rotate: noop,
     save: noop,
+    setTransform(a, b, c, d, e, f) {
+      this.lastTransform = [a, b, c, d, e, f];
+    },
     setLineDash: noop,
     stroke: noop,
     translate: noop
@@ -92,7 +95,7 @@ function createElement(id = "") {
       this.lastFocusOptions = options || null;
     },
     getBoundingClientRect() {
-      return { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
+      return this.rect || { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
     },
     getContext() {
       return createCanvasContext();
@@ -140,11 +143,13 @@ function createEngineHarness() {
     Blob,
     URL,
     console,
+    devicePixelRatio: 1,
     document,
     fetch: async () => {
       throw new Error("fetch is disabled in constraint-engine tests");
     },
     FileReader: class {},
+    addEventListener() {},
     MusicSpaceTargets: {
       listTargetBackends() {
         return [
@@ -453,6 +458,22 @@ globalThis.__musicspaceTestApi = {
     focusCanvasWithoutScrolling() {
       api.focusCanvasWithoutScrolling();
       return document.getElementById("canvas").lastFocusOptions;
+    },
+    setCanvasDisplaySize(width, height, pixelRatio = 1) {
+      sandbox.devicePixelRatio = pixelRatio;
+      const rect = { height, left: 0, top: 0, width, x: 0, y: 0 };
+      document.getElementById("canvas").rect = rect;
+      document.getElementById("trace").rect = rect;
+    },
+    canvasBackingSize() {
+      const canvas = document.getElementById("canvas");
+      const trace = document.getElementById("trace");
+      return {
+        width: canvas.width,
+        height: canvas.height,
+        traceWidth: trace.width,
+        traceHeight: trace.height
+      };
     },
     solverButtonPressed(mode) {
       const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
@@ -1545,6 +1566,25 @@ test("canvas pointer focus does not request page scrolling", () => {
   const engine = createEngineHarness();
   const focusOptions = engine.focusCanvasWithoutScrolling();
   assert.equal(focusOptions.preventScroll, true);
+});
+
+test("canvas backing store matches displayed size and device pixel ratio", () => {
+  const engine = createEngineHarness();
+  engine.setCanvasDisplaySize(1600, 1200, 2);
+  engine.loadPatch({
+    name: "HiDPI Canvas",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.deepEqual(engine.canvasBackingSize(), {
+    width: 3200,
+    height: 2400,
+    traceWidth: 3200,
+    traceHeight: 2400
+  });
 });
 
 test("undo status shows pending undo without a toolbar command button", () => {

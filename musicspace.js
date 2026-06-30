@@ -151,11 +151,43 @@ const DOUBLE_CLICK_DISTANCE = 12;
 
 const PATCH_INDEX_URL = "patches/index.json";
 let builtInPatches = [];
+let canvasResolution = {
+  width: 0,
+  height: 0,
+  pixelRatio: 1,
+  scaleX: 1,
+  scaleY: 1
+};
 
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
-traceCanvas.width = WIDTH;
-traceCanvas.height = HEIGHT;
+function configureCanvasResolution() {
+  const rect = canvas.getBoundingClientRect();
+  const cssWidth = Math.max(1, rect.width || WIDTH);
+  const cssHeight = Math.max(1, rect.height || HEIGHT);
+  const pixelRatio = Math.max(1, Math.min(4, globalThis.devicePixelRatio || 1));
+  const backingWidth = Math.max(1, Math.round(cssWidth * pixelRatio));
+  const backingHeight = Math.max(1, Math.round(cssHeight * pixelRatio));
+  const didResize = canvas.width !== backingWidth || canvas.height !== backingHeight;
+
+  if (didResize) {
+    canvas.width = backingWidth;
+    canvas.height = backingHeight;
+    traceCanvas.width = backingWidth;
+    traceCanvas.height = backingHeight;
+  }
+
+  const scaleX = backingWidth / WIDTH;
+  const scaleY = backingHeight / HEIGHT;
+  ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+  traceCtx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+  canvasResolution = {
+    width: backingWidth,
+    height: backingHeight,
+    pixelRatio,
+    scaleX,
+    scaleY
+  };
+  return didResize;
+}
 
 class Entity {
   constructor(x, y, color = "#2563eb") {
@@ -2304,6 +2336,7 @@ function sourceEmitterCapability(sourceOrName) {
 }
 
 function drawAll() {
+  configureCanvasResolution();
   updateTraceSelectedButton();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
@@ -5003,6 +5036,7 @@ function drawTracesForChangedEntities() {
 }
 
 function drawTraceSegment(entity, nextX = entity.x, nextY = entity.y, color = traceColorForEntity(entity)) {
+  configureCanvasResolution();
   if (entity.prevX === undefined || entity.prevY === undefined) {
     entity.prevX = entity.x;
     entity.prevY = entity.y;
@@ -5101,6 +5135,7 @@ function stopAnimation() {
 }
 
 function clearTrace() {
+  configureCanvasResolution();
   traceCtx.clearRect(0, 0, WIDTH, HEIGHT);
   syncTracePositions();
 }
@@ -5364,6 +5399,11 @@ canvas.addEventListener("pointercancel", endDrag);
 canvas.addEventListener("pointerleave", () => {
   if (!dragged) {
     updateHoverState(null);
+  }
+});
+globalThis.addEventListener?.("resize", () => {
+  if (configureCanvasResolution()) {
+    drawAll();
   }
 });
 
