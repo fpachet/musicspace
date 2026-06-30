@@ -78,6 +78,7 @@ node --test tests/constraint-engine.test.js
 - **Cycloid Rotator** carries a rotative object around an orbital mover, with drawing enabled by default to produce cycloid-like traces.
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
+- **Drone Triangle** binds three short bundled drone loops to moving sources, so Play Sound immediately demonstrates spatialized audio-file playback with chaotic beating motion.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 - **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
@@ -92,6 +93,7 @@ node --test tests/constraint-engine.test.js
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan/distance gain for `sourceBindings`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
+- `audio/drones/` contains the small bundled WAV loops used by the Drone Triangle patch.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.
 - `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.
 - The in-page Patch Inspector validates patch JSON against MusicSpace-level rules such as object references, constraint parameters, backend declarations, Faust adapter links, MIDI bindings, and parameter mapping targets.

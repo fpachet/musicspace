@@ -43,6 +43,11 @@
       "file": "bouncing-constellation.json"
     },
     {
+      "key": "drone-triangle",
+      "name": "Drone Triangle",
+      "file": "drone-triangle.json"
+    },
+    {
       "key": "beatles-trajectory-study",
       "name": "Beatles Trajectory Study",
       "file": "beatles-trajectory-study.json"
