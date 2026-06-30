@@ -95,7 +95,7 @@
       }
 
       const enabled = Boolean(targetController?.isEnabled());
-      toggleButton.textContent = enabled ? "Sound On" : "Sound Off";
+      toggleButton.textContent = enabled ? "Stop Sound" : "Play Sound";
       toggleButton.setAttribute("aria-pressed", String(enabled));
     }
 

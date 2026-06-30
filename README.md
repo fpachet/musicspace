@@ -56,8 +56,8 @@ node --test tests/constraint-engine.test.js
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
-- Use **Start** / **Stop** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Sound Off** / **Sound On** to enable the browser synth when a patch exposes parameter mappings for the current target backend.
+- Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
+- Use **Play Sound** / **Stop Sound** to enable or stop the browser synth when a patch exposes parameter mappings for the current target backend.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.

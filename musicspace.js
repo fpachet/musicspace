@@ -3930,7 +3930,7 @@ function startAnimation() {
   }
 
   isAnimating = true;
-  animationToggle.textContent = "Stop";
+  animationToggle.textContent = "Stop Movers";
   setAnimationPressedState(true);
   syncTracePositions();
   animationFrame = requestAnimationFrame(animate);
@@ -3938,7 +3938,7 @@ function startAnimation() {
 
 function stopAnimation() {
   isAnimating = false;
-  animationToggle.textContent = "Start";
+  animationToggle.textContent = "Start Movers";
   setAnimationPressedState(false);
 
   if (animationFrame !== null) {
