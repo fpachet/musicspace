@@ -25,22 +25,23 @@
     }
 
     main {
-      width: min(100%, 1160px);
+      width: min(100%, 1480px);
       margin: 0 auto;
-      padding: 24px;
+      padding: 16px 20px 24px;
+      display: grid;
+      grid-template-columns: minmax(220px, 240px) minmax(0, 1fr);
+      align-items: start;
+      gap: 8px 12px;
     }
 
     header {
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      align-items: start;
-      gap: 14px;
-      width: min(100%, 1080px);
-      margin: 0 auto 14px;
+      display: contents;
     }
 
     h1 {
-      margin: 8px 0 0;
+      grid-column: 1;
+      grid-row: 1;
+      margin: 4px 0 0;
       font-size: 22px;
       font-weight: 700;
       letter-spacing: 0;
@@ -50,7 +51,9 @@
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
-      gap: 6px;
+      grid-column: 2;
+      grid-row: 1;
+      gap: 5px;
       justify-content: flex-start;
     }
 
@@ -59,7 +62,7 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 4px;
-      min-height: 38px;
+      min-height: 34px;
       padding: 3px;
       border: 1px solid #d1d8de;
       border-radius: 8px;
@@ -78,24 +81,24 @@
     }
 
     .workspace {
-      display: grid;
-      grid-template-columns: minmax(220px, 240px) minmax(0, 840px);
-      align-items: start;
-      gap: 14px;
-      width: min(100%, 1080px);
-      margin: 0 auto;
+      display: contents;
     }
 
     .canvas-column {
+      grid-column: 2;
+      grid-row: 2;
       min-width: 0;
     }
 
     .tool-palette {
       display: flex;
       flex-direction: column;
+      grid-column: 1;
+      grid-row: 1 / span 2;
       gap: 6px;
       width: 100%;
       margin: 0;
+      padding-top: 42px;
     }
 
     .tool-stack {
@@ -149,10 +152,10 @@
       color: #1f2933;
       cursor: pointer;
       font: inherit;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1;
-      min-height: 34px;
-      padding: 0 10px;
+      min-height: 30px;
+      padding: 0 9px;
     }
 
     button:focus-visible,
@@ -162,13 +165,13 @@
     }
 
     select {
-      min-width: 190px;
+      min-width: 180px;
     }
 
     .mode-group button {
       border: 0;
       border-radius: 0;
-      min-height: 32px;
+      min-height: 28px;
     }
 
     button[aria-pressed="true"] {
@@ -591,13 +594,13 @@
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      min-height: 24px;
-      margin: 0 0 12px;
+      min-height: 18px;
+      margin: 0 0 6px;
     }
 
     .status {
       min-width: 0;
-      min-height: 22px;
+      min-height: 18px;
       margin: 0;
       width: 100%;
       padding: 0 2px;
@@ -721,6 +724,7 @@
     .target-panel,
     .midi-panel,
     .patch-inspector {
+      grid-column: 1 / -1;
       width: min(100%, 800px);
       margin: 12px auto 0;
       padding: 12px;
@@ -908,9 +912,21 @@
     }
 
     @media (max-width: 960px) {
+      main {
+        display: block;
+        width: min(100%, 840px);
+      }
+
+      header {
+        display: block;
+        width: 100%;
+        margin: 0 0 8px;
+      }
+
       .workspace {
+        display: grid;
         grid-template-columns: 1fr;
-        width: min(100%, 800px);
+        width: 100%;
       }
 
       .tool-palette {
@@ -919,6 +935,12 @@
         align-items: stretch;
         width: 100%;
         margin: 0 0 14px;
+        padding-top: 0;
+      }
+
+      .canvas-column {
+        grid-column: auto;
+        grid-row: auto;
       }
 
       .tool-stack {
@@ -1025,6 +1047,13 @@
           </div>
           <button id="animation-toggle" type="button" aria-pressed="false">Start Movers</button>
           <button id="target-toggle" type="button" aria-pressed="false">Play Sound</button>
+        </div>
+        <div class="toolbar-group" aria-label="Solver controls">
+          <div class="mode-group solver-control" aria-label="Solver mode">
+            <span class="mode-label">Solver</span>
+            <button id="solver-mode-propagation" type="button" title="Use bounded propagation solver">Propagation</button>
+            <button id="solver-mode-xpbd" type="button" title="Use experimental XPBD solver">XPBD</button>
+          </div>
         </div>
         <div class="toolbar-group" aria-label="MIDI file controls">
           <button id="midi-load-sequence" type="button">Load MIDI/MusicXML</button>
@@ -1150,11 +1179,6 @@
       </nav>
       <div class="canvas-column">
         <div class="status-row">
-          <div class="mode-group solver-control" aria-label="Solver mode">
-            <span class="mode-label">Solver</span>
-            <button id="solver-mode-propagation" type="button" title="Use bounded propagation solver">Propagation</button>
-            <button id="solver-mode-xpbd" type="button" title="Use experimental XPBD solver">XPBD</button>
-          </div>
           <p id="constraint-status" class="status" aria-live="polite"></p>
         </div>
         <div id="stage" class="stage">
