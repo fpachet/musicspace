@@ -87,7 +87,9 @@ function createElement(id = "") {
       }
       return true;
     },
-    focus() {},
+    focus(options) {
+      this.lastFocusOptions = options || null;
+    },
     getBoundingClientRect() {
       return { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
     },
@@ -290,6 +292,7 @@ globalThis.__musicspaceTestApi = {
   applySourceEditor,
   enforceConstraints,
   enforceConstraintsWithXpbd,
+  focusCanvasWithoutScrolling,
   getLastPropagationReport,
   getObjectByName,
   getSolverMode,
@@ -360,6 +363,10 @@ globalThis.__musicspaceTestApi = {
     },
     currentHref() {
       return sandbox.window.location.href;
+    },
+    focusCanvasWithoutScrolling() {
+      api.focusCanvasWithoutScrolling();
+      return document.getElementById("canvas").lastFocusOptions;
     },
     solverButtonPressed(mode) {
       const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
@@ -897,6 +904,12 @@ test("spacebar toggles sound playback for source audio bindings", async () => {
 
   await engine.pressCanvasKeyAndSettle(" ");
   assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("canvas pointer focus does not request page scrolling", () => {
+  const engine = createEngineHarness();
+  const focusOptions = engine.focusCanvasWithoutScrolling();
+  assert.equal(focusOptions.preventScroll, true);
 });
 
 test("sound clients do not enable without mappings or source bindings", async () => {

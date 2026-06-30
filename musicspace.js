@@ -4392,6 +4392,14 @@ function applyPatchJsonEditor() {
   setConstraintStatus("Patch JSON applied.");
 }
 
+function focusCanvasWithoutScrolling() {
+  try {
+    canvas.focus({ preventScroll: true });
+  } catch (error) {
+    canvas.focus();
+  }
+}
+
 function parsePatchJsonEditor() {
   try {
     return JSON.parse(patchJsonTextarea.value);
@@ -4433,7 +4441,7 @@ function beginDrag(event) {
     return;
   }
 
-  canvas.focus();
+  focusCanvasWithoutScrolling();
   selectedEntity = entity;
   dragged = {
     entity,
