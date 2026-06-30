@@ -205,6 +205,7 @@ globalThis.__musicspaceTestApi = {
   setSolverMode,
   setActiveTool,
   serializePatch,
+  stopAllDrawing,
   validatePatch
 };`;
   vm.runInContext(exposedSource, sandbox, { filename: "musicspace.js" });
@@ -279,6 +280,10 @@ globalThis.__musicspaceTestApi = {
     },
     solverIndicatorText() {
       return document.getElementById("solver-indicator").textContent;
+    },
+    stopAllDrawing() {
+      api.stopAllDrawing();
+      return api.serializePatch();
     },
     tickMover(name) {
       const mover = api.getObjectByName(name);
@@ -1080,6 +1085,38 @@ test("tool workflow can add a product constraint with more than three sources", 
   assert.equal(result.handled, true);
   assert.equal(constraint.type, "product");
   assert.equal(JSON.stringify(constraint.sources), JSON.stringify(["A", "B", "C", "D"]));
+});
+
+test("stop all drawing clears every trace flag without selecting objects one by one", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Trace flags",
+    version: 1,
+    listener: { x: 0, y: 0, drawTrace: true },
+    sources: [
+      { name: "A", x: 100, y: 0, drawTrace: true },
+      { name: "B", x: 0, y: 100, drawTrace: false }
+    ],
+    movingObjects: [
+      { name: "M1", x: 50, y: 50, drawTrace: true, trajectory: { type: "free" } }
+    ],
+    constraints: [
+      {
+        type: "fixedDistance",
+        anchor: "A",
+        target: "B",
+        distance: 120,
+        node: { x: 50, y: 50, drawTrace: true }
+      }
+    ]
+  });
+
+  const patch = engine.stopAllDrawing();
+
+  assert.equal(patch.listener.drawTrace, false);
+  assert.ok(patch.sources.every((source) => source.drawTrace === false));
+  assert.ok(patch.movingObjects.every((mover) => mover.drawTrace === false));
+  assert.ok(patch.constraints.every((constraint) => constraint.node.drawTrace === false));
 });
 
 test("patch validation rejects one-source sum and product constraints", () => {

@@ -12,6 +12,7 @@ const stage = document.getElementById("stage");
 const animationToggle = document.getElementById("animation-toggle");
 const undoButton = document.getElementById("undo");
 const traceSelectedButton = document.getElementById("trace-selected");
+const traceNoneButton = document.getElementById("trace-none");
 const patchSelect = document.getElementById("patch-select");
 const savePatchButton = document.getElementById("save-patch");
 const loadPatchButton = document.getElementById("load-patch");
@@ -3812,6 +3813,25 @@ function toggleSelectedTrace() {
   setConstraintStatus(`${entityLabel(selectedEntity)} drawing ${selectedEntity.drawTrace ? "on" : "off"}.`);
 }
 
+function stopAllDrawing() {
+  const traceableEntities = getTraceableEntities();
+  const enabledCount = traceableEntities.filter((entity) => entity.drawTrace).length;
+  if (enabledCount === 0) {
+    setConstraintStatus("No objects are drawing.");
+    updateTraceSelectedButton();
+    return;
+  }
+
+  pushUndoSnapshot("stop all drawing");
+  for (const entity of traceableEntities) {
+    entity.drawTrace = false;
+    entity.prevX = entity.x;
+    entity.prevY = entity.y;
+  }
+  updateTraceSelectedButton();
+  setConstraintStatus(`Drawing stopped for ${enabledCount} object${enabledCount === 1 ? "" : "s"}.`);
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -4232,6 +4252,7 @@ animationToggle.addEventListener("click", () => {
 });
 undoButton.addEventListener("click", undoLastEdit);
 traceSelectedButton.addEventListener("click", toggleSelectedTrace);
+traceNoneButton.addEventListener("click", stopAllDrawing);
 
 listenerModeRetargetButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_RETARGET);
