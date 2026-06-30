@@ -396,6 +396,7 @@ globalThis.__musicspaceTestApi = {
         hidden: document.getElementById("source-editor").hidden,
         name: document.getElementById("source-name").value,
         outputType: document.getElementById("source-output-type").value,
+        loop: Boolean(document.getElementById("source-loop").checked),
         muted: Boolean(document.getElementById("source-muted").checked),
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
@@ -411,6 +412,11 @@ globalThis.__musicspaceTestApi = {
     },
     renameOpenSource(name) {
       document.getElementById("source-name").value = name;
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
+    setOpenSourceLoop(loop) {
+      document.getElementById("source-loop").checked = Boolean(loop);
       api.applySourceEditor();
       return api.serializePatch();
     },
@@ -846,6 +852,38 @@ test("source audio bindings serialize with the patch", () => {
   assert.equal(patch.sourceBindings[0].name, "voice.wav");
   assert.equal(patch.sourceBindings[0].gain, 0.75);
   assert.equal(patch.sourceBindings[0].muted, false);
+});
+
+test("source inspector edits the audio loop parameter", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Source Loop",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        gain: 0.75,
+        muted: false,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("A"), true);
+  assert.equal(engine.sourceInspectorState().loop, true);
+
+  const patch = engine.setOpenSourceLoop(false);
+  assert.equal(patch.sourceBindings[0].loop, false);
+
+  engine.openSourceInspector("A");
+  assert.equal(engine.sourceInspectorState().loop, false);
 });
 
 test("m key toggles mute for the selected source audio binding", () => {
