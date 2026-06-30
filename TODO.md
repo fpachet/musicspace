@@ -10,7 +10,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 - Expand the patch menu with more built-in scenes as new constraints and trajectories are introduced.
 - Add visible delete affordances for sources, movers, and constraints beyond keyboard deletion.
-- Generalize the rotative-object popup into a compact side panel for all constraint nodes and movers.
+- Expand popup editors to cover all constraint nodes and movers with type-specific parameters.
 - Add a reset option for manually moved constraint nodes.
 - Add richer hover tooltips that identify listener, sources, and constraint types without cluttering the canvas. Long source labels now render outside source markers.
 - Add parameter controls for newly created constraints and non-rotative trajectories instead of relying only on defaults.

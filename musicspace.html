@@ -714,8 +714,7 @@
     }
 
     .editor-panel {
-      width: min(100%, 800px);
-      margin: 12px auto 0;
+      width: min(380px, calc(100vw - 40px));
       padding: 12px;
       border: 1px solid #b9c1c9;
       border-radius: 6px;
@@ -723,18 +722,17 @@
       box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
     }
 
-    #source-editor {
+    .popup-panel {
       position: fixed;
       top: 88px;
       right: 20px;
       z-index: 20;
-      width: min(360px, calc(100vw - 40px));
       max-height: calc(100vh - 112px);
       margin: 0;
       overflow: auto;
     }
 
-    #source-editor .editor-grid {
+    .editor-panel .editor-grid {
       grid-template-columns: 1fr;
     }
 
@@ -771,11 +769,17 @@
     .editor-check {
       flex-direction: row !important;
       align-items: center;
+      justify-content: flex-start;
       color: #1f2933 !important;
+    }
+
+    .editor-check input[type="checkbox"] {
+      width: auto;
     }
 
     .editor-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       justify-content: flex-end;
       margin-top: 12px;
@@ -792,6 +796,20 @@
       border-radius: 6px;
       background: #ffffff;
       box-shadow: 0 8px 24px rgba(31, 41, 51, 0.08);
+    }
+
+    .patch-inspector.popup-panel {
+      top: auto;
+      right: auto;
+      bottom: 20px;
+      left: 20px;
+      width: min(740px, calc(100vw - 40px));
+      max-height: min(72vh, 680px);
+      margin: 0;
+    }
+
+    .patch-inspector[hidden] {
+      display: none;
     }
 
     .target-panel[hidden] {
@@ -1072,10 +1090,13 @@
       }
 
       #source-editor {
-        position: static;
-        width: min(100%, 800px);
-        max-height: none;
-        margin: 12px auto 0;
+        width: auto;
+      }
+
+      .popup-panel {
+        inset: 16px;
+        width: auto;
+        max-height: calc(100vh - 32px);
       }
 
       .tool-grid {
@@ -1103,6 +1124,7 @@
         <div class="toolbar-group" aria-label="Patch controls">
           <span class="toolbar-group-label">Patch</span>
           <select id="patch-select" aria-label="Load built-in patch"></select>
+          <button id="patch-inspector-toggle" type="button" aria-pressed="false">Inspect</button>
           <button id="save-patch" type="button">Save Patch</button>
           <button id="load-patch" type="button">Load Patch</button>
           <input id="patch-file" type="file" accept="application/json,.json" hidden>
@@ -1267,12 +1289,13 @@
       <h2>Target Parameters</h2>
       <div id="target-grid" class="target-grid"></div>
     </section>
-    <section id="patch-inspector" class="patch-inspector" aria-label="Patch inspector">
+    <section id="patch-inspector" class="patch-inspector popup-panel" aria-label="Patch inspector" hidden>
       <div class="inspector-header">
         <h2>Patch Inspector</h2>
         <div class="inspector-actions">
           <button id="patch-validate" type="button">Validate</button>
           <button id="patch-json-toggle" type="button" aria-pressed="false">JSON</button>
+          <button id="patch-inspector-close" type="button">Close</button>
         </div>
       </div>
       <div id="patch-summary" class="inspector-grid"></div>
@@ -1289,7 +1312,7 @@
       <p id="midi-status" class="midi-status" aria-live="polite"></p>
       <div id="midi-track-list" class="midi-track-list"></div>
     </section>
-    <section id="rotation-editor" class="editor-panel" aria-label="Rotative constraint editor" hidden>
+    <section id="rotation-editor" class="editor-panel popup-panel" aria-label="Rotative constraint editor" hidden>
       <h2>Rotative Constraint Editor</h2>
       <div class="editor-grid">
         <label class="editor-check">
@@ -1317,7 +1340,7 @@
         <button id="rotation-close" type="button">Close</button>
       </div>
     </section>
-    <section id="shuttle-editor" class="editor-panel" aria-label="Shuttle trajectory editor" hidden>
+    <section id="shuttle-editor" class="editor-panel popup-panel" aria-label="Shuttle trajectory editor" hidden>
       <h2>Shuttle Trajectory Editor</h2>
       <div class="editor-grid">
         <label>
@@ -1358,7 +1381,7 @@
         <button id="shuttle-close" type="button">Close</button>
       </div>
     </section>
-    <section id="source-editor" class="editor-panel" aria-label="Source audio editor" hidden>
+    <section id="source-editor" class="editor-panel popup-panel" aria-label="Source audio editor" hidden>
       <h2>Source Inspector</h2>
       <div class="editor-grid">
         <label>

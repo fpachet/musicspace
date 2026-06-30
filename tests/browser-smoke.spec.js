@@ -21,6 +21,10 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   await expect.poll(async () => patchSelect.locator("option").count()).toBeGreaterThan(0);
   await patchSelect.selectOption("cycloid-percussion");
 
+  const patchInspectorToggle = page.locator("#patch-inspector-toggle");
+  await expect(page.locator("#patch-inspector")).toBeHidden();
+  await patchInspectorToggle.click();
+  await expect(page.locator("#patch-inspector")).toBeVisible();
   await expect(page.locator("#patch-summary")).toContainText("Cycloid Percussion");
   await expect(page.locator("#canvas")).toBeVisible();
 

@@ -49,14 +49,14 @@ npm run smoke
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Save Patch** / **Load Patch** to export and import scene JSON.
-- Use **Patch Inspector** to read the active patch summary, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
+- Use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
 - Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be renamed and bound to an audio file.
-- Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
-- Double-click a shuttle mover to edit its endpoints and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
+- Double-click a rotative mover to open its popup editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
+- Double-click a shuttle mover to open its popup editor, change endpoints, and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
   - **Re-anchor** moves the listener and retargets constraints to the new geometry.
   - **Preserve** moves the listener while preserving active constraints.

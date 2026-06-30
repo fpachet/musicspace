@@ -33,6 +33,9 @@ const midiTrackList = document.getElementById("midi-track-list");
 const midiStatus = document.getElementById("midi-status");
 const patchSummary = document.getElementById("patch-summary");
 const patchValidation = document.getElementById("patch-validation");
+const patchInspector = document.getElementById("patch-inspector");
+const patchInspectorToggle = document.getElementById("patch-inspector-toggle");
+const patchInspectorClose = document.getElementById("patch-inspector-close");
 const patchJsonToggle = document.getElementById("patch-json-toggle");
 const patchJsonEditor = document.getElementById("patch-json-editor");
 const patchJsonTextarea = document.getElementById("patch-json");
@@ -3792,6 +3795,7 @@ function openRotationEditor(mover) {
 
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
+  closeSourceEditor();
   activeRotationMover = mover;
   rotationRunningInput.checked = Boolean(mover.trajectory.running);
   rotationDisplacementInput.checked = Boolean(mover.trajectory.displacementInducesRotation);
@@ -3837,6 +3841,7 @@ function openShuttleEditor(mover) {
 
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  closeSourceEditor();
   activeShuttleMover = mover;
   populateEndpointSelect(shuttleStartRefInput, mover);
   populateEndpointSelect(shuttleEndRefInput, mover);
@@ -3858,7 +3863,7 @@ function openShuttleEditor(mover) {
 }
 
 function revealEditor(editor) {
-  if (editor === sourceEditor && window.matchMedia?.("(min-width: 721px)").matches) {
+  if (editor.classList?.contains?.("popup-panel")) {
     return;
   }
 
@@ -4576,6 +4581,7 @@ function loadPatchFile(file) {
 }
 
 function togglePatchJsonEditor() {
+  openPatchInspector();
   const isOpening = patchJsonEditor.hidden;
   patchJsonEditor.hidden = !isOpening;
   patchJsonToggle.setAttribute("aria-pressed", String(isOpening));
@@ -4584,6 +4590,27 @@ function togglePatchJsonEditor() {
     const patch = currentPatchSnapshot();
     patchJsonTextarea.value = patch ? JSON.stringify(patch, null, 2) : "";
     patchJsonTextarea.focus();
+  }
+}
+
+function openPatchInspector() {
+  patchInspector.hidden = false;
+  patchInspectorToggle.setAttribute("aria-pressed", "true");
+  updatePatchInspector({ refreshJson: false });
+}
+
+function closePatchInspector() {
+  patchInspector.hidden = true;
+  patchInspectorToggle.setAttribute("aria-pressed", "false");
+  patchJsonEditor.hidden = true;
+  patchJsonToggle.setAttribute("aria-pressed", "false");
+}
+
+function togglePatchInspector() {
+  if (patchInspector.hidden) {
+    openPatchInspector();
+  } else {
+    closePatchInspector();
   }
 }
 
@@ -4860,6 +4887,8 @@ patchFileInput.addEventListener("change", () => {
 });
 patchJsonToggle.addEventListener("click", togglePatchJsonEditor);
 patchJsonApplyButton.addEventListener("click", applyPatchJsonEditor);
+patchInspectorToggle.addEventListener("click", togglePatchInspector);
+patchInspectorClose.addEventListener("click", closePatchInspector);
 patchValidateButton.addEventListener("click", validatePatchEditor);
 midiLoadSequenceButton.addEventListener("click", () => {
   midiSequenceFileInput.click();
