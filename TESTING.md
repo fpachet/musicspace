@@ -24,7 +24,8 @@ Current coverage:
 - Solver comparison metrics across representative built-in patches.
 - XPBD repeated-trajectory stability checks over built-in trajectory patches.
 - XPBD iteration sweep and release-refinement regression tests.
-- Patch validation for object references, backend declarations, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
+- Patch validation for object references, backend declarations, source bindings, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
+- Source Inspector coverage for source audio binding serialization, source renaming across patch references, and the no-default-sound rule when a patch has no `sourceBindings` or `parameterMappings`.
 
 Optional diagnostic output:
 

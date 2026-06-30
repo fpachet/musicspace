@@ -55,6 +55,12 @@
         "$ref": "#/$defs/constraint"
       }
     },
+    "sourceBindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceBinding"
+      }
+    },
     "target": {
       "type": "object",
       "additionalProperties": true,
@@ -217,6 +223,37 @@
         "suffix": { "type": "string" },
         "digits": { "type": "integer" }
       }
+    },
+    "sourceBinding": {
+      "type": "object",
+      "required": ["source", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "source": { "$ref": "#/$defs/entityName" },
+        "type": { "const": "audio-file" },
+        "name": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "dataUrl": {
+          "type": "string",
+          "description": "Embedded user-loaded audio file as a data URL."
+        },
+        "url": {
+          "type": "string",
+          "description": "Project-local or remote audio file URL for authored patches."
+        },
+        "loop": { "type": "boolean" },
+        "gain": {
+          "type": "number",
+          "minimum": 0
+        },
+        "spatialization": {
+          "enum": ["pan-distance", "stereo-pan"]
+        }
+      },
+      "anyOf": [
+        { "required": ["dataUrl"] },
+        { "required": ["url"] }
+      ]
     },
     "traceable": {
       "type": "object",

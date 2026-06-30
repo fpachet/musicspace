@@ -1,6 +1,6 @@
 # MusicSpace Patch Format
 
-MusicSpace patches are JSON files that describe a complete scene: listener, sources, optional moving objects, constraints, target mappings, and optional sequence-file settings.
+MusicSpace patches are JSON files that describe a complete scene: listener, sources, optional moving objects, constraints, source audio bindings, target mappings, and optional sequence-file settings.
 
 Built-in patches live in `patches/*.json` and are listed by `patches/index.json`. User-saved patches use the same `version: 1` format, but do not need a `key` unless they are added to the built-in menu.
 
@@ -15,7 +15,7 @@ The app includes a Patch Inspector under the canvas. It summarizes the active pa
 
 Use **JSON** in the inspector to open an editable snapshot of the active patch. **Apply JSON** parses that snapshot, validates it, and loads it as a separate edited patch entry instead of overwriting a built-in patch.
 
-Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
+Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, source audio bindings, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
 
 ## Minimal Patch
 
@@ -47,6 +47,7 @@ Validation checks MusicSpace-level semantics that JSON Schema cannot fully expre
 - `sources`: named sound-source positions, each with optional `drawTrace`.
 - `movingObjects`: optional named movers with trajectory descriptions.
 - `constraints`: optional geometric/relational constraints.
+- `sourceBindings`: optional direct audio emitters bound to sources.
 - `target`: optional parameter target selection.
 - `parameterMappings`: optional mappings from scene features to target parameters.
 - `midiFile`: optional MIDI/MusicXML sequence-file binding.
@@ -85,9 +86,28 @@ Parameter mappings connect a source feature to a target parameter path:
 }
 ```
 
+Source bindings make a source a direct audio emitter. The Source Inspector writes `audio-file` bindings with embedded user-loaded files (`dataUrl`) or URL-based files for authored patches:
+
+```json
+{
+  "source": "A",
+  "type": "audio-file",
+  "name": "voice.wav",
+  "mimeType": "audio/wav",
+  "dataUrl": "data:audio/wav;base64,...",
+  "loop": true,
+  "gain": 0.8,
+  "spatialization": "pan-distance"
+}
+```
+
+`spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan and distance to gain attenuation. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
+
 ## Target Backend Binding
 
-Patches bind to parameter backends with the top-level `target` object. If `target` is omitted, MusicSpace uses the built-in `subtractive` Web Audio backend.
+Patches bind to parameter backends with the top-level `target` object. If `target` is omitted, MusicSpace uses the built-in `subtractive` Web Audio backend for validating and applying `parameterMappings`.
+
+`Play Sound` only starts browser audio when there is something explicit to play: at least one `sourceBindings` entry or at least one `parameterMappings` entry. A patch that only has geometry, constraints, and an omitted `target` stays silent.
 
 Current target types:
 

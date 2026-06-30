@@ -4,7 +4,7 @@ MusicSpace is an old idea, 26 years old: putting together the power of constrain
 
 A browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; editing one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
-MusicSpace now includes a bounded constraint solver with local repair/backoff strategies, a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+MusicSpace now includes a bounded constraint solver with local repair/backoff strategies, a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -20,7 +20,7 @@ Then open <http://localhost:8000/musicspace.html>.
 
 The built-in patch library is loaded from JSON files, so the page needs HTTP. Browsers usually block `fetch()` for local `file://` assets.
 
-The current propagation solver remains the default. Use the Solver segmented control above the canvas to switch between Propagation and the experimental XPBD solver. You can also open <http://localhost:8000/musicspace.html?solver=xpbd> directly; the canvas shows a solver badge so you can confirm which mode is active.
+The current propagation solver remains the default. Use the Solver segmented control above the canvas to switch between Propagation and the experimental XPBD solver. You can also open <http://localhost:8000/musicspace.html?solver=xpbd> directly.
 
 No build step or package installation is required.
 
@@ -45,7 +45,7 @@ node --test tests/constraint-engine.test.js
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
-- Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be bound to an audio file.
+- Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be renamed and bound to an audio file.
 - Double-click a rotative mover to open the editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
 - Double-click a shuttle mover to edit its endpoints and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Choose listener mode:
@@ -59,7 +59,7 @@ node --test tests/constraint-engine.test.js
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use **Undo** or Cmd/Ctrl+Z to undo edits, especially deletes.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Play Sound** / **Stop Sound** to enable or stop browser sound: source audio-file bindings and the current parameter target backend are controlled together.
+- Use **Play Sound** / **Stop Sound** to enable or stop browser sound. It starts source audio-file bindings and parameter target backends only when the patch actually contains `sourceBindings` or `parameterMappings`; patches with only geometric constraints stay silent.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
@@ -131,6 +131,7 @@ node --test tests/constraint-engine.test.js
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
+- Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan and optional distance gain.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

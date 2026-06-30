@@ -59,6 +59,8 @@ Only `type` and `createRuntime` are mandatory, but useful backends should provid
 
 The Web Audio examples expose Faust-style parameter paths, but they are not compiled from Faust patches. `faust-wasm` is the bridge for actual Faust artifacts.
 
+`Play Sound` does not start a backend merely because a `target` exists or because the default `subtractive` backend is available. It enables parameter targets only when the patch has `parameterMappings`, and it enables source audio only when the patch has `sourceBindings`.
+
 ## Patch-Level Faust Binding
 
 A patch specifies the actual Faust target in its `target` object:
@@ -135,7 +137,7 @@ Sources can also be direct audio emitters through patch-level `sourceBindings`. 
 }
 ```
 
-`Play Sound` starts and stops source audio bindings together with the active parameter target backend. `pan-distance` maps left/right position around the listener to stereo pan and listener distance to gain attenuation; `stereo-pan` keeps gain constant and only pans.
+`Play Sound` starts and stops source audio bindings together with mapped parameter target backends. Patches without `sourceBindings` or `parameterMappings` remain silent. `pan-distance` maps left/right position around the listener to stereo pan and listener distance to gain attenuation; `stereo-pan` keeps gain constant and only pans.
 
 ## Faust Direction
 
