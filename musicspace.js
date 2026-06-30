@@ -155,12 +155,43 @@ class SoundSource extends Entity {
 
   draw(ctx) {
     super.draw(ctx);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(this.name, this.x, this.y);
+    if (this.name.length <= 2) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(this.name, this.x, this.y);
+      return;
+    }
+
+    drawSourceExternalLabel(ctx, this);
   }
+}
+
+function drawSourceExternalLabel(ctx, source) {
+  const paddingX = 5;
+  const labelHeight = 16;
+  const labelWidth = clamp(source.name.length * 7 + paddingX * 2, 30, 116);
+  const labelX = clamp(source.x - labelWidth / 2, 4, WIDTH - labelWidth - 4);
+  const belowY = source.y + source.radius + 6;
+  const labelY = belowY + labelHeight <= HEIGHT - 4
+    ? belowY
+    : source.y - source.radius - labelHeight - 6;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(labelX, labelY, labelWidth, labelHeight);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(31, 41, 51, 0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = "#1f2933";
+  ctx.font = "700 11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(source.name, labelX + labelWidth / 2, labelY + labelHeight / 2, labelWidth - paddingX * 2);
+  ctx.restore();
 }
 
 class MovingObject extends Entity {
