@@ -3744,7 +3744,24 @@ function applySourceEditor() {
     return;
   }
 
-  pushUndoSnapshot("edit source audio");
+  const previousName = activeSourceEditorSource.name;
+  const requestedName = sourceNameInput.value.trim();
+  const renameProblem = sourceRenameProblem(activeSourceEditorSource, requestedName);
+
+  if (renameProblem) {
+    setConstraintStatus(renameProblem);
+    return;
+  }
+
+  const [existingBinding] = sourceAudioClient.bindingsForSource(previousName);
+  const audioFile = pendingSourceAudioFile || existingBinding;
+  if (sourceOutputTypeInput.value === SOURCE_BINDING_AUDIO_FILE && !audioFile?.dataUrl && !audioFile?.url) {
+    setConstraintStatus(`Choose an audio file for ${requestedName}.`);
+    return;
+  }
+
+  pushUndoSnapshot("edit source");
+  renameSource(activeSourceEditorSource, requestedName);
   const sourceName = activeSourceEditorSource.name;
 
   if (sourceOutputTypeInput.value !== SOURCE_BINDING_AUDIO_FILE) {
@@ -3752,13 +3769,6 @@ function applySourceEditor() {
     setConstraintStatus(`${sourceName} has no sound binding.`);
     updatePatchInspector();
     drawAll();
-    return;
-  }
-
-  const [existing] = sourceAudioClient.bindingsForSource(sourceName);
-  const audioFile = pendingSourceAudioFile || existing;
-  if (!audioFile?.dataUrl && !audioFile?.url) {
-    setConstraintStatus(`Choose an audio file for ${sourceName}.`);
     return;
   }
 
@@ -3779,6 +3789,47 @@ function applySourceEditor() {
   setConstraintStatus(`${sourceName} sound binding updated.`);
   updatePatchInspector();
   drawAll();
+}
+
+function sourceRenameProblem(source, nextName) {
+  if (!nextName) {
+    return "Source name cannot be empty.";
+  }
+  if (nextName === "Listener") {
+    return "Source name cannot be Listener.";
+  }
+
+  const existing = getObjectByName(nextName);
+  if (existing && existing !== source) {
+    return `Another object is already named ${nextName}.`;
+  }
+
+  return "";
+}
+
+function renameSource(source, nextName) {
+  const previousName = source.name;
+  if (previousName === nextName) {
+    return;
+  }
+
+  source.name = nextName;
+  renameTrajectoryEndpointReferences(previousName, nextName);
+  parameterClient.renameSource(previousName, nextName);
+  sourceAudioClient.renameSource(previousName, nextName);
+  midiFileClient.renameSource(previousName, nextName);
+}
+
+function renameTrajectoryEndpointReferences(previousName, nextName) {
+  for (const mover of movingObjects) {
+    const trajectory = mover.trajectory;
+    if (trajectory?.start?.type === "object" && trajectory.start.name === previousName) {
+      trajectory.start = { ...trajectory.start, name: nextName };
+    }
+    if (trajectory?.end?.type === "object" && trajectory.end.name === previousName) {
+      trajectory.end = { ...trajectory.end, name: nextName };
+    }
+  }
 }
 
 function removeSourceBindingFromEditor() {

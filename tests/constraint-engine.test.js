@@ -143,10 +143,21 @@ function createEngineHarness() {
     },
     MusicSpaceMidiFileClient: {
       createMidiFileClient() {
+        let midiFile = null;
         return {
-          loadPatch() {},
+          loadPatch(patch = {}) {
+            midiFile = patch.midiFile ? JSON.parse(JSON.stringify(patch.midiFile)) : null;
+          },
+          renameSource(oldName, newName) {
+            if (!midiFile?.trackBindings) {
+              return;
+            }
+            midiFile.trackBindings = midiFile.trackBindings.map((binding) => (
+              binding.source === oldName ? { ...binding, source: newName } : binding
+            ));
+          },
           serialize() {
-            return {};
+            return midiFile ? { midiFile: JSON.parse(JSON.stringify(midiFile)) } : {};
           },
           updateSpatial() {}
         };
@@ -154,16 +165,26 @@ function createEngineHarness() {
     },
     MusicSpaceParameterClient: {
       createParameterClient() {
+        let mappings = [];
         return {
           hasMappings() {
-            return false;
+            return mappings.length > 0;
           },
-          loadPatch() {},
+          loadPatch(patch = {}) {
+            mappings = Array.isArray(patch.parameterMappings)
+              ? patch.parameterMappings.map((mapping) => ({ ...mapping }))
+              : [];
+          },
           mappedEntityNames() {
-            return [];
+            return Array.from(new Set(mappings.map((mapping) => mapping.source)));
+          },
+          renameSource(oldName, newName) {
+            mappings = mappings.map((mapping) => (
+              mapping.source === oldName ? { ...mapping, source: newName } : mapping
+            ));
           },
           serialize() {
-            return {};
+            return { parameterMappings: mappings.map((mapping) => ({ ...mapping })) };
           },
           isEnabled() {
             return false;
@@ -195,6 +216,11 @@ function createEngineHarness() {
           },
           removeBinding(sourceName) {
             bindings = bindings.filter((binding) => binding.source !== sourceName);
+          },
+          renameSource(oldName, newName) {
+            bindings = bindings.map((binding) => (
+              binding.source === oldName ? { ...binding, source: newName } : binding
+            ));
           },
           removeBindingsForMissingSources(sourceNames) {
             const validNames = new Set(sourceNames);
@@ -236,6 +262,7 @@ function createEngineHarness() {
     .replace(/\ninitializeApp\(\);\s*$/, "\n");
   const exposedSource = `${source}
 globalThis.__musicspaceTestApi = {
+  applySourceEditor,
   enforceConstraints,
   enforceConstraintsWithXpbd,
   getLastPropagationReport,
@@ -328,6 +355,11 @@ globalThis.__musicspaceTestApi = {
         outputType: document.getElementById("source-output-type").value,
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
+    },
+    renameOpenSource(name) {
+      document.getElementById("source-name").value = name;
+      api.applySourceEditor();
+      return api.serializePatch();
     },
     createConstraintWithTool(tool, names) {
       api.handleToolButtonClick(tool);
@@ -765,6 +797,76 @@ test("double-clicking a source opens the source inspector", () => {
   assert.equal(inspector.name, "A");
   assert.equal(inspector.outputType, "none");
   assert.equal(inspector.fileLabel, "No audio file assigned.");
+});
+
+test("source inspector rename updates patch references", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Rename source",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [
+      { name: "A", x: 250, y: 300 },
+      { name: "B", x: 500, y: 300 }
+    ],
+    movingObjects: [
+      {
+        name: "Lift",
+        x: 350,
+        y: 300,
+        trajectory: {
+          type: "shuttle",
+          start: { type: "object", name: "A", x: 250, y: 300 },
+          end: { type: "object", name: "B", x: 500, y: 300 },
+          speed: 0.01
+        }
+      }
+    ],
+    constraints: [
+      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 },
+      { type: "solid", carrier: "Lift", attached: "A" }
+    ],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    parameterMappings: [
+      {
+        source: "A",
+        feature: "distance",
+        target: "/osc/freq",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 110,
+        outputMax: 880
+      }
+    ],
+    midiFile: {
+      sequenceData: { title: "Stub" },
+      trackBindings: [{ track: "Lead", source: "A", channel: 1, program: 1 }]
+    }
+  });
+
+  assert.equal(engine.openSourceInspector("A"), true);
+  const patch = engine.renameOpenSource("Lead");
+
+  assert.ok(engine.api.getObjectByName("Lead"));
+  assert.equal(engine.api.getObjectByName("A"), null);
+  assert.deepEqual(patch.sources.map((source) => source.name), ["Lead", "B"]);
+  assert.equal(patch.constraints.find((constraint) => constraint.type === "radialLimit").source, "Lead");
+  assert.equal(patch.constraints.find((constraint) => constraint.type === "solid").attached, "Lead");
+  assert.equal(patch.sourceBindings[0].source, "Lead");
+  assert.equal(patch.parameterMappings[0].source, "Lead");
+  assert.equal(patch.midiFile.trackBindings[0].source, "Lead");
+  assert.equal(patch.movingObjects[0].trajectory.start.name, "Lead");
 });
 
 test("patch validation checks source audio bindings", () => {

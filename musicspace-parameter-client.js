@@ -48,6 +48,12 @@
       mappedEntityNames() {
         return Array.from(new Set(mappings.map((mapping) => mapping.source)));
       },
+      renameSource(oldName, newName) {
+        mappings = mappings.map((mapping) => (
+          mapping.source === oldName ? { ...mapping, source: newName } : mapping
+        ));
+        update({ immediate: true });
+      },
       parameterValues() {
         return { ...targetParamValues };
       },

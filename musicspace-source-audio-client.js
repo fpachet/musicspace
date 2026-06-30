@@ -54,6 +54,17 @@
         stopPlayer(player);
         players.delete(sourceName);
       },
+      renameSource(oldName, newName) {
+        bindings = bindings.map((binding) => (
+          binding.source === oldName ? { ...binding, source: newName } : binding
+        ));
+        const player = players.get(oldName);
+        if (player) {
+          players.delete(oldName);
+          player.binding.source = newName;
+          players.set(newName, player);
+        }
+      },
       removeBindingsForMissingSources(sourceNames) {
         const validNames = new Set(sourceNames);
         for (const binding of [...bindings]) {

@@ -67,6 +67,21 @@
       serialize,
       updateSpatial,
       stop,
+      renameSource(oldName, newName) {
+        if (patchMidiSpec?.trackBindings) {
+          patchMidiSpec = {
+            ...patchMidiSpec,
+            trackBindings: patchMidiSpec.trackBindings.map((binding) => (
+              binding.source === oldName ? { ...binding, source: newName } : binding
+            ))
+          };
+        }
+        trackBindings = trackBindings.map((binding) => (
+          binding.source === oldName ? { ...binding, source: newName } : binding
+        ));
+        updatePanel();
+        updateSpatial(true);
+      },
       hasMidiFile() {
         return Boolean(patchMidiSpec);
       }
