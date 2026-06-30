@@ -10,26 +10,22 @@
     {
       "name": "Rate",
       "x": 235,
-      "y": 205,
-      "drawTrace": true
+      "y": 205
     },
     {
       "name": "Size",
       "x": 330,
-      "y": 430,
-      "drawTrace": true
+      "y": 430
     },
     {
       "name": "Pitch",
       "x": 555,
-      "y": 225,
-      "drawTrace": true
+      "y": 225
     },
     {
       "name": "Spray",
       "x": 585,
-      "y": 370,
-      "drawTrace": true
+      "y": 370
     },
     {
       "name": "Tone",
@@ -47,7 +43,6 @@
       "name": "DensityLift",
       "x": 235,
       "y": 205,
-      "drawTrace": true,
       "trajectory": {
         "type": "shuttle",
         "start": {

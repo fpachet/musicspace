@@ -76,7 +76,7 @@ node --test tests/constraint-engine.test.js
 - **Open Trio** is a simpler three-source balance scene for experimenting with listener and source motion.
 - **Simple Rotator** has one rotative object carrying several sources.
 - **Nested Rotators** links one rotative object to another, producing epicycle-like compound motion.
-- **Cycloid Rotator** carries a rotative object around an orbital mover, with drawing enabled by default to produce cycloid-like traces.
+- **Cycloid Rotator** carries a rotative object around an orbital mover; enable drawing manually to produce cycloid-like traces.
 - **Shuttle Spin** carries a rotative object between two draggable source endpoints.
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Cycloid Percussion** binds three short bundled marimba, timbale, and bell loops to nested cycloid-style source motion, so Play Sound immediately demonstrates spatialized audio-file playback with changing rhythmic perspective.

@@ -10,20 +10,17 @@
     {
       "name": "Bass",
       "x": 245,
-      "y": 355,
-      "drawTrace": true
+      "y": 355
     },
     {
       "name": "Drums",
       "x": 400,
-      "y": 170,
-      "drawTrace": true
+      "y": 170
     },
     {
       "name": "Piano",
       "x": 560,
-      "y": 355,
-      "drawTrace": true
+      "y": 355
     }
   ],
   "constraints": [

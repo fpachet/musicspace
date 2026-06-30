@@ -10,20 +10,17 @@
     {
       "name": "Freq",
       "x": 250,
-      "y": 230,
-      "drawTrace": true
+      "y": 230
     },
     {
       "name": "Cutoff",
       "x": 570,
-      "y": 260,
-      "drawTrace": true
+      "y": 260
     },
     {
       "name": "Q",
       "x": 530,
-      "y": 385,
-      "drawTrace": true
+      "y": 385
     },
     {
       "name": "Gain",
@@ -36,7 +33,6 @@
       "name": "Sweep",
       "x": 250,
       "y": 230,
-      "drawTrace": true,
       "trajectory": {
         "type": "shuttle",
         "ax": 210,

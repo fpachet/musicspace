@@ -10,20 +10,17 @@
     {
       "name": "A",
       "x": 580,
-      "y": 300,
-      "drawTrace": true
+      "y": 300
     },
     {
       "name": "B",
       "x": 520,
-      "y": 360,
-      "drawTrace": true
+      "y": 360
     },
     {
       "name": "C",
       "x": 460,
-      "y": 300,
-      "drawTrace": true
+      "y": 300
     }
   ],
   "movingObjects": [
@@ -31,7 +28,6 @@
       "name": "Orbit",
       "x": 520,
       "y": 300,
-      "drawTrace": true,
       "trajectory": {
         "type": "rotation",
         "centerX": 400,

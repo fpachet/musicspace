@@ -798,6 +798,23 @@ test("patch validation accepts every built-in patch", () => {
   }
 });
 
+test("built-in patches do not enable trace drawing by default", () => {
+  const index = JSON.parse(fs.readFileSync(path.join(ROOT, "patches", "index.json"), "utf8"));
+
+  for (const entry of index.patches) {
+    const patch = loadFixturePatch(entry.file);
+    const traceDefaults = [
+      patch.listener,
+      ...(patch.sources || []),
+      ...(patch.movingObjects || []),
+      ...(patch.constraints || []).map((constraint) => constraint.node)
+    ].filter(Boolean);
+    const enabled = traceDefaults.filter((entity) => entity.drawTrace === true);
+
+    assert.equal(enabled.length, 0, `${entry.file} should not set drawTrace: true`);
+  }
+});
+
 test("patch validation reports dangling constraints and backend mistakes", () => {
   const engine = createEngineHarness();
   const findings = engine.api.validatePatch({
