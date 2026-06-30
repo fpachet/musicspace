@@ -280,20 +280,28 @@ function createEngineHarness() {
     MusicSpaceGeneratorClient: {
       createGeneratorClient() {
         let generators = [];
+        let generatorMappings = [];
         let enabled = false;
         return {
           loadPatch(patch = {}) {
             generators = Array.isArray(patch.sourceGenerators)
               ? patch.sourceGenerators.map((generator) => ({ ...generator }))
               : [];
+            generatorMappings = Array.isArray(patch.sourceGeneratorMappings)
+              ? patch.sourceGeneratorMappings.map((mapping) => ({ ...mapping }))
+              : [];
             enabled = false;
           },
           serialize() {
-            return generators.length > 0
-              ? { sourceGenerators: generators.map((generator) => ({ ...generator })) }
-              : {};
+            return {
+              ...(generators.length > 0 ? { sourceGenerators: generators.map((generator) => ({ ...generator })) } : {}),
+              ...(generatorMappings.length > 0 ? { sourceGeneratorMappings: generatorMappings.map((mapping) => ({ ...mapping })) } : {})
+            };
           },
           generatorsForSource(sourceName) {
+            return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
+          },
+          effectiveGeneratorsForSource(sourceName) {
             return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
           },
           hasGenerators() {
@@ -327,13 +335,18 @@ function createEngineHarness() {
             generators = generators.map((generator) => (
               generator.source === oldName ? { ...generator, source: newName } : generator
             ));
+            generatorMappings = generatorMappings.map((mapping) => (
+              mapping.source === oldName ? { ...mapping, source: newName } : mapping
+            ));
           },
           removeGenerator(sourceName) {
             generators = generators.filter((generator) => generator.source !== sourceName);
+            generatorMappings = generatorMappings.filter((mapping) => mapping.source !== sourceName);
           },
           removeGeneratorsForMissingSources(sourceNames) {
             const validNames = new Set(sourceNames);
             generators = generators.filter((generator) => validNames.has(generator.source));
+            generatorMappings = generatorMappings.filter((mapping) => validNames.has(mapping.source));
           },
           async setEnabled(nextEnabled) {
             enabled = Boolean(nextEnabled && generators.length > 0);
@@ -1172,6 +1185,17 @@ test("source generators serialize with the patch", () => {
         spatialization: "pan-distance"
       }
     ],
+    sourceGeneratorMappings: [
+      {
+        source: "Pulse",
+        feature: "distance",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      }
+    ],
     constraints: []
   });
 
@@ -1181,6 +1205,72 @@ test("source generators serialize with the patch", () => {
   assert.equal(patch.sourceGenerators[0].type, "midi-ostinato");
   assert.equal(patch.sourceGenerators[0].pitch, 60);
   assert.equal(patch.sourceGenerators[0].periodMs, 1200);
+  assert.equal(patch.sourceGeneratorMappings.length, 1);
+  assert.equal(patch.sourceGeneratorMappings[0].parameter, "pitch");
+});
+
+test("source generator mappings drive effective MIDI parameters", () => {
+  const sourcePoint = { name: "Pulse", x: 600, y: 300 };
+  const listenerPoint = { name: "Listener", x: 400, y: 300 };
+  const generatorContext = runBrowserScript("musicspace-generator-client.js", {});
+  const generatorClient = generatorContext.MusicSpaceGeneratorClient.createGeneratorClient({
+    getSource: () => sourcePoint,
+    getListener: () => listenerPoint
+  });
+
+  generatorClient.loadPatch({
+    sourceGenerators: [
+      {
+        source: "Pulse",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 160,
+        velocity: 80,
+        channel: 1
+      }
+    ],
+    sourceGeneratorMappings: [
+      {
+        source: "Pulse",
+        feature: "distance",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      },
+      {
+        source: "Pulse",
+        feature: "x",
+        parameter: "periodMs",
+        inputMin: 0,
+        inputMax: 800,
+        outputMin: 400,
+        outputMax: 1600
+      },
+      {
+        source: "Pulse",
+        feature: "angle",
+        parameter: "velocity",
+        inputMin: -Math.PI,
+        inputMax: Math.PI,
+        outputMin: 20,
+        outputMax: 100
+      }
+    ]
+  });
+
+  let [effective] = generatorClient.effectiveGeneratorsForSource("Pulse");
+  assert.equal(effective.pitch, 60);
+  assert.equal(effective.periodMs, 1300);
+  assert.equal(effective.velocity, 60);
+
+  sourcePoint.x = 800;
+  sourcePoint.y = 300;
+  [effective] = generatorClient.effectiveGeneratorsForSource("Pulse");
+  assert.equal(effective.pitch, 72);
+  assert.equal(effective.periodMs, 1600);
 });
 
 test("source inspector edits MIDI ostinato generator parameters", () => {
@@ -1868,6 +1958,17 @@ test("source inspector rename updates patch references", () => {
         velocity: 80,
         channel: 1
       }
+    ],
+    sourceGeneratorMappings: [
+      {
+        source: "A",
+        feature: "distance",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      }
     ]
   });
 
@@ -1883,6 +1984,7 @@ test("source inspector rename updates patch references", () => {
   assert.equal(patch.parameterMappings[0].source, "Lead");
   assert.equal(patch.midiFile.trackBindings[0].source, "Lead");
   assert.equal(patch.sourceGenerators[0].source, "Lead");
+  assert.equal(patch.sourceGeneratorMappings[0].source, "Lead");
   assert.equal(patch.movingObjects[0].trajectory.start.name, "Lead");
 });
 
@@ -1918,6 +2020,12 @@ test("patch validation checks source generators", () => {
       { source: "A", type: "loop", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
       { source: "A", type: "midi-ostinato", pitch: 140, periodMs: -1, durationMs: 0, velocity: 200, channel: 20 }
     ],
+    sourceGeneratorMappings: [
+      { source: "Missing", feature: "distance", parameter: "pitch", inputMin: 0, inputMax: 400, outputMin: 48, outputMax: 72 },
+      { source: "A", feature: "speed", parameter: "pitch", inputMin: 0, inputMax: 400, outputMin: 48, outputMax: 72 },
+      { source: "A", feature: "distance", parameter: "program", inputMin: 0, inputMax: 400, outputMin: 1, outputMax: 8 },
+      { source: "A", feature: "distance", parameter: "periodMs", inputMin: 0, inputMax: 400, outputMin: 0, outputMax: 1000, curve: "exp" }
+    ],
     constraints: []
   });
 
@@ -1926,6 +2034,9 @@ test("patch validation checks source generators", () => {
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.pitch")));
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.periodMs")));
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.velocity")));
+  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping feature")));
+  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping parameter")));
+  assert.ok(findings.some((finding) => finding.message.includes("Exponential source generator mapping")));
 });
 
 test("over-constrained graphs expose residual diagnostics", () => {

@@ -9,6 +9,8 @@
   const SCHEDULER_INTERVAL_MS = 30;
   const SPATIAL_INTERVAL_MS = 60;
   const MAX_SPATIAL_DISTANCE = 360;
+  const GENERATOR_PARAMETERS = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel"]);
+  const MAPPING_FEATURES = new Set(["x", "y", "distance", "angle"]);
 
   function createGeneratorClient(options = {}) {
     const onStatus = options.onStatus || (() => {});
@@ -16,6 +18,7 @@
     const getListener = options.getListener || (() => null);
 
     let generators = [];
+    let generatorMappings = [];
     let enabled = false;
     let context = null;
     let midiAccess = null;
@@ -28,14 +31,21 @@
       loadPatch(patch = {}) {
         stop();
         generators = normalizeGenerators(patch.sourceGenerators || []);
+        generatorMappings = normalizeGeneratorMappings(patch.sourceGeneratorMappings || []);
       },
       serialize() {
-        return generators.length > 0
-          ? { sourceGenerators: generators.map(serializeGenerator) }
-          : {};
+        return {
+          ...(generators.length > 0 ? { sourceGenerators: generators.map(serializeGenerator) } : {}),
+          ...(generatorMappings.length > 0 ? { sourceGeneratorMappings: generatorMappings.map(serializeGeneratorMapping) } : {})
+        };
       },
       generatorsForSource(sourceName) {
         return generators.filter((generator) => generator.source === sourceName).map(serializeGenerator);
+      },
+      effectiveGeneratorsForSource(sourceName) {
+        return generators
+          .filter((generator) => generator.source === sourceName)
+          .map((generator) => serializeGenerator(generatorWithMappings(generator)));
       },
       hasGenerators() {
         return generators.length > 0;
@@ -74,13 +84,18 @@
         generators = generators.map((generator) => (
           generator.source === oldName ? { ...generator, source: newName } : generator
         ));
+        generatorMappings = generatorMappings.map((mapping) => (
+          mapping.source === oldName ? { ...mapping, source: newName } : mapping
+        ));
       },
       removeGenerator(sourceName) {
         generators = generators.filter((generator) => generator.source !== sourceName);
+        generatorMappings = generatorMappings.filter((mapping) => mapping.source !== sourceName);
       },
       removeGeneratorsForMissingSources(sourceNames) {
         const validNames = new Set(sourceNames);
         generators = generators.filter((generator) => validNames.has(generator.source));
+        generatorMappings = generatorMappings.filter((mapping) => validNames.has(mapping.source));
       },
       async setEnabled(nextEnabled) {
         if (enabled) {
@@ -173,6 +188,38 @@
       };
     }
 
+    function normalizeGeneratorMappings(nextMappings) {
+      if (!Array.isArray(nextMappings)) {
+        return [];
+      }
+
+      return nextMappings.map(normalizeGeneratorMapping).filter(Boolean);
+    }
+
+    function normalizeGeneratorMapping(mapping) {
+      if (!mapping || typeof mapping !== "object") {
+        return null;
+      }
+      if (typeof mapping.source !== "string" || mapping.source.trim() === "") {
+        return null;
+      }
+      const parameter = mapping.parameter || mapping.target;
+      if (!GENERATOR_PARAMETERS.has(parameter) || !MAPPING_FEATURES.has(mapping.feature)) {
+        return null;
+      }
+
+      return {
+        source: mapping.source,
+        feature: mapping.feature,
+        parameter,
+        inputMin: finiteNumber(mapping.inputMin, 0),
+        inputMax: finiteNumber(mapping.inputMax, 1),
+        outputMin: finiteNumber(mapping.outputMin, 0),
+        outputMax: finiteNumber(mapping.outputMax, 1),
+        curve: mapping.curve === "exp" ? "exp" : "linear"
+      };
+    }
+
     function serializeGenerator(generator) {
       return {
         source: generator.source,
@@ -189,6 +236,10 @@
         outputName: generator.outputName,
         spatialization: generator.spatialization
       };
+    }
+
+    function serializeGeneratorMapping(mapping) {
+      return { ...mapping };
     }
 
     async function ensureOutputsForGenerators() {
@@ -252,15 +303,91 @@
       const now = clockSeconds();
       const horizon = now + SCHEDULE_AHEAD_SECONDS;
       generators = generators.map((generator) => {
+        const effectiveGenerator = generatorWithMappings(generator);
         let nextAt = generator.nextAt || now;
         while (nextAt <= horizon) {
-          if (!generator.muted && getSource(generator.source)) {
-            scheduleNote(generator, nextAt);
+          if (!effectiveGenerator.muted && getSource(effectiveGenerator.source)) {
+            scheduleNote(effectiveGenerator, nextAt);
           }
-          nextAt += generator.periodMs / 1000;
+          nextAt += effectiveGenerator.periodMs / 1000;
         }
         return { ...generator, nextAt };
       });
+    }
+
+    function generatorWithMappings(generator) {
+      const mappings = generatorMappings.filter((mapping) => mapping.source === generator.source);
+      if (mappings.length === 0) {
+        return generator;
+      }
+
+      const source = getSource(generator.source);
+      if (!source) {
+        return generator;
+      }
+
+      return mappings.reduce((nextGenerator, mapping) => {
+        const featureValue = generatorFeatureValue(mapping.feature, source);
+        if (!Number.isFinite(featureValue)) {
+          return nextGenerator;
+        }
+        const mappedValue = mappedGeneratorValue(mapping, featureValue);
+        return {
+          ...nextGenerator,
+          [mapping.parameter]: normalizeGeneratorParameter(mapping.parameter, mappedValue, nextGenerator[mapping.parameter])
+        };
+      }, generator);
+    }
+
+    function generatorFeatureValue(feature, source) {
+      const listener = getListener();
+      if (feature === "x") {
+        return source.x;
+      }
+      if (feature === "y") {
+        return source.y;
+      }
+      if (feature === "angle") {
+        return listener ? Math.atan2(source.y - listener.y, source.x - listener.x) : 0;
+      }
+      return listener ? Math.hypot(source.x - listener.x, source.y - listener.y) : 0;
+    }
+
+    function mappedGeneratorValue(mapping, value) {
+      if (mapping.inputMin === mapping.inputMax) {
+        return mapping.outputMin;
+      }
+      const low = Math.min(mapping.inputMin, mapping.inputMax);
+      const high = Math.max(mapping.inputMin, mapping.inputMax);
+      const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
+      const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
+
+      if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
+        const logMin = Math.log(mapping.outputMin);
+        const logMax = Math.log(mapping.outputMax);
+        return Math.exp(logMin + (logMax - logMin) * t);
+      }
+
+      return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
+    }
+
+    function normalizeGeneratorParameter(parameter, value, fallback) {
+      if (parameter === "pitch") {
+        return clamp(Math.round(value), 0, 127);
+      }
+      if (parameter === "velocity") {
+        return clamp(Math.round(value), 1, 127);
+      }
+      if (parameter === "channel") {
+        return clamp(Math.round(value), 1, 16);
+      }
+      if (parameter === "periodMs") {
+        return clampNumber(value, 40, 60000, fallback);
+      }
+      if (parameter === "durationMs") {
+        return clampNumber(value, 10, 10000, fallback);
+      }
+      return fallback;
     }
 
     function scheduleNote(generator, startTime) {
@@ -451,6 +578,11 @@
       return fallback;
     }
     return clamp(number, min, max);
+  }
+
+  function finiteNumber(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
   }
 
   function clampInteger(value, min, max, fallback) {

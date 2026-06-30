@@ -67,6 +67,12 @@
         "$ref": "#/$defs/sourceGenerator"
       }
     },
+    "sourceGeneratorMappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceGeneratorMapping"
+      }
+    },
     "target": {
       "type": "object",
       "additionalProperties": true,
@@ -369,6 +375,21 @@
         "spatialization": {
           "enum": ["pan-distance", "stereo-pan"]
         }
+      }
+    },
+    "sourceGeneratorMapping": {
+      "type": "object",
+      "required": ["source", "feature", "parameter", "inputMin", "inputMax", "outputMin", "outputMax"],
+      "additionalProperties": true,
+      "properties": {
+        "source": { "$ref": "#/$defs/entityName" },
+        "feature": { "enum": ["x", "y", "angle", "distance"] },
+        "parameter": { "enum": ["pitch", "periodMs", "durationMs", "velocity", "channel"] },
+        "inputMin": { "type": "number" },
+        "inputMax": { "type": "number" },
+        "outputMin": { "type": "number" },
+        "outputMax": { "type": "number" },
+        "curve": { "enum": ["linear", "exp"] }
       }
     },
     "constraintBase": {

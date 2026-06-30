@@ -151,7 +151,7 @@ npm run smoke
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
-- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel.
+- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel, and patch JSON can map spatial features to generator pitch, period, duration, velocity, or channel.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

@@ -1765,6 +1765,7 @@ function renderPatchSummary(patch) {
   const sourceAudioLines = (patch.sourceBindings || []).map(describeSourceBinding);
   const midiLines = (patch.midiFile?.trackBindings || []).map(describeMidiBinding);
   const generatorLines = (patch.sourceGenerators || []).map(describeSourceGenerator);
+  const generatorMappingLines = (patch.sourceGeneratorMappings || []).map(describeSourceGeneratorMapping);
   const backendLines = describePatchBackend(patch);
 
   patchSummary.append(
@@ -1782,6 +1783,7 @@ function renderPatchSummary(patch) {
     createInspectorSection("Constraints", constraintLines.length ? constraintLines : ["None"]),
     createInspectorSection("Source Audio", sourceAudioLines.length ? sourceAudioLines : ["None"]),
     createInspectorSection("Generators", generatorLines.length ? generatorLines : ["None"]),
+    createInspectorSection("Generator Mappings", generatorMappingLines.length ? generatorMappingLines : ["None"]),
     createInspectorSection("Mappings", mappingLines.length ? mappingLines : ["None"]),
     createInspectorSection("MIDI", midiLines.length ? midiLines : ["None"])
   );
@@ -1892,6 +1894,10 @@ function describeSourceGenerator(generator) {
   return `${generator?.source || "?"} -> ${generator?.type || "unknown"}`;
 }
 
+function describeSourceGeneratorMapping(mapping) {
+  return `${mapping.source}.${mapping.feature} -> ${mapping.parameter || mapping.target} (${mapping.outputMin}..${mapping.outputMax})`;
+}
+
 function renderPatchValidation(findings) {
   patchValidation.replaceChildren();
 
@@ -1921,6 +1927,7 @@ function validatePatch(patch) {
   validateBackendSpec(patch, add);
   validateSourceBindings(patch.sourceBindings || [], scene.names, add);
   validateSourceGenerators(patch.sourceGenerators || [], scene.names, add);
+  validateSourceGeneratorMappings(patch.sourceGeneratorMappings || [], scene.names, add);
   validateParameterMappings(patch.parameterMappings || patch.audioMappings || [], scene.names, patch.target || patch.audioSynth, add);
   validateMidiSpec(patch.midiFile, scene.names, patch.target || patch.audioSynth, add);
 
@@ -2196,6 +2203,42 @@ function validateSourceGenerators(generators, names, add) {
     }
     if (generator.spatialization && !["pan-distance", "stereo-pan"].includes(generator.spatialization)) {
       add("error", `Unsupported source generator spatialization: ${generator.spatialization}.`);
+    }
+  }
+}
+
+function validateSourceGeneratorMappings(mappings, names, add) {
+  if (!Array.isArray(mappings)) {
+    add("error", "sourceGeneratorMappings must be an array.");
+    return;
+  }
+
+  const supportedFeatures = new Set(["x", "y", "angle", "distance"]);
+  const supportedParameters = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel"]);
+
+  for (const mapping of mappings) {
+    if (!mapping || typeof mapping !== "object") {
+      add("error", "Every source generator mapping must be an object.");
+      continue;
+    }
+
+    validateReference(mapping.source, "sourceGeneratorMappings.source", names, add);
+    if (!supportedFeatures.has(mapping.feature)) {
+      add("error", `Unsupported source generator mapping feature: ${mapping.feature || "(missing)"}.`);
+    }
+    const parameter = mapping.parameter || mapping.target;
+    if (!supportedParameters.has(parameter)) {
+      add("error", `Unsupported source generator mapping parameter: ${parameter || "(missing)"}.`);
+    }
+    validateNumber(mapping.inputMin, "sourceGeneratorMappings.inputMin", add);
+    validateNumber(mapping.inputMax, "sourceGeneratorMappings.inputMax", add);
+    validateNumber(mapping.outputMin, "sourceGeneratorMappings.outputMin", add);
+    validateNumber(mapping.outputMax, "sourceGeneratorMappings.outputMax", add);
+    if (mapping.inputMin === mapping.inputMax) {
+      add("warning", `${mapping.source || "Generator"} ${parameter || "mapping"} has identical inputMin/inputMax.`);
+    }
+    if (mapping.curve === "exp" && (Number(mapping.outputMin) <= 0 || Number(mapping.outputMax) <= 0)) {
+      add("error", `Exponential source generator mapping ${parameter || ""} needs positive outputMin/outputMax.`);
     }
   }
 }

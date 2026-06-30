@@ -116,5 +116,43 @@
       "spatialization": "pan-distance"
     }
   ],
+  "sourceGeneratorMappings": [
+    {
+      "source": "Pulse C",
+      "feature": "angle",
+      "parameter": "pitch",
+      "inputMin": -3.141592653589793,
+      "inputMax": 3.141592653589793,
+      "outputMin": 48,
+      "outputMax": 76
+    },
+    {
+      "source": "Pulse E",
+      "feature": "distance",
+      "parameter": "velocity",
+      "inputMin": 70,
+      "inputMax": 330,
+      "outputMin": 112,
+      "outputMax": 40
+    },
+    {
+      "source": "Pulse G",
+      "feature": "y",
+      "parameter": "periodMs",
+      "inputMin": 120,
+      "inputMax": 520,
+      "outputMin": 360,
+      "outputMax": 1300
+    },
+    {
+      "source": "Pulse B",
+      "feature": "x",
+      "parameter": "durationMs",
+      "inputMin": 120,
+      "inputMax": 680,
+      "outputMin": 70,
+      "outputMax": 260
+    }
+  ],
   "version": 1
 }

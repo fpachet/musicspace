@@ -49,6 +49,7 @@ Validation checks MusicSpace-level semantics that JSON Schema cannot fully expre
 - `constraints`: optional geometric/relational constraints.
 - `sourceBindings`: optional direct audio emitters bound to sources.
 - `sourceGenerators`: optional generated note emitters bound to sources.
+- `sourceGeneratorMappings`: optional mappings from source features to generator MIDI parameters.
 - `target`: optional parameter target selection.
 - `parameterMappings`: optional mappings from scene features to target parameters.
 - `midiFile`: optional MIDI/MusicXML sequence-file binding.
@@ -123,6 +124,21 @@ Source generators make a source emit generated musical events without requiring 
 ```
 
 Generator sources using the internal browser synth use the same listener-relative pan and distance gain model as direct audio sources. External MIDI generator output keeps the source geometry and timing in MusicSpace while leaving sound rendering to the selected MIDI device.
+
+`sourceGeneratorMappings` can dynamically map spatial features onto generator MIDI parameters while playback is running. Supported features are `x`, `y`, `distance`, and `angle`; supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, and `channel`.
+
+```json
+{
+  "source": "Pulse C",
+  "feature": "angle",
+  "parameter": "pitch",
+  "inputMin": -3.14159,
+  "inputMax": 3.14159,
+  "outputMin": 48,
+  "outputMax": 76,
+  "curve": "linear"
+}
+```
 
 ## Target Backend Binding
 
