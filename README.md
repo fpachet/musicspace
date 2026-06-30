@@ -8,7 +8,7 @@ MusicSpace now includes two interactive solver modes: the default bounded propag
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
-![MusicSpace Cycloid Percussion demo](assets/screenshots/musicspace-cycloid-percussion.png?v=3ff11c94)
+![MusicSpace Cycloid Percussion demo](assets/screenshots/musicspace-cycloid-percussion.png?v=readme-closeup)
 
 ## Running
 

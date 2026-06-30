@@ -5,6 +5,12 @@ const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "..");
 const outputPath = path.join(root, "assets", "screenshots", "musicspace-cycloid-percussion.png");
+const readmeCanvasCrop = {
+  x: 115,
+  y: 155,
+  width: 675,
+  height: 375
+};
 
 const contentTypes = {
   ".css": "text/css",
@@ -72,7 +78,25 @@ async function main() {
     await page.waitForFunction(() => document.querySelectorAll("#patch-select option").length > 0);
     await page.selectOption("#patch-select", "cycloid-percussion");
     await page.waitForFunction(() => document.querySelector("#patch-summary")?.textContent.includes("Cycloid Percussion"));
-    await page.screenshot({ path: outputPath, fullPage: false });
+    const stageBox = await page.locator("#stage").boundingBox();
+    const canvasSize = await page.locator("#canvas").evaluate((canvas) => ({
+      width: canvas.width,
+      height: canvas.height
+    }));
+    if (!stageBox) {
+      throw new Error("Unable to locate stage for README screenshot");
+    }
+    const scaleX = stageBox.width / canvasSize.width;
+    const scaleY = stageBox.height / canvasSize.height;
+    await page.screenshot({
+      path: outputPath,
+      clip: {
+        x: stageBox.x + readmeCanvasCrop.x * scaleX,
+        y: stageBox.y + readmeCanvasCrop.y * scaleY,
+        width: readmeCanvasCrop.width * scaleX,
+        height: readmeCanvasCrop.height * scaleY
+      }
+    });
 
     if (failures.length > 0) {
       throw new Error(`Browser errors while capturing screenshot:\n${failures.join("\n")}`);
