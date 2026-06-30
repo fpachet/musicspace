@@ -2,7 +2,7 @@
 
 MusicSpace is an old idea: bringing together the power of constraint propagation with spatialization and parameter control. The idea was developed at Sony CSL, originally in Java, and was the subject of Olivier Delerue's Ph.D. as well as many papers. It deserves to be brought back to life with modern technologies: it is still largely unexploited, and has many possible domains of application.
 
-urrent project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
+This project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
 MusicSpace now includes a bounded constraint solver with local repair/backoff strategies, a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
 
