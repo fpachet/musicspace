@@ -8,6 +8,7 @@
   const AUDIO_FILE_TYPE = "audio-file";
   const DEFAULT_SPATIALIZATION = "pan-distance";
   const MAX_DISTANCE = Math.hypot(800, 600);
+  const MAX_REVERB_SEND = 0.48;
 
   function createSourceAudioClient(options = {}) {
     const onStatus = options.onStatus || (() => {});
@@ -15,6 +16,7 @@
     const getListener = options.getListener || (() => null);
 
     let context = null;
+    let reverbBus = null;
     let bindings = [];
     let players = new Map();
     let enabled = false;
@@ -177,6 +179,7 @@
       }
 
       context = new AudioContextClass();
+      reverbBus = createReverbBus(context);
       return context;
     }
 
@@ -209,21 +212,29 @@
 
       const buffer = await decodeBindingAudio(binding);
       const sourceNode = context.createBufferSource();
-      const gainNode = context.createGain();
+      const sourceGainNode = context.createGain();
+      const directGainNode = context.createGain();
+      const reverbSendNode = context.createGain();
       const panNode = context.createStereoPanner ? context.createStereoPanner() : null;
 
       sourceNode.buffer = buffer;
       sourceNode.loop = binding.loop;
-      sourceNode.connect(gainNode);
+      reverbSendNode.gain.value = 0;
+      sourceNode.connect(sourceGainNode);
+      sourceGainNode.connect(directGainNode);
+      sourceGainNode.connect(reverbSendNode);
       if (panNode) {
-        gainNode.connect(panNode);
+        directGainNode.connect(panNode);
         panNode.connect(context.destination);
       } else {
-        gainNode.connect(context.destination);
+        directGainNode.connect(context.destination);
+      }
+      if (reverbBus) {
+        reverbSendNode.connect(reverbBus.input);
       }
       sourceNode.start();
 
-      return { binding, sourceNode, gainNode, panNode };
+      return { binding, sourceNode, sourceGainNode, directGainNode, reverbSendNode, panNode };
     }
 
     async function decodeBindingAudio(binding) {
@@ -261,13 +272,19 @@
         const dx = sourceEntity.x - listener.x;
         const dy = sourceEntity.y - listener.y;
         const distance = Math.hypot(dx, dy);
+        const normalizedDistance = clamp(distance / MAX_DISTANCE, 0, 1);
         const pan = clamp(dx / 300, -1, 1);
         const attenuation = player.binding.spatialization === "stereo-pan"
           ? 1
-          : clamp(1 - distance / MAX_DISTANCE, 0.05, 1);
-        const gain = player.binding.muted ? 0 : clamp(player.binding.gain, 0, 2) * attenuation;
+          : clamp(1 - normalizedDistance, 0.05, 1);
+        const sourceGain = player.binding.muted ? 0 : clamp(player.binding.gain, 0, 2);
+        const reverbSend = player.binding.muted || player.binding.spatialization === "stereo-pan"
+          ? 0
+          : Math.pow(normalizedDistance, 0.7) * MAX_REVERB_SEND;
 
-        setParam(player.gainNode.gain, gain, time);
+        setParam(player.sourceGainNode.gain, sourceGain, time);
+        setParam(player.directGainNode.gain, attenuation, time);
+        setParam(player.reverbSendNode.gain, reverbSend, time);
         if (player.panNode) {
           setParam(player.panNode.pan, pan, time);
         }
@@ -292,7 +309,9 @@
         // The source may already have ended.
       }
       player.sourceNode.disconnect();
-      player.gainNode.disconnect();
+      player.sourceGainNode.disconnect();
+      player.directGainNode.disconnect();
+      player.reverbSendNode.disconnect();
       player.panNode?.disconnect();
     }
 
@@ -304,6 +323,43 @@
       await startPlayers();
       updateSpatial();
     }
+  }
+
+  function createReverbBus(context) {
+    if (
+      typeof context.createGain !== "function" ||
+      typeof context.createDelay !== "function"
+    ) {
+      return null;
+    }
+
+    const input = context.createGain();
+    const delay = context.createDelay(1.2);
+    const feedback = context.createGain();
+    const output = context.createGain();
+    const tone = typeof context.createBiquadFilter === "function"
+      ? context.createBiquadFilter()
+      : null;
+
+    input.gain.value = 1;
+    delay.delayTime.value = 0.135;
+    feedback.gain.value = 0.26;
+    output.gain.value = 0.42;
+
+    input.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    if (tone) {
+      tone.type = "lowpass";
+      tone.frequency.value = 4200;
+      delay.connect(tone);
+      tone.connect(output);
+    } else {
+      delay.connect(output);
+    }
+    output.connect(context.destination);
+
+    return { input, delay, feedback, output, tone };
   }
 
   function dataUrlToArrayBuffer(dataUrl) {

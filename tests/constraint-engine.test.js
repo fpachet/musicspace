@@ -1022,6 +1022,142 @@ test("spacebar toggles sound playback for source audio bindings", async () => {
   assert.equal(engine.soundButtonPressed(), "false");
 });
 
+test("source audio pan-distance spatialization adds distance-based reverb send", async () => {
+  const nodes = [];
+  const sourcePoint = { x: 400, y: 300 };
+  const listenerPoint = { x: 400, y: 300 };
+  const makeParam = (initial = 0) => ({
+    value: initial,
+    setTargetAtTime(value) {
+      this.value = value;
+    }
+  });
+  class FakeNode {
+    constructor(kind) {
+      this.kind = kind;
+      this.connections = [];
+    }
+    connect(node) {
+      this.connections.push(node);
+    }
+    disconnect() {
+      this.disconnected = true;
+    }
+  }
+  class FakeGain extends FakeNode {
+    constructor() {
+      super("gain");
+      this.gain = makeParam(1);
+    }
+  }
+  class FakeDelay extends FakeNode {
+    constructor() {
+      super("delay");
+      this.delayTime = makeParam(0);
+    }
+  }
+  class FakeFilter extends FakeNode {
+    constructor() {
+      super("filter");
+      this.frequency = makeParam(0);
+      this.type = "";
+    }
+  }
+  class FakePan extends FakeNode {
+    constructor() {
+      super("pan");
+      this.pan = makeParam(0);
+    }
+  }
+  class FakeSource extends FakeNode {
+    constructor() {
+      super("source");
+      this.loop = false;
+    }
+    start() {
+      this.started = true;
+    }
+    stop() {
+      this.stopped = true;
+    }
+  }
+  class FakeAudioContext {
+    constructor() {
+      this.currentTime = 0;
+      this.destination = new FakeNode("destination");
+    }
+    createBufferSource() {
+      const node = new FakeSource();
+      nodes.push(node);
+      return node;
+    }
+    createGain() {
+      const node = new FakeGain();
+      nodes.push(node);
+      return node;
+    }
+    createDelay() {
+      const node = new FakeDelay();
+      nodes.push(node);
+      return node;
+    }
+    createBiquadFilter() {
+      const node = new FakeFilter();
+      nodes.push(node);
+      return node;
+    }
+    createStereoPanner() {
+      const node = new FakePan();
+      nodes.push(node);
+      return node;
+    }
+    async decodeAudioData() {
+      return {};
+    }
+    async resume() {}
+  }
+
+  const sourceAudioContext = runBrowserScript("musicspace-source-audio-client.js", {
+    AudioContext: FakeAudioContext,
+    atob(value) {
+      return Buffer.from(value, "base64").toString("binary");
+    }
+  });
+  const sourceAudioClient = sourceAudioContext.MusicSpaceSourceAudioClient.createSourceAudioClient({
+    getSource: () => sourcePoint,
+    getListener: () => listenerPoint
+  });
+  sourceAudioClient.loadPatch({
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ]
+  });
+
+  assert.equal(await sourceAudioClient.setEnabled(true), true);
+  const gainNodes = nodes.filter((node) => node.kind === "gain");
+  const sourceGain = gainNodes.at(-3);
+  const directGain = gainNodes.at(-2);
+  const reverbSend = gainNodes.at(-1);
+
+  assert.equal(sourceGain.gain.value, 0.75);
+  assert.equal(directGain.gain.value, 1);
+  assert.equal(reverbSend.gain.value, 0);
+
+  sourcePoint.x = 800;
+  sourceAudioClient.updateSpatial();
+
+  assert.ok(directGain.gain.value < 1, "distance should attenuate direct gain");
+  assert.ok(reverbSend.gain.value > 0, "distance should raise reverb send");
+});
+
 test("canvas pointer focus does not request page scrolling", () => {
   const engine = createEngineHarness();
   const focusOptions = engine.focusCanvasWithoutScrolling();

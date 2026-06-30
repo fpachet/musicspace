@@ -102,7 +102,7 @@ Source bindings make a source a direct audio emitter. The Source Inspector write
 }
 ```
 
-`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, or serialized audio file. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan and distance to gain attenuation. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
+`loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, or serialized audio file. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
 
 ## Target Backend Binding
 

@@ -43,9 +43,9 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Expand the Faust target backend beyond the current adapter-based `faust-wasm` bridge, including compiled DSP loading/introspection workflows.
 - Expand the MIDI/MusicXML client with richer instrument rendering, MIDI output selection persistence, and mapping presets.
 - Add OSC and spatial audio adapters as target backends that consume named parameter values and target manifests.
-- Map source positions to useful audio parameters such as pan, gain, distance attenuation, or reverb send.
+- Add optional source audio color controls such as filter cutoff when a patch needs them explicitly.
 - Expand the generic mapping layer beyond source features so handles, trajectories, and constraint values can drive arbitrary target parameters.
-- Expand the optional demo sound sources into richer spatialized audio with distance attenuation and reverb send.
+- Expand optional demo sound sources with richer authored material now that audio-file playback supports pan, distance attenuation, and distance-based reverb send.
 
 ## Project Hygiene
 

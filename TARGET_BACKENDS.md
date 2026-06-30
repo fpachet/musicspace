@@ -138,7 +138,7 @@ Sources can also be direct audio emitters through patch-level `sourceBindings`. 
 }
 ```
 
-`Play Sound` starts and stops source audio bindings together with mapped parameter target backends. Patches without `sourceBindings` or `parameterMappings` remain silent. `muted` silences one source binding without changing its stored gain or spatial position; pressing `m` toggles the selected source. `pan-distance` maps left/right position around the listener to stereo pan and listener distance to gain attenuation; `stereo-pan` keeps gain constant and only pans.
+`Play Sound` starts and stops source audio bindings together with mapped parameter target backends. Patches without `sourceBindings` or `parameterMappings` remain silent. `muted` silences one source binding without changing its stored gain or spatial position; pressing `m` toggles the selected source. `pan-distance` maps left/right position around the listener to stereo pan, listener distance to gain attenuation, and distance to a shared reverb send. `stereo-pan` keeps gain constant and only pans.
 
 ## Faust Direction
 
