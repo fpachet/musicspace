@@ -262,6 +262,13 @@ globalThis.__musicspaceTestApi = {
     currentHref() {
       return sandbox.window.location.href;
     },
+    solverButtonPressed(mode) {
+      const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
+      return document.getElementById(id).attributes.get("aria-pressed");
+    },
+    solverMode() {
+      return api.getSolverMode();
+    },
     createConstraintWithTool(tool, names) {
       api.handleToolButtonClick(tool);
       let handled = false;
@@ -277,9 +284,6 @@ globalThis.__musicspaceTestApi = {
         handled,
         patch: api.serializePatch()
       };
-    },
-    solverIndicatorText() {
-      return document.getElementById("solver-indicator").textContent;
     },
     stopAllDrawing() {
       api.stopAllDrawing();
@@ -1296,19 +1300,26 @@ test("solver comparison metrics summarize propagation and xpbd behavior", () => 
   assert.equal(metrics.xpbd.hitStepCap, false);
 });
 
-test("solver indicator reflects the active solver mode", () => {
+test("solver selector reflects the active solver mode", () => {
   const engine = createEngineHarness();
 
-  assert.equal(engine.solverIndicatorText(), "");
   engine.setSolverMode("propagation");
-  assert.equal(engine.solverIndicatorText(), "Solver: Propagation");
+  assert.equal(engine.solverMode(), "propagation");
+  assert.equal(engine.solverButtonPressed("propagation"), "true");
+  assert.equal(engine.solverButtonPressed("xpbd"), "false");
   engine.setSolverMode("xpbd");
-  assert.equal(engine.solverIndicatorText(), "Solver: XPBD");
+  assert.equal(engine.solverMode(), "xpbd");
+  assert.equal(engine.solverButtonPressed("propagation"), "false");
+  assert.equal(engine.solverButtonPressed("xpbd"), "true");
   engine.clickSolverMode("propagation");
-  assert.equal(engine.solverIndicatorText(), "Solver: Propagation");
+  assert.equal(engine.solverMode(), "propagation");
+  assert.equal(engine.solverButtonPressed("propagation"), "true");
+  assert.equal(engine.solverButtonPressed("xpbd"), "false");
   assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html");
   engine.clickSolverMode("xpbd");
-  assert.equal(engine.solverIndicatorText(), "Solver: XPBD");
+  assert.equal(engine.solverMode(), "xpbd");
+  assert.equal(engine.solverButtonPressed("propagation"), "false");
+  assert.equal(engine.solverButtonPressed("xpbd"), "true");
   assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html?solver=xpbd");
 });
 
