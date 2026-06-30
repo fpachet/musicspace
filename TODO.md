@@ -14,7 +14,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Add visible delete affordances for sources, movers, and constraints beyond keyboard deletion.
 - Generalize the rotative-object popup into a compact side panel for all constraint nodes and movers.
 - Add a reset option for manually moved constraint nodes.
-- Add labels or tooltips that identify listener, sources, and constraint types without cluttering the canvas.
+- Add richer hover tooltips that identify listener, sources, and constraint types without cluttering the canvas. Long source labels now render outside source markers.
 - Add parameter controls for newly created constraints and non-rotative trajectories instead of relying only on defaults.
 
 ## Constraint System
@@ -37,6 +37,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Audio and MIDI
 
+- Add a server-backed audio stem-splitting import flow. The first trial used `audio-separator` with the Demucs `htdemucs` model to produce vocals, drums, bass, and other stems; MusicSpace can then create one source binding per stem.
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Add a patch-level editor for generic parameter mappings instead of defining them only in built-in JSON.
 - Expand the Faust target backend beyond the current adapter-based `faust-wasm` bridge, including compiled DSP loading/introspection workflows.

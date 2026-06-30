@@ -202,14 +202,14 @@ The intended boundary is:
 
 - **Acts on:** source, listener, and audio track/player node.
 - **Goal:** map visual position to audio parameters such as gain, pan, distance attenuation, reverb send, azimuth, elevation, or spatializer coordinates.
-- **Current status:** source double-click opens a Source Inspector. A source can be renamed, remain a pure geometric/control object, or store an `audio-file` binding in `sourceBindings`. Renaming updates constraints, source bindings, parameter mappings, MIDI bindings, and object-referenced shuttle endpoints. `Play Sound` starts/stops explicit source bindings and maps source/listener geometry to stereo pan plus optional distance gain.
+- **Current status:** source double-click opens a Source Inspector. A source can be renamed, remain a pure geometric/control object, or store an `audio-file` binding in `sourceBindings`. Renaming updates constraints, source bindings, parameter mappings, MIDI bindings, and object-referenced shuttle endpoints. `Play Sound` starts/stops explicit source bindings and maps source/listener geometry to stereo pan plus optional distance gain. Source audio bindings also carry a `muted` flag that can be toggled with `m` without changing source geometry or stored gain.
 - **Implementation note:** keep playback separate from constraints. Constraints decide geometry; source bindings and mappings translate geometry to audio.
 
 ### Web Audio Spatialization
 
 - **Acts on:** source and browser audio graph.
 - **Goal:** use browser-native audio to make the prototype audible.
-- **Current status:** the demo includes per-source audio-file playback with `StereoPannerNode`/`GainNode`, plus simple Web Audio synth targets controlled by Faust-style parameter paths. Patches without `sourceBindings` or `parameterMappings` stay silent when **Play Sound** is pressed.
+- **Current status:** the demo includes per-source audio-file playback with `StereoPannerNode`/`GainNode`, plus simple Web Audio synth targets controlled by Faust-style parameter paths. Patches without `sourceBindings` or `parameterMappings` stay silent when **Play Sound** is pressed. Space toggles browser sound playback from the canvas, and `m` toggles the selected source binding mute state.
 - **Implementation note:** extend this from scalar synth parameters to `PannerNode`, gain, stereo pan, and later multichannel or custom spatializers.
 
 ### MIDI / OSC Mapping
