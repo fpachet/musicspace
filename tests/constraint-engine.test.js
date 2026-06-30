@@ -420,6 +420,19 @@ function assertFiniteReport(report) {
   assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
 }
 
+function runBrowserScript(fileName, sandbox) {
+  const context = {
+    console,
+    window: null,
+    ...sandbox
+  };
+  context.window = context.window || context;
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, fileName), "utf8"), context, { filename: fileName });
+  return context;
+}
+
 function runScenarioInMode(mode, patch, scenario) {
   const engine = createEngineHarness();
   engine.setSolverMode(mode);
@@ -779,6 +792,70 @@ test("source audio bindings serialize with the patch", () => {
   assert.equal(patch.sourceBindings[0].type, "audio-file");
   assert.equal(patch.sourceBindings[0].name, "voice.wav");
   assert.equal(patch.sourceBindings[0].gain, 0.75);
+});
+
+test("sound clients do not enable without mappings or source bindings", async () => {
+  let parameterSetEnabledCalls = 0;
+  let audioContextConstructed = 0;
+  const parameterContext = runBrowserScript("musicspace-parameter-client.js", {
+    MusicSpaceMapping: {
+      normalizeMappings(mappings) {
+        return mappings;
+      },
+      valuesForMappings() {
+        return {};
+      }
+    },
+    MusicSpaceTargets: {
+      normalizeTargetSpec(spec = {}) {
+        return { ...spec, type: spec.type || "subtractive" };
+      },
+      createTargetController() {
+        return {
+          apply() {},
+          defaults() {
+            return {};
+          },
+          dispose() {},
+          hasParameter() {
+            return true;
+          },
+          isEnabled() {
+            return false;
+          },
+          parameterConfig() {
+            return { suffix: "", digits: 2 };
+          },
+          async setEnabled(enabled) {
+            parameterSetEnabledCalls += 1;
+            assert.equal(enabled, false);
+            return false;
+          }
+        };
+      }
+    }
+  });
+  const sourceAudioContext = runBrowserScript("musicspace-source-audio-client.js", {
+    AudioContext: class {
+      constructor() {
+        audioContextConstructed += 1;
+      }
+    },
+    atob(value) {
+      return Buffer.from(value, "base64").toString("binary");
+    }
+  });
+
+  const parameterClient = parameterContext.MusicSpaceParameterClient.createParameterClient();
+  const sourceAudioClient = sourceAudioContext.MusicSpaceSourceAudioClient.createSourceAudioClient();
+
+  parameterClient.loadPatch({ parameterMappings: [] });
+  sourceAudioClient.loadPatch({ sourceBindings: [] });
+
+  assert.equal(await parameterClient.setEnabled(true), false);
+  assert.equal(await sourceAudioClient.setEnabled(true), false);
+  assert.equal(parameterSetEnabledCalls, 1);
+  assert.equal(audioContextConstructed, 0);
 });
 
 test("double-clicking a source opens the source inspector", () => {

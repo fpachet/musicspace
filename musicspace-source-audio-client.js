@@ -80,7 +80,7 @@
         return enabled;
       },
       async setEnabled(nextEnabled) {
-        enabled = Boolean(nextEnabled);
+        enabled = Boolean(nextEnabled) && bindings.length > 0;
         if (!enabled) {
           stopPlayers();
           return false;

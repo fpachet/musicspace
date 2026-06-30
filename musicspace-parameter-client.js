@@ -61,7 +61,8 @@
         return Boolean(targetController?.isEnabled());
       },
       async setEnabled(enabled) {
-        const nextEnabled = await targetController?.setEnabled(Boolean(enabled));
+        const shouldEnable = Boolean(enabled) && mappings.length > 0;
+        const nextEnabled = await targetController?.setEnabled(shouldEnable);
         updateToggle();
         return Boolean(nextEnabled);
       },
@@ -98,7 +99,7 @@
     }
 
     async function toggleTarget() {
-      const nextEnabled = !targetController?.isEnabled();
+      const nextEnabled = !targetController?.isEnabled() && mappings.length > 0;
       await targetController?.setEnabled(nextEnabled);
       updateToggle();
     }
