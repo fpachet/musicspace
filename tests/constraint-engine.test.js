@@ -172,6 +172,9 @@ function createEngineHarness() {
           serialize() {
             return midiFile ? { midiFile: JSON.parse(JSON.stringify(midiFile)) } : {};
           },
+          hasTrackBindingForSource(sourceName) {
+            return Boolean(midiFile?.trackBindings?.find((binding) => binding.source === sourceName));
+          },
           updateSpatial() {}
         };
       }
@@ -307,6 +310,7 @@ globalThis.__musicspaceTestApi = {
   setSolverMode,
   setActiveTool,
   serializePatch,
+  sourceEmitterCapability,
   stopAllDrawing,
   validatePatch
 };`;
@@ -400,6 +404,9 @@ globalThis.__musicspaceTestApi = {
         muted: Boolean(document.getElementById("source-muted").checked),
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
+    },
+    sourceEmitterCapability(name) {
+      return api.sourceEmitterCapability(name);
     },
     pressCanvasKey(key, options = {}) {
       document.getElementById("canvas").dispatchEvent({ type: "keydown", key, ...options });
@@ -852,6 +859,52 @@ test("source audio bindings serialize with the patch", () => {
   assert.equal(patch.sourceBindings[0].name, "voice.wav");
   assert.equal(patch.sourceBindings[0].gain, 0.75);
   assert.equal(patch.sourceBindings[0].muted, false);
+});
+
+test("source emitter capability distinguishes audio, midi, and geometric sources", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Emitter Capability",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [
+      { name: "Audio", x: 250, y: 300 },
+      { name: "Midi", x: 400, y: 300 },
+      { name: "Control", x: 550, y: 300 }
+    ],
+    sourceBindings: [
+      {
+        source: "Audio",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    midiFile: {
+      url: "Midifiles/example.mid",
+      trackBindings: [{ track: "Lead", source: "Midi", channel: 1, program: 1 }]
+    },
+    constraints: []
+  });
+
+  const audioCapability = engine.sourceEmitterCapability("Audio");
+  assert.equal(audioCapability.audio, true);
+  assert.equal(audioCapability.midi, false);
+  assert.equal(audioCapability.emits, true);
+
+  const midiCapability = engine.sourceEmitterCapability("Midi");
+  assert.equal(midiCapability.audio, false);
+  assert.equal(midiCapability.midi, true);
+  assert.equal(midiCapability.emits, true);
+
+  const controlCapability = engine.sourceEmitterCapability("Control");
+  assert.equal(controlCapability.audio, false);
+  assert.equal(controlCapability.midi, false);
+  assert.equal(controlCapability.emits, false);
 });
 
 test("source inspector edits the audio loop parameter", () => {

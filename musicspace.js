@@ -153,22 +153,54 @@ class SoundSource extends Entity {
     this.prevY = y;
   }
 
-  draw(ctx) {
-    super.draw(ctx);
+  draw(ctx, emitterCapability = sourceEmitterCapability(this)) {
+    drawSourceBody(ctx, this, emitterCapability);
     if (this.name.length <= 2) {
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = emitterCapability.emits ? "#ffffff" : "#991b1b";
       ctx.font = "700 12px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(this.name, this.x, this.y);
-      return;
+    } else {
+      drawSourceExternalLabel(ctx, this, emitterCapability);
     }
 
-    drawSourceExternalLabel(ctx, this);
+    drawSourceEmitterBadge(ctx, this, emitterCapability);
   }
 }
 
-function drawSourceExternalLabel(ctx, source) {
+function drawSourceBody(ctx, source, emitterCapability) {
+  const emits = Boolean(emitterCapability?.emits);
+
+  ctx.save();
+  if (emits) {
+    ctx.beginPath();
+    ctx.arc(source.x, source.y, source.radius + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = emitterCapability.audio && emitterCapability.midi
+      ? "#a855f7"
+      : emitterCapability.midi
+        ? "#7c3aed"
+        : "#f97316";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(source.x, source.y, source.radius, 0, Math.PI * 2);
+  ctx.fillStyle = emits
+    ? (emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : source.color)
+    : "#fff1f2";
+  ctx.fill();
+  ctx.strokeStyle = emits ? "#ffffff" : "#dc2626";
+  ctx.lineWidth = emits ? 2 : 2.5;
+  if (!emits) {
+    ctx.setLineDash([3, 3]);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSourceExternalLabel(ctx, source, emitterCapability = { emits: false }) {
   const paddingX = 5;
   const labelHeight = 16;
   const labelWidth = clamp(source.name.length * 7 + paddingX * 2, 30, 116);
@@ -183,14 +215,45 @@ function drawSourceExternalLabel(ctx, source) {
   ctx.rect(labelX, labelY, labelWidth, labelHeight);
   ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(31, 41, 51, 0.22)";
+  ctx.strokeStyle = emitterCapability.emits ? "rgba(31, 41, 51, 0.22)" : "rgba(220, 38, 38, 0.28)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = "#1f2933";
+  ctx.fillStyle = emitterCapability.emits ? "#1f2933" : "#52616f";
   ctx.font = "700 11px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(source.name, labelX + labelWidth / 2, labelY + labelHeight / 2, labelWidth - paddingX * 2);
+  ctx.restore();
+}
+
+function drawSourceEmitterBadge(ctx, source, emitterCapability) {
+  if (!emitterCapability?.emits) {
+    return;
+  }
+
+  const badgeText = emitterCapability.audio && emitterCapability.midi
+    ? "A+M"
+    : emitterCapability.audio
+      ? "A"
+      : "M";
+  const badgeWidth = badgeText.length > 1 ? 28 : 18;
+  const badgeHeight = 14;
+  const badgeX = clamp(source.x + source.radius - 5, 4, WIDTH - badgeWidth - 4);
+  const badgeY = clamp(source.y - source.radius - 8, 4, HEIGHT - badgeHeight - 4);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(badgeX, badgeY, badgeWidth, badgeHeight);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.strokeStyle = emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : "#f97316";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = emitterCapability.midi && !emitterCapability.audio ? "#5b21b6" : "#9a3412";
+  ctx.font = "800 9px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
   ctx.restore();
 }
 
@@ -2068,6 +2131,19 @@ function drawParameterMappingCues(ctx) {
   ctx.restore();
 }
 
+function sourceEmitterCapability(sourceOrName) {
+  const sourceName = typeof sourceOrName === "string" ? sourceOrName : sourceOrName?.name;
+  if (!sourceName) {
+    return { audio: false, midi: false, emits: false };
+  }
+
+  const audio = sourceAudioClient.bindingsForSource(sourceName).some((binding) => (
+    binding.type === SOURCE_BINDING_AUDIO_FILE && Boolean(binding.dataUrl || binding.url)
+  ));
+  const midi = Boolean(midiFileClient.hasTrackBindingForSource?.(sourceName));
+  return { audio, midi, emits: audio || midi };
+}
+
 function drawAll() {
   updateTraceSelectedButton();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -2093,7 +2169,7 @@ function drawAll() {
 
   listener.draw(ctx);
   for (const source of sources) {
-    source.draw(ctx);
+    source.draw(ctx, sourceEmitterCapability(source));
     drawSourceMuteCue(ctx, source);
   }
 

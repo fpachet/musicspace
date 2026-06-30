@@ -84,6 +84,15 @@
       },
       hasMidiFile() {
         return Boolean(patchMidiSpec);
+      },
+      hasTrackBindingForSource(sourceName) {
+        if (typeof sourceName !== "string" || sourceName.trim() === "") {
+          return false;
+        }
+        return Boolean(
+          trackBindings.find((binding) => binding.source === sourceName) ||
+          patchMidiSpec?.trackBindings?.find((binding) => binding.source === sourceName)
+        );
       }
     };
 

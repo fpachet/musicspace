@@ -57,6 +57,7 @@ node --test tests/constraint-engine.test.js
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use **Stop Drawing All** to turn off drawing for every object without erasing the current trace.
+- Pure geometric/control sources draw as light hollow handles; sources with audio-file or MIDI track bindings draw with a stronger emitter style and an `A`, `M`, or `A+M` badge.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
