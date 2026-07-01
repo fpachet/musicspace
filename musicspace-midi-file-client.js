@@ -66,6 +66,7 @@
       loadPatch,
       serialize,
       updateSpatial,
+      setEnabled,
       stop,
       renameSource(oldName, newName) {
         if (patchMidiSpec?.trackBindings) {
@@ -84,6 +85,9 @@
       },
       hasMidiFile() {
         return Boolean(patchMidiSpec);
+      },
+      hasPlayableSequence() {
+        return Boolean(midiFile && trackBindings.length > 0);
       },
       hasTrackBindingForSource(sourceName) {
         if (typeof sourceName !== "string" || sourceName.trim() === "") {
@@ -167,7 +171,7 @@
     async function play() {
       if (!midiFile || trackBindings.length === 0) {
         setStatus(patchMidiSpec ? "Sequence file is still loading." : "This patch has no sequence file.");
-        return;
+        return false;
       }
 
       stop();
@@ -179,11 +183,11 @@
       } catch (error) {
         renderer = null;
         setStatus(error.message || "Could not start MIDI playback.");
-        return;
+        return false;
       }
 
       if (!renderer) {
-        return;
+        return false;
       }
 
       isPlaying = true;
@@ -197,6 +201,7 @@
       spatialTimer = global.setInterval(() => updateSpatial(false), SPATIAL_INTERVAL_MS);
       updatePlayButton();
       setStatus("MIDI playing.");
+      return true;
     }
 
     function stop() {
@@ -222,6 +227,17 @@
       if (wasPlaying) {
         setStatus("MIDI stopped.");
       }
+      return false;
+    }
+
+    async function setEnabled(nextEnabled) {
+      if (nextEnabled) {
+        if (isPlaying) {
+          return true;
+        }
+        return play();
+      }
+      return stop();
     }
 
     function scheduleDueEvents() {

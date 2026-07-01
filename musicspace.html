@@ -1290,13 +1290,16 @@
           <button id="load-patch" type="button">Load Patch</button>
           <input id="patch-file" type="file" accept="application/json,.json" hidden>
         </div>
-        <div class="toolbar-group" aria-label="Listener and playback controls">
+        <div class="toolbar-group" aria-label="Listener controls">
           <span class="toolbar-group-label">Listener</span>
           <div class="mode-group" aria-label="Listener drag mode">
             <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
             <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
           </div>
-          <button id="animation-toggle" type="button" aria-pressed="false">Start Movers</button>
+        </div>
+        <div class="toolbar-group" aria-label="Transport controls">
+          <span class="toolbar-group-label">Play</span>
+          <button id="animation-toggle" class="transport-button" type="button" aria-pressed="false">Start Movers</button>
           <button id="target-toggle" class="transport-button" type="button" aria-pressed="false">Play Sound</button>
         </div>
         <div class="toolbar-group" aria-label="Solver controls">
@@ -1306,11 +1309,14 @@
             <button id="solver-mode-xpbd" type="button" title="Use experimental XPBD solver">XPBD</button>
           </div>
         </div>
-        <div class="toolbar-group" aria-label="MIDI file controls">
-          <span class="toolbar-group-label">MIDI</span>
+        <div class="toolbar-group" aria-label="Import controls">
+          <span class="toolbar-group-label">Import</span>
           <button id="midi-load-sequence" type="button">Load MIDI/MusicXML</button>
           <input id="midi-sequence-file" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,audio/midi,audio/x-midi,application/vnd.recordare.musicxml,application/vnd.recordare.musicxml+xml" hidden>
-          <button id="midi-toggle" class="transport-button" type="button" aria-pressed="false">Play MIDI</button>
+          <button id="midi-toggle" class="transport-button" type="button" aria-pressed="false" hidden>Play MIDI</button>
+        </div>
+        <div id="midi-toolbar-group" class="toolbar-group" aria-label="MIDI output controls" hidden>
+          <span class="toolbar-group-label">MIDI</span>
           <select id="midi-mode" aria-label="MIDI playback mode">
             <option value="internal">Internal GM Synth</option>
             <option value="external">External MIDI</option>

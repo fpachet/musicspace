@@ -72,10 +72,10 @@ npm run smoke
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
-- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
+- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, MIDI/MusicXML sequence playback, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
-- Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
+- On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.
 - Use **Clear Trace** in the Display toolbar to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.

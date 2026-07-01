@@ -27,6 +27,7 @@ const targetGrid = document.getElementById("target-grid");
 const midiToggleButton = document.getElementById("midi-toggle");
 const midiLoadSequenceButton = document.getElementById("midi-load-sequence");
 const midiSequenceFileInput = document.getElementById("midi-sequence-file");
+const midiToolbarGroup = document.getElementById("midi-toolbar-group");
 const midiModeSelect = document.getElementById("midi-mode");
 const midiOutputSelect = document.getElementById("midi-output");
 const midiPanel = document.getElementById("midi-panel");
@@ -1445,6 +1446,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   generatorClient.loadPatch(patch);
   soundOutputEnabled = false;
   updateSoundToggleButton();
+  updateMidiToolbarVisibility();
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -3707,13 +3709,14 @@ async function toggleSoundOutput() {
   soundOutputEnabled = nextEnabled;
   updateSoundToggleButton();
 
-  const [parameterEnabled, sourceAudioEnabled, generatorEnabled] = await Promise.all([
+  const [parameterEnabled, sourceAudioEnabled, midiEnabled, generatorEnabled] = await Promise.all([
     parameterClient.setEnabled(nextEnabled),
     sourceAudioClient.setEnabled(nextEnabled),
+    midiFileClient.setEnabled(nextEnabled),
     generatorClient.setEnabled(nextEnabled)
   ]);
 
-  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled || generatorEnabled);
+  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled || midiEnabled || generatorEnabled);
   updateSoundToggleButton();
   drawAll();
 }
@@ -3726,6 +3729,14 @@ function updateSoundToggleButton() {
   targetToggleButton.textContent = soundOutputEnabled ? "Stop Sound" : "Play Sound";
   targetToggleButton.setAttribute("aria-pressed", String(soundOutputEnabled));
   targetToggleButton.classList.toggle("is-playing", soundOutputEnabled);
+}
+
+function updateMidiToolbarVisibility() {
+  if (!midiToolbarGroup) {
+    return;
+  }
+
+  midiToolbarGroup.hidden = !midiFileClient.hasMidiFile();
 }
 
 function refreshConstraints() {
@@ -5229,6 +5240,7 @@ function setListenerMode(nextMode) {
 
 function setAnimationPressedState(isPressed) {
   animationToggle.setAttribute("aria-pressed", String(isPressed));
+  animationToggle.classList.toggle("is-playing", isPressed);
 }
 
 function updateTraceSelectedButton() {

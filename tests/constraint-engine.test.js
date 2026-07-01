@@ -230,9 +230,11 @@ function createEngineHarness() {
     MusicSpaceMidiFileClient: {
       createMidiFileClient() {
         let midiFile = null;
+        let enabled = false;
         return {
           loadPatch(patch = {}) {
             midiFile = patch.midiFile ? JSON.parse(JSON.stringify(patch.midiFile)) : null;
+            enabled = false;
           },
           renameSource(oldName, newName) {
             if (!midiFile?.trackBindings) {
@@ -245,8 +247,25 @@ function createEngineHarness() {
           serialize() {
             return midiFile ? { midiFile: JSON.parse(JSON.stringify(midiFile)) } : {};
           },
+          hasMidiFile() {
+            return Boolean(midiFile);
+          },
+          hasPlayableSequence() {
+            return Boolean(midiFile?.trackBindings?.length);
+          },
           hasTrackBindingForSource(sourceName) {
             return Boolean(midiFile?.trackBindings?.find((binding) => binding.source === sourceName));
+          },
+          isEnabled() {
+            return enabled;
+          },
+          async setEnabled(nextEnabled) {
+            enabled = Boolean(nextEnabled && midiFile?.trackBindings?.length);
+            return enabled;
+          },
+          stop() {
+            enabled = false;
+            return false;
           },
           updateSpatial() {}
         };
@@ -589,6 +608,9 @@ globalThis.__musicspaceTestApi = {
     },
     moversButtonPressed() {
       return document.getElementById("animation-toggle").attributes.get("aria-pressed") || "false";
+    },
+    midiToolbarHidden() {
+      return document.getElementById("midi-toolbar-group").hidden;
     },
     undoStatus() {
       const status = document.getElementById("undo-status");
@@ -1689,6 +1711,44 @@ test("spacebar toggles sound playback for source generators", async () => {
 
   await engine.pressCanvasKeyAndSettle(" ");
   assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("spacebar toggles MIDI sequence playback through Play Sound", async () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Sequence Playback",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Lead", x: 250, y: 300 }],
+    midiFile: {
+      name: "lead.mid",
+      preferredMode: "internal",
+      trackBindings: [{ source: "Lead", track: "Lead", trackIndex: 0, channel: 1 }]
+    },
+    constraints: []
+  });
+
+  assert.equal(engine.soundButtonPressed(), "false");
+  assert.equal(engine.midiToolbarHidden(), false);
+
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "true");
+
+  await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("MIDI output controls are hidden for non-sequence patches", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Geometry Only",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.midiToolbarHidden(), true);
 });
 
 test("shift space toggles movers without toggling sound", () => {
