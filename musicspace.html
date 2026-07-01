@@ -29,26 +29,6 @@
       overflow: hidden;
     }
 
-    body.is-play-mode main {
-      grid-template-columns: minmax(0, 1fr);
-      max-width: 1480px;
-    }
-
-    body.is-play-mode h1 {
-      grid-column: 1;
-      grid-row: 1;
-    }
-
-    body.is-play-mode .toolbar {
-      grid-column: 1;
-      grid-row: 2;
-    }
-
-    body.is-play-mode .canvas-column {
-      grid-column: 1;
-      grid-row: 3;
-    }
-
     main {
       width: min(100%, 1480px);
       margin: 0 auto;
@@ -80,6 +60,8 @@
       grid-row: 1;
       gap: 5px;
       justify-content: flex-start;
+      min-height: 88px;
+      align-content: flex-start;
     }
 
     .toolbar-group {

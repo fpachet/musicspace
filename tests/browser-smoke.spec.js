@@ -38,10 +38,18 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "false");
 
+  const playStageBox = await page.locator("#stage").boundingBox();
+  expect(playStageBox).not.toBeNull();
   const patchInspectorToggle = page.locator("#patch-inspector-toggle");
   await expect(patchInspectorToggle).toBeHidden();
   await page.locator("#ui-mode-edit").click();
   await expect(patchInspectorToggle).toBeVisible();
+  const editStageBox = await page.locator("#stage").boundingBox();
+  expect(editStageBox).not.toBeNull();
+  expect(Math.abs(editStageBox.x - playStageBox.x)).toBeLessThan(1);
+  expect(Math.abs(editStageBox.y - playStageBox.y)).toBeLessThan(1);
+  expect(Math.abs(editStageBox.width - playStageBox.width)).toBeLessThan(1);
+  expect(Math.abs(editStageBox.height - playStageBox.height)).toBeLessThan(1);
   await expect(page.locator("#patch-inspector")).toBeHidden();
   await patchInspectorToggle.click();
   await expect(page.locator("#patch-inspector")).toBeVisible();
