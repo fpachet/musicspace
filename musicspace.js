@@ -151,6 +151,13 @@ const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
 const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
 const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel"];
 const SOURCE_GENERATOR_MAPPING_CURVES = ["linear", "exp"];
+const SOURCE_GENERATOR_PARAMETER_SPECS = {
+  pitch: { min: 0, max: 127, step: 1, defaultMin: 48, defaultMax: 72 },
+  periodMs: { min: 40, max: 60000, step: 10, defaultMin: 360, defaultMax: 1300 },
+  durationMs: { min: 10, max: 10000, step: 10, defaultMin: 70, defaultMax: 260 },
+  velocity: { min: 1, max: 127, step: 1, defaultMin: 40, defaultMax: 112 },
+  channel: { min: 1, max: 16, step: 1, defaultMin: 1, defaultMax: 16 }
+};
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
 const DOUBLE_CLICK_DISTANCE = 12;
@@ -4499,13 +4506,14 @@ function fillSourceGeneratorMappingsEditor(mappings = []) {
 }
 
 function defaultSourceGeneratorMapping() {
+  const spec = sourceGeneratorParameterSpec("pitch");
   return {
     feature: "distance",
     parameter: "pitch",
     inputMin: 0,
     inputMax: 400,
-    outputMin: 48,
-    outputMax: 72,
+    outputMin: spec.defaultMin,
+    outputMax: spec.defaultMax,
     curve: "linear"
   };
 }
@@ -4518,10 +4526,14 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
     createMappingSelect("Controls MIDI", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
     createMappingNumber("Motion min", "input-min", mapping.inputMin),
     createMappingNumber("Motion max", "input-max", mapping.inputMax),
-    createMappingNumber("MIDI min", "output-min", mapping.outputMin),
-    createMappingNumber("MIDI max", "output-max", mapping.outputMax),
+    createMappingNumber("Parameter min", "output-min", mapping.outputMin),
+    createMappingNumber("Parameter max", "output-max", mapping.outputMax),
     createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
   );
+  row.querySelector("[data-mapping-field='parameter']").addEventListener("change", () => {
+    updateMappingParameterFields(row, { resetValues: true });
+  });
+  updateMappingParameterFields(row, { resetValues: false });
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "mapping-remove";
@@ -4531,6 +4543,32 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   removeButton.addEventListener("click", () => row.remove());
   row.append(removeButton);
   sourceGeneratorMappingList.append(row);
+}
+
+function sourceGeneratorParameterSpec(parameter) {
+  return SOURCE_GENERATOR_PARAMETER_SPECS[parameter] || SOURCE_GENERATOR_PARAMETER_SPECS.pitch;
+}
+
+function updateMappingParameterFields(row, { resetValues = false } = {}) {
+  const parameter = row.querySelector("[data-mapping-field='parameter']").value;
+  const spec = sourceGeneratorParameterSpec(parameter);
+  const outputMinInput = row.querySelector("[data-mapping-field='output-min']");
+  const outputMaxInput = row.querySelector("[data-mapping-field='output-max']");
+
+  for (const input of [outputMinInput, outputMaxInput]) {
+    input.min = String(spec.min);
+    input.max = String(spec.max);
+    input.step = String(spec.step);
+  }
+
+  if (resetValues) {
+    outputMinInput.value = String(spec.defaultMin);
+    outputMaxInput.value = String(spec.defaultMax);
+    return;
+  }
+
+  outputMinInput.value = String(clampNumberInput(outputMinInput.value, spec.min, spec.max, spec.defaultMin));
+  outputMaxInput.value = String(clampNumberInput(outputMaxInput.value, spec.min, spec.max, spec.defaultMax));
 }
 
 function createMappingSelect(labelText, key, options, value) {
@@ -4576,21 +4614,28 @@ function formatMappingOption(value) {
 }
 
 function sourceGeneratorMappingsFromEditor() {
-  return Array.from(sourceGeneratorMappingList.querySelectorAll(".mapping-row")).map((row) => ({
-    feature: row.querySelector("[data-mapping-field='feature']").value,
-    parameter: row.querySelector("[data-mapping-field='parameter']").value,
-    inputMin: numberFromMappingField(row, "input-min", 0),
-    inputMax: numberFromMappingField(row, "input-max", 1),
-    outputMin: numberFromMappingField(row, "output-min", 0),
-    outputMax: numberFromMappingField(row, "output-max", 1),
-    curve: row.querySelector("[data-mapping-field='curve']").value
-  }));
+  return Array.from(sourceGeneratorMappingList.querySelectorAll(".mapping-row")).map((row) => {
+    const parameter = row.querySelector("[data-mapping-field='parameter']").value;
+    const spec = sourceGeneratorParameterSpec(parameter);
+    return {
+      feature: row.querySelector("[data-mapping-field='feature']").value,
+      parameter,
+      inputMin: numberFromMappingField(row, "input-min", 0),
+      inputMax: numberFromMappingField(row, "input-max", 1),
+      outputMin: numberFromMappingField(row, "output-min", spec.defaultMin, spec.min, spec.max),
+      outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
+      curve: row.querySelector("[data-mapping-field='curve']").value
+    };
+  });
 }
 
-function numberFromMappingField(row, field, fallback) {
+function numberFromMappingField(row, field, fallback, min = null, max = null) {
   const input = row.querySelector(`[data-mapping-field='${field}']`);
   const value = Number(input?.value);
-  return Number.isFinite(value) ? value : fallback;
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Number.isFinite(min) && Number.isFinite(max) ? clamp(value, min, max) : value;
 }
 
 function sourceGeneratorFromEditor(sourceName) {

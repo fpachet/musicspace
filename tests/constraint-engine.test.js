@@ -1465,7 +1465,7 @@ test("source inspector edits MIDI ostinato control mappings", () => {
       inputMin: -3.141,
       inputMax: 3.141,
       outputMin: 48,
-      outputMax: 76
+      outputMax: 260
     },
     {
       feature: "y",
@@ -1482,6 +1482,7 @@ test("source inspector edits MIDI ostinato control mappings", () => {
   assert.equal(patch.sourceGeneratorMappings[0].source, "Pulse");
   assert.equal(patch.sourceGeneratorMappings[0].feature, "angle");
   assert.equal(patch.sourceGeneratorMappings[0].parameter, "pitch");
+  assert.equal(patch.sourceGeneratorMappings[0].outputMax, 127);
   assert.equal(patch.sourceGeneratorMappings[1].parameter, "periodMs");
   assert.equal(patch.sourceGeneratorMappings[1].curve, "exp");
 });
