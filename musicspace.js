@@ -4492,7 +4492,8 @@ function fillSourceGeneratorEditor(generator) {
 
 function fillSourceGeneratorMappingsEditor(mappings = []) {
   sourceGeneratorMappingList.replaceChildren();
-  for (const mapping of mappings) {
+  const editorMappings = mappings.length > 0 ? mappings : [defaultSourceGeneratorMapping()];
+  for (const mapping of editorMappings) {
     addSourceGeneratorMappingRow(mapping);
   }
 }
@@ -4513,12 +4514,12 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   const row = document.createElement("div");
   row.className = "mapping-row";
   row.append(
-    createMappingSelect("Feature", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
-    createMappingSelect("Parameter", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
-    createMappingNumber("Input min", "input-min", mapping.inputMin),
-    createMappingNumber("Input max", "input-max", mapping.inputMax),
-    createMappingNumber("Output min", "output-min", mapping.outputMin),
-    createMappingNumber("Output max", "output-max", mapping.outputMax),
+    createMappingSelect("Source motion", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
+    createMappingSelect("Controls MIDI", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
+    createMappingNumber("Motion min", "input-min", mapping.inputMin),
+    createMappingNumber("Motion max", "input-max", mapping.inputMax),
+    createMappingNumber("MIDI min", "output-min", mapping.outputMin),
+    createMappingNumber("MIDI max", "output-max", mapping.outputMax),
     createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
   );
   const removeButton = document.createElement("button");
