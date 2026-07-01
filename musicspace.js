@@ -25,7 +25,6 @@ const patchInfo = document.getElementById("patch-info");
 const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
 const targetGrid = document.getElementById("target-grid");
-const midiToggleButton = document.getElementById("midi-toggle");
 const midiLoadSequenceButton = document.getElementById("midi-load-sequence");
 const midiSequenceFileInput = document.getElementById("midi-sequence-file");
 const midiToolbarGroup = document.getElementById("midi-toolbar-group");
@@ -1301,7 +1300,6 @@ const sourceAudioClient = MusicSpaceSourceAudioClient.createSourceAudioClient({
   getListener: () => listener
 });
 const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
-  playButton: midiToggleButton,
   modeSelect: midiModeSelect,
   outputSelect: midiOutputSelect,
   panel: midiPanel,

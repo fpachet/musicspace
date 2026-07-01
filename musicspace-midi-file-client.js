@@ -13,7 +13,6 @@
   const PPQ = 480;
 
   function createMidiFileClient(options = {}) {
-    const playButton = options.playButton || null;
     const modeSelect = options.modeSelect || null;
     const outputSelect = options.outputSelect || null;
     const panel = options.panel || null;
@@ -37,16 +36,6 @@
     let availableOutputs = [];
     let selectedOutputId = "";
     let loadToken = 0;
-
-    if (playButton) {
-      playButton.addEventListener("click", () => {
-        if (isPlaying) {
-          stop();
-        } else {
-          play();
-        }
-      });
-    }
 
     if (modeSelect) {
       modeSelect.addEventListener("change", () => {
@@ -110,7 +99,6 @@
       const currentLoadToken = loadToken;
 
       updatePanel();
-      updatePlayButton();
 
       if (!patchMidiSpec) {
         setStatus("");
@@ -142,7 +130,6 @@
         midiFile = parsed;
         trackBindings = bindTracks(parsed, patchMidiSpec.trackBindings || []);
         updatePanel();
-        updatePlayButton();
         updateModeAvailability();
         setStatus(`${parsed.musicalTracks.length} sequence tracks loaded.`);
       } catch (error) {
@@ -199,7 +186,6 @@
       scheduleDueEvents();
       schedulerTimer = global.setInterval(scheduleDueEvents, SCHEDULER_INTERVAL_MS);
       spatialTimer = global.setInterval(() => updateSpatial(false), SPATIAL_INTERVAL_MS);
-      updatePlayButton();
       setStatus("MIDI playing.");
       return true;
     }
@@ -222,7 +208,6 @@
       isPlaying = false;
       nextEventIndex = 0;
       boundTrackIndices = new Set();
-      updatePlayButton();
 
       if (wasPlaying) {
         setStatus("MIDI stopped.");
@@ -378,17 +363,6 @@
         row.append(label, output);
         trackList.append(row);
       }
-    }
-
-    function updatePlayButton() {
-      if (!playButton) {
-        return;
-      }
-
-      playButton.textContent = isPlaying ? "Stop MIDI" : "Play MIDI";
-      playButton.setAttribute("aria-pressed", String(isPlaying));
-      playButton.classList?.toggle("is-playing", isPlaying);
-      playButton.disabled = Boolean(patchMidiSpec && !midiFile);
     }
 
     function setStatus(message) {
