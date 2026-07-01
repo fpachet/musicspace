@@ -65,6 +65,7 @@ npm run smoke
 - Double-click a source, rotative/shuttle mover, or constraint node to edit its parameters in a popup inspector. Use the arrow buttons in an inspector to move to the previous or next editable item.
 - Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
+- Use **Fullscreen** to let the canvas fill the viewport; press Escape to return to the normal layout.
 - Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use **Stop Drawing All** to turn off drawing for every object without erasing the current trace.
 - Pure geometric/control sources draw as light hollow handles; sources with audio-file or MIDI track bindings draw with a stronger emitter style and a small sound or MIDI icon badge.

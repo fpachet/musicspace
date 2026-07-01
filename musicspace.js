@@ -19,6 +19,7 @@ const loadPatchButton = document.getElementById("load-patch");
 const patchFileInput = document.getElementById("patch-file");
 const clearTraceButton = document.getElementById("clear-trace");
 const resetButton = document.getElementById("reset");
+const fullscreenToggleButton = document.getElementById("fullscreen-toggle");
 const saveTraceButton = document.getElementById("save-trace");
 const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
@@ -170,6 +171,7 @@ const DOUBLE_CLICK_DISTANCE = 12;
 
 const PATCH_INDEX_URL = "patches/index.json";
 let builtInPatches = [];
+let isCanvasFullscreen = false;
 let canvasResolution = {
   width: 0,
   height: 0,
@@ -206,6 +208,62 @@ function configureCanvasResolution() {
     scaleY
   };
   return didResize;
+}
+
+function setCanvasFullscreen(enabled) {
+  isCanvasFullscreen = Boolean(enabled);
+  stage.classList.toggle("is-fullscreen", isCanvasFullscreen);
+  document.body?.classList?.toggle("is-canvas-fullscreen", isCanvasFullscreen);
+  fullscreenToggleButton.setAttribute("aria-pressed", String(isCanvasFullscreen));
+  fullscreenToggleButton.textContent = isCanvasFullscreen ? "Exit Fullscreen" : "Fullscreen";
+  fullscreenToggleButton.title = isCanvasFullscreen
+    ? "Exit fullscreen canvas mode"
+    : "Use the full screen for the canvas";
+
+  requestAnimationFrame(() => {
+    configureCanvasResolution();
+    drawAll();
+    if (isCanvasFullscreen) {
+      focusCanvasWithoutScrolling();
+    }
+  });
+}
+
+async function enterCanvasFullscreen() {
+  setCanvasFullscreen(true);
+  try {
+    await stage.requestFullscreen?.();
+  } catch (error) {
+    // CSS fullscreen mode remains available when the browser API is denied.
+  }
+}
+
+async function exitCanvasFullscreen() {
+  const fullscreenElement = document.fullscreenElement;
+  if (fullscreenElement === stage && document.exitFullscreen) {
+    try {
+      await document.exitFullscreen();
+    } catch (error) {
+      // Fall back to the local state update below.
+    }
+  }
+  setCanvasFullscreen(false);
+}
+
+function toggleCanvasFullscreen() {
+  if (isCanvasFullscreen) {
+    exitCanvasFullscreen();
+  } else {
+    enterCanvasFullscreen();
+  }
+}
+
+function handleDocumentFullscreenChange() {
+  if (document.fullscreenElement === stage) {
+    setCanvasFullscreen(true);
+  } else if (isCanvasFullscreen) {
+    setCanvasFullscreen(false);
+  }
 }
 
 class Entity {
@@ -5662,6 +5720,12 @@ canvas.addEventListener("dblclick", (event) => {
 });
 
 canvas.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isCanvasFullscreen) {
+    exitCanvasFullscreen();
+    event.preventDefault();
+    return;
+  }
+
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
     undoLastEdit();
     event.preventDefault();
@@ -5705,6 +5769,13 @@ canvas.addEventListener("keydown", (event) => {
   moveEntity(entity, entity.x + direction.x * step, entity.y + direction.y * step);
   event.preventDefault();
 });
+globalThis.addEventListener?.("keydown", (event) => {
+  if (event.key === "Escape" && isCanvasFullscreen) {
+    exitCanvasFullscreen();
+    event.preventDefault();
+  }
+});
+document.addEventListener?.("fullscreenchange", handleDocumentFullscreenChange);
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
@@ -5781,6 +5852,7 @@ resetButton.addEventListener("click", () => {
   stopAnimation();
   resetScene();
 });
+fullscreenToggleButton.addEventListener("click", toggleCanvasFullscreen);
 rotationApplyButton.addEventListener("click", applyRotationEditor);
 rotationCloseButton.addEventListener("click", closeRotationEditor);
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);

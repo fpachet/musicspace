@@ -565,6 +565,18 @@ globalThis.__musicspaceTestApi = {
         traceHeight: trace.height
       };
     },
+    clickFullscreenToggle() {
+      document.getElementById("fullscreen-toggle").click();
+    },
+    fullscreenState() {
+      const button = document.getElementById("fullscreen-toggle");
+      const stage = document.getElementById("stage");
+      return {
+        pressed: button.attributes.get("aria-pressed"),
+        text: button.textContent,
+        stageClassName: stage.className
+      };
+    },
     solverButtonPressed(mode) {
       const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
       return document.getElementById(id).attributes.get("aria-pressed");
@@ -1835,6 +1847,17 @@ test("canvas backing store matches displayed size and device pixel ratio", () =>
     traceWidth: 3200,
     traceHeight: 2400
   });
+});
+
+test("fullscreen canvas mode toggles and escape exits", () => {
+  const engine = createEngineHarness();
+  engine.clickFullscreenToggle();
+  assert.equal(engine.fullscreenState().pressed, "true");
+  assert.ok(engine.fullscreenState().stageClassName.includes("is-fullscreen"));
+
+  engine.pressCanvasKey("Escape");
+  assert.equal(engine.fullscreenState().pressed, "false");
+  assert.ok(!engine.fullscreenState().stageClassName.includes("is-fullscreen"));
 });
 
 test("undo status shows pending undo without a toolbar command button", () => {

@@ -25,6 +25,10 @@
         #f3f5f2;
     }
 
+    body.is-canvas-fullscreen {
+      overflow: hidden;
+    }
+
     main {
       width: min(100%, 1480px);
       margin: 0 auto;
@@ -685,6 +689,19 @@
       box-shadow: 0 14px 34px rgba(31, 41, 51, 0.1);
     }
 
+    .stage.is-fullscreen,
+    .stage:fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      width: 100vw;
+      height: 100vh;
+      aspect-ratio: auto;
+      border: 0;
+      background: #fbfbf8;
+      box-shadow: none;
+    }
+
     canvas {
       position: absolute;
       inset: 0;
@@ -1253,6 +1270,7 @@
           <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
           <button id="trace-none" type="button" title="Turn drawing off for every object">Stop Drawing All</button>
           <button id="reset" type="button">Reset</button>
+          <button id="fullscreen-toggle" type="button" aria-pressed="false" title="Use the full screen for the canvas">Fullscreen</button>
           <button id="clear-trace" type="button">Clear Trace</button>
           <button id="save-trace" type="button">Save Trace</button>
         </div>
