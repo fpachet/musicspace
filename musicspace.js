@@ -151,6 +151,12 @@ const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
 const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
 const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel"];
 const SOURCE_GENERATOR_MAPPING_CURVES = ["linear", "exp"];
+const SOURCE_GENERATOR_FEATURE_SPECS = {
+  x: { min: 0, max: WIDTH, step: 1, defaultMin: 0, defaultMax: WIDTH },
+  y: { min: 0, max: HEIGHT, step: 1, defaultMin: 0, defaultMax: HEIGHT },
+  distance: { min: 0, max: WIDTH, step: 1, defaultMin: 0, defaultMax: 400 },
+  angle: { min: -Math.PI, max: Math.PI, step: 0.01, defaultMin: -Math.PI, defaultMax: Math.PI }
+};
 const SOURCE_GENERATOR_PARAMETER_SPECS = {
   pitch: { min: 0, max: 127, step: 1, defaultMin: 48, defaultMax: 72 },
   periodMs: { min: 40, max: 60000, step: 10, defaultMin: 360, defaultMax: 1300 },
@@ -4506,12 +4512,13 @@ function fillSourceGeneratorMappingsEditor(mappings = []) {
 }
 
 function defaultSourceGeneratorMapping() {
+  const featureSpec = sourceGeneratorFeatureSpec("distance");
   const spec = sourceGeneratorParameterSpec("pitch");
   return {
     feature: "distance",
     parameter: "pitch",
-    inputMin: 0,
-    inputMax: 400,
+    inputMin: featureSpec.defaultMin,
+    inputMax: featureSpec.defaultMax,
     outputMin: spec.defaultMin,
     outputMax: spec.defaultMax,
     curve: "linear"
@@ -4533,6 +4540,10 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   row.querySelector("[data-mapping-field='parameter']").addEventListener("change", () => {
     updateMappingParameterFields(row, { resetValues: true });
   });
+  row.querySelector("[data-mapping-field='feature']").addEventListener("change", () => {
+    updateMappingFeatureFields(row, { resetValues: true });
+  });
+  updateMappingFeatureFields(row, { resetValues: false });
   updateMappingParameterFields(row, { resetValues: false });
   const removeButton = document.createElement("button");
   removeButton.type = "button";
@@ -4545,8 +4556,38 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   sourceGeneratorMappingList.append(row);
 }
 
+function sourceGeneratorFeatureSpec(feature) {
+  return SOURCE_GENERATOR_FEATURE_SPECS[feature] || SOURCE_GENERATOR_FEATURE_SPECS.distance;
+}
+
 function sourceGeneratorParameterSpec(parameter) {
   return SOURCE_GENERATOR_PARAMETER_SPECS[parameter] || SOURCE_GENERATOR_PARAMETER_SPECS.pitch;
+}
+
+function updateMappingFeatureFields(row, { resetValues = false } = {}) {
+  const feature = row.querySelector("[data-mapping-field='feature']").value;
+  const spec = sourceGeneratorFeatureSpec(feature);
+  const inputMinInput = row.querySelector("[data-mapping-field='input-min']");
+  const inputMaxInput = row.querySelector("[data-mapping-field='input-max']");
+
+  for (const input of [inputMinInput, inputMaxInput]) {
+    input.min = String(spec.min);
+    input.max = String(spec.max);
+    input.step = String(spec.step);
+  }
+
+  if (resetValues) {
+    inputMinInput.value = String(roundEditorValue(spec.defaultMin));
+    inputMaxInput.value = String(roundEditorValue(spec.defaultMax));
+    return;
+  }
+
+  inputMinInput.value = String(roundEditorValue(
+    clampNumberInput(inputMinInput.value, spec.min, spec.max, spec.defaultMin)
+  ));
+  inputMaxInput.value = String(roundEditorValue(
+    clampNumberInput(inputMaxInput.value, spec.min, spec.max, spec.defaultMax)
+  ));
 }
 
 function updateMappingParameterFields(row, { resetValues = false } = {}) {
@@ -4615,13 +4656,15 @@ function formatMappingOption(value) {
 
 function sourceGeneratorMappingsFromEditor() {
   return Array.from(sourceGeneratorMappingList.querySelectorAll(".mapping-row")).map((row) => {
+    const feature = row.querySelector("[data-mapping-field='feature']").value;
     const parameter = row.querySelector("[data-mapping-field='parameter']").value;
+    const featureSpec = sourceGeneratorFeatureSpec(feature);
     const spec = sourceGeneratorParameterSpec(parameter);
     return {
-      feature: row.querySelector("[data-mapping-field='feature']").value,
+      feature,
       parameter,
-      inputMin: numberFromMappingField(row, "input-min", 0),
-      inputMax: numberFromMappingField(row, "input-max", 1),
+      inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
+      inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
       outputMin: numberFromMappingField(row, "output-min", spec.defaultMin, spec.min, spec.max),
       outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
       curve: row.querySelector("[data-mapping-field='curve']").value

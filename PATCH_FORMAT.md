@@ -125,7 +125,7 @@ Source generators make a source emit generated musical events without requiring 
 
 Generator sources using the internal browser synth use the same listener-relative pan and distance gain model as direct audio sources. External MIDI generator output keeps the source geometry and timing in MusicSpace while leaving sound rendering to the selected MIDI device.
 
-`sourceGeneratorMappings` can dynamically map spatial features onto generator MIDI parameters while playback is running. They can be edited from the selected source's Source Inspector or directly in patch JSON. Supported features are `x`, `y`, `distance`, and `angle`; supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, and `channel`. The inspector clamps pitch and velocity mappings to MIDI ranges, channel to `1..16`, and timing mappings to millisecond ranges.
+`sourceGeneratorMappings` can dynamically map spatial features onto generator MIDI parameters while playback is running. They can be edited from the selected source's Source Inspector or directly in patch JSON. Supported features are `x`, `y`, `distance`, and `angle`; `angle` is in radians from `-pi` to `pi`, while `x`, `y`, and `distance` use canvas pixels. Supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, and `channel`. The inspector clamps pitch and velocity mappings to MIDI ranges, channel to `1..16`, and timing mappings to millisecond ranges.
 
 ```json
 {
