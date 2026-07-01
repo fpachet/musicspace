@@ -65,18 +65,18 @@ npm run smoke
 - Double-click a source, rotative/shuttle mover, or constraint node to edit its parameters in a popup inspector. Use the arrow buttons in an inspector to move to the previous or next editable item.
 - Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
-- Use **Fullscreen** to let the canvas fill the viewport; press Escape to return to the normal layout.
-- Use **Draw Selected** to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
+- Use **Fullscreen** in the Display toolbar to let the canvas fill the viewport; press Escape to return to the normal layout.
+- Use **Draw Selected** in the Display toolbar to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use **Stop Drawing All** to turn off drawing for every object without erasing the current trace.
 - Pure geometric/control sources draw as light hollow handles; sources with audio-file or MIDI track bindings draw with a stronger emitter style and a small sound or MIDI icon badge.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
-- Use **Start Movers** / **Stop Movers** to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
+- Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
 - Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - Use **Play MIDI** / **Stop MIDI** on MIDI/MusicXML patches. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping sends MIDI panic messages so external synths release pending notes.
-- Use **Clear Trace** to erase the trace canvas.
+- Use **Clear Trace** in the Display toolbar to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
 

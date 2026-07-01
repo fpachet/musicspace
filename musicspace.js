@@ -3725,6 +3725,7 @@ function updateSoundToggleButton() {
 
   targetToggleButton.textContent = soundOutputEnabled ? "Stop Sound" : "Play Sound";
   targetToggleButton.setAttribute("aria-pressed", String(soundOutputEnabled));
+  targetToggleButton.classList.toggle("is-playing", soundOutputEnabled);
 }
 
 function refreshConstraints() {
@@ -5436,6 +5437,14 @@ function stopAnimation() {
   }
 }
 
+function toggleAnimation() {
+  if (isAnimating) {
+    stopAnimation();
+  } else {
+    startAnimation();
+  }
+}
+
 function clearTrace() {
   configureCanvasResolution();
   traceCtx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -5744,7 +5753,13 @@ canvas.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (!event.metaKey && !event.ctrlKey && !event.altKey && (event.key === " " || event.key === "Spacebar")) {
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey && (event.key === " " || event.key === "Spacebar")) {
+    toggleAnimation();
+    event.preventDefault();
+    return;
+  }
+
+  if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && (event.key === " " || event.key === "Spacebar")) {
     toggleSoundOutput();
     event.preventDefault();
     return;
@@ -5783,13 +5798,7 @@ for (const button of toolButtons) {
   });
 }
 
-animationToggle.addEventListener("click", () => {
-  if (isAnimating) {
-    stopAnimation();
-  } else {
-    startAnimation();
-  }
-});
+animationToggle.addEventListener("click", toggleAnimation);
 targetToggleButton.addEventListener("click", () => {
   toggleSoundOutput();
 });

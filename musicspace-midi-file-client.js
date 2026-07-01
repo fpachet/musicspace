@@ -371,6 +371,7 @@
 
       playButton.textContent = isPlaying ? "Stop MIDI" : "Play MIDI";
       playButton.setAttribute("aria-pressed", String(isPlaying));
+      playButton.classList?.toggle("is-playing", isPlaying);
       playButton.disabled = Boolean(patchMidiSpec && !midiFile);
     }
 

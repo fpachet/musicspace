@@ -585,7 +585,10 @@ globalThis.__musicspaceTestApi = {
       return api.getSolverMode();
     },
     soundButtonPressed() {
-      return document.getElementById("target-toggle").attributes.get("aria-pressed");
+      return document.getElementById("target-toggle").attributes.get("aria-pressed") || "false";
+    },
+    moversButtonPressed() {
+      return document.getElementById("animation-toggle").attributes.get("aria-pressed") || "false";
     },
     undoStatus() {
       const status = document.getElementById("undo-status");
@@ -1685,6 +1688,29 @@ test("spacebar toggles sound playback for source generators", async () => {
   assert.equal(engine.soundButtonPressed(), "true");
 
   await engine.pressCanvasKeyAndSettle(" ");
+  assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("shift space toggles movers without toggling sound", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Shift Space Movers",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    movingObjects: [{ name: "Mover", x: 500, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.moversButtonPressed(), "false");
+  assert.equal(engine.soundButtonPressed(), "false");
+
+  engine.pressCanvasKey(" ", { shiftKey: true });
+  assert.equal(engine.moversButtonPressed(), "true");
+  assert.equal(engine.soundButtonPressed(), "false");
+
+  engine.pressCanvasKey(" ", { shiftKey: true });
+  assert.equal(engine.moversButtonPressed(), "false");
   assert.equal(engine.soundButtonPressed(), "false");
 });
 

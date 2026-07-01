@@ -228,6 +228,61 @@
       color: #ffffff;
     }
 
+    .transport-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 112px;
+      border-color: #0f766e;
+      background: #ecfdf5;
+      color: #064e3b;
+      font-weight: 800;
+    }
+
+    .transport-button::before {
+      content: "";
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 9px solid currentColor;
+    }
+
+    .transport-button:hover {
+      border-color: #0f766e;
+      background: #d1fae5;
+    }
+
+    .transport-button[aria-pressed="true"],
+    .transport-button.is-playing {
+      border-color: #b91c1c;
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .transport-button[aria-pressed="true"]::before,
+    .transport-button.is-playing::before {
+      width: 10px;
+      height: 10px;
+      border: 0;
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .transport-button[aria-pressed="true"]:hover,
+    .transport-button.is-playing:hover {
+      border-color: #991b1b;
+      background: #fecaca;
+      color: #7f1d1d;
+    }
+
+    .transport-button:disabled {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
     .tool-button {
       display: inline-flex;
       align-items: center;
@@ -1242,7 +1297,7 @@
             <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
           </div>
           <button id="animation-toggle" type="button" aria-pressed="false">Start Movers</button>
-          <button id="target-toggle" type="button" aria-pressed="false">Play Sound</button>
+          <button id="target-toggle" class="transport-button" type="button" aria-pressed="false">Play Sound</button>
         </div>
         <div class="toolbar-group" aria-label="Solver controls">
           <span class="toolbar-group-label">Solver</span>
@@ -1255,21 +1310,24 @@
           <span class="toolbar-group-label">MIDI</span>
           <button id="midi-load-sequence" type="button">Load MIDI/MusicXML</button>
           <input id="midi-sequence-file" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,audio/midi,audio/x-midi,application/vnd.recordare.musicxml,application/vnd.recordare.musicxml+xml" hidden>
-          <button id="midi-toggle" type="button" aria-pressed="false">Play MIDI</button>
+          <button id="midi-toggle" class="transport-button" type="button" aria-pressed="false">Play MIDI</button>
           <select id="midi-mode" aria-label="MIDI playback mode">
             <option value="internal">Internal GM Synth</option>
             <option value="external">External MIDI</option>
           </select>
           <select id="midi-output" aria-label="MIDI output" hidden disabled></select>
         </div>
-        <div class="toolbar-group" aria-label="Edit and trace controls">
+        <div class="toolbar-group" aria-label="Edit controls">
           <span class="toolbar-group-label">Edit</span>
           <span id="undo-status" class="undo-status" aria-live="polite" hidden></span>
           <button id="patch-inspector-inline-toggle" type="button" aria-pressed="false">Patch Inspector</button>
           <button id="patch-json-inline-toggle" type="button" aria-pressed="false">Patch JSON</button>
+          <button id="reset" type="button">Reset</button>
+        </div>
+        <div class="toolbar-group" aria-label="Display and trace controls">
+          <span class="toolbar-group-label">Display</span>
           <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
           <button id="trace-none" type="button" title="Turn drawing off for every object">Stop Drawing All</button>
-          <button id="reset" type="button">Reset</button>
           <button id="fullscreen-toggle" type="button" aria-pressed="false" title="Use the full screen for the canvas">Fullscreen</button>
           <button id="clear-trace" type="button">Clear Trace</button>
           <button id="save-trace" type="button">Save Trace</button>
