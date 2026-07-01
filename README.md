@@ -50,6 +50,7 @@ npm run smoke
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Save Patch** / **Load Patch** to export and import scene JSON.
 - Use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
+- The patch strip under the toolbar shows the current example description and tags so built-in patches are easier to browse.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
 - Use **Orbit** when the mover itself should travel around the listener.
@@ -63,6 +64,7 @@ npm run smoke
 - Use the **Solver** control to switch between the default Propagation solver and the experimental XPBD solver.
 - Drag the listener, sources, movers, or constraint nodes on the canvas.
 - Double-click a source, rotative/shuttle mover, or constraint node to edit its parameters in a popup inspector. Use the arrow buttons in an inspector to move to the previous or next editable item.
+- The canvas shows a compact selection summary and source-type legend for silent/control, audio, and MIDI-emitting sources.
 - Hold Shift while dragging to pause constraint propagation for fine positioning; releasing the drag retargets constraints to the paused layout before normal propagation resumes.
 - Use arrow keys to nudge the selected object; hold Shift for larger steps.
 - Use **Fullscreen** in the Display toolbar to let the canvas fill the viewport; press Escape to return to the normal layout.
@@ -76,6 +78,7 @@ npm run smoke
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.
+- MIDI ostinato mapping rows show the current source-motion value and resulting MIDI parameter value, so mappings such as angle-to-period can be checked while editing.
 - Use **Clear Trace** in the Display toolbar to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.

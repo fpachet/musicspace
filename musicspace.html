@@ -713,6 +713,37 @@
       line-height: 1.4;
     }
 
+    .patch-info {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      margin: 0 0 8px;
+      color: #52616f;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .patch-info strong {
+      color: #1f2933;
+      font-weight: 800;
+    }
+
+    .patch-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 0 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #52616f;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .solver-control {
       flex: 0 0 228px;
       width: 228px;
@@ -783,6 +814,85 @@
     #trace {
       z-index: 1;
       pointer-events: none;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      color: #1f2933;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .selection-summary {
+      top: 10px;
+      left: 10px;
+      max-width: min(320px, calc(100% - 20px));
+      padding: 8px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.62);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 6px 18px rgba(31, 41, 51, 0.08);
+    }
+
+    .selection-summary[hidden] {
+      display: none;
+    }
+
+    .selection-summary strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .selection-summary span {
+      display: block;
+      color: #52616f;
+      font-weight: 700;
+    }
+
+    .canvas-legend {
+      right: 10px;
+      bottom: 10px;
+      display: grid;
+      gap: 5px;
+      padding: 7px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.62);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 6px 18px rgba(31, 41, 51, 0.07);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #52616f;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .legend-mark {
+      width: 13px;
+      height: 13px;
+      border-radius: 999px;
+      border: 2px solid #dc2626;
+      background: #fff1f2;
+    }
+
+    .legend-mark.audio {
+      border-color: #f97316;
+      background: #dc2626;
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
+    }
+
+    .legend-mark.midi {
+      border-color: #7c3aed;
+      background: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
     }
 
     .editor-panel {
@@ -909,6 +1019,15 @@
       border: 1px solid #b9c1c9;
       border-radius: 6px;
       background: #f8fafc;
+    }
+
+    .mapping-readout {
+      grid-column: 1 / -1;
+      min-height: 20px;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
     }
 
     .mapping-row label {
@@ -1254,6 +1373,16 @@
         grid-column: 1 / -1;
       }
 
+      .selection-summary {
+        position: static;
+        max-width: none;
+        margin: 8px;
+      }
+
+      .canvas-legend {
+        display: none;
+      }
+
       .popup-panel {
         inset: 16px;
         width: auto;
@@ -1446,6 +1575,7 @@
         <div class="status-row">
           <p id="constraint-status" class="status" aria-live="polite"></p>
         </div>
+        <p id="patch-info" class="patch-info" aria-live="polite"></p>
         <div id="stage" class="stage">
           <canvas id="trace" width="800" height="600"></canvas>
           <canvas
@@ -1455,6 +1585,12 @@
             tabindex="0"
             role="application"
             aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
+          <div id="selection-summary" class="canvas-overlay selection-summary" aria-live="polite" hidden></div>
+          <div id="canvas-legend" class="canvas-overlay canvas-legend" aria-label="Canvas legend">
+            <span class="legend-item"><span class="legend-mark" aria-hidden="true"></span>Control</span>
+            <span class="legend-item"><span class="legend-mark audio" aria-hidden="true"></span>Audio</span>
+            <span class="legend-item"><span class="legend-mark midi" aria-hidden="true"></span>MIDI</span>
+          </div>
         </div>
       </div>
     </div>

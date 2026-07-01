@@ -184,6 +184,14 @@ function matchesSelector(element, selector) {
   return false;
 }
 
+function textContentDeep(node) {
+  if (!node || typeof node !== "object") {
+    return "";
+  }
+
+  return `${node.textContent || ""}${(node.children || []).map(textContentDeep).join("")}`;
+}
+
 function createDocument() {
   const elements = new Map();
   return {
@@ -191,6 +199,12 @@ function createDocument() {
       const element = createElement();
       element.tagName = tagName.toUpperCase();
       return element;
+    },
+    createTextNode(text) {
+      return {
+        textContent: String(text),
+        nodeType: 3
+      };
     },
     getElementById(id) {
       if (!elements.has(id)) {
@@ -609,6 +623,12 @@ globalThis.__musicspaceTestApi = {
     moversButtonPressed() {
       return document.getElementById("animation-toggle").attributes.get("aria-pressed") || "false";
     },
+    patchInfoText() {
+      return textContentDeep(document.getElementById("patch-info"));
+    },
+    selectionSummaryText() {
+      return textContentDeep(document.getElementById("selection-summary"));
+    },
     midiToolbarHidden() {
       return document.getElementById("midi-toolbar-group").hidden;
     },
@@ -666,6 +686,9 @@ globalThis.__musicspaceTestApi = {
         generatorOutputId: document.getElementById("source-generator-output").value,
         generatorChannel: document.getElementById("source-generator-channel").value,
         generatorMappingCount: document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-row").length,
+        generatorMappingReadouts: Array.from(
+          document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-readout")
+        ).map((output) => output.textContent),
         fileLabel: document.getElementById("source-audio-file-name").textContent
       };
     },
@@ -1297,6 +1320,39 @@ test("source emitter capability distinguishes audio, midi, and geometric sources
   assert.equal(controlCapability.emits, false);
 });
 
+test("patch info and selection summary describe the active context", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Readable Patch",
+    description: "Shows the current patch and selected source.",
+    tags: ["audio", "mappings"],
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Voice", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "Voice",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  assert.match(engine.patchInfoText(), /Readable Patch/);
+  assert.match(engine.patchInfoText(), /Shows the current patch/);
+  assert.match(engine.patchInfoText(), /audio/);
+
+  assert.equal(engine.openSourceInspector("Voice"), true);
+  assert.match(engine.selectionSummaryText(), /Source: Voice/);
+  assert.match(engine.selectionSummaryText(), /Audio: voice\.wav/);
+});
+
 test("source generators serialize with the patch", () => {
   const engine = createEngineHarness();
   engine.loadPatch({
@@ -1493,7 +1549,9 @@ test("source inspector edits MIDI ostinato control mappings", () => {
   });
 
   assert.equal(engine.openSourceInspector("Pulse"), true);
-  assert.equal(engine.sourceInspectorState().generatorMappingCount, 1);
+  let state = engine.sourceInspectorState();
+  assert.equal(state.generatorMappingCount, 1);
+  assert.match(state.generatorMappingReadouts[0], /Current: Distance 150 px -> Pitch 57/);
 
   const patch = engine.setOpenSourceGeneratorMappings([
     {
@@ -1523,6 +1581,11 @@ test("source inspector edits MIDI ostinato control mappings", () => {
   assert.equal(patch.sourceGeneratorMappings[0].outputMax, 127);
   assert.equal(patch.sourceGeneratorMappings[1].parameter, "periodMs");
   assert.equal(patch.sourceGeneratorMappings[1].curve, "exp");
+
+  assert.equal(engine.openSourceInspector("Pulse"), true);
+  state = engine.sourceInspectorState();
+  assert.match(state.generatorMappingReadouts[0], /Angle/);
+  assert.match(state.generatorMappingReadouts[1], /Period/);
 });
 
 test("source inspector creates a MIDI ostinato generator for a plain source", () => {

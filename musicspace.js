@@ -21,6 +21,7 @@ const clearTraceButton = document.getElementById("clear-trace");
 const resetButton = document.getElementById("reset");
 const fullscreenToggleButton = document.getElementById("fullscreen-toggle");
 const saveTraceButton = document.getElementById("save-trace");
+const patchInfo = document.getElementById("patch-info");
 const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
 const targetGrid = document.getElementById("target-grid");
@@ -33,6 +34,7 @@ const midiOutputSelect = document.getElementById("midi-output");
 const midiPanel = document.getElementById("midi-panel");
 const midiTrackList = document.getElementById("midi-track-list");
 const midiStatus = document.getElementById("midi-status");
+const selectionSummary = document.getElementById("selection-summary");
 const patchSummary = document.getElementById("patch-summary");
 const patchValidation = document.getElementById("patch-validation");
 const patchInspector = document.getElementById("patch-inspector");
@@ -1336,6 +1338,7 @@ function populatePatchSelect() {
     const option = document.createElement("option");
     option.value = patch.key;
     option.textContent = patch.name;
+    option.title = patch.description || patchTags(patch).join(", ");
     patchSelect.append(option);
   }
 }
@@ -1353,7 +1356,9 @@ async function loadBuiltInPatchLibrary() {
       ...patch,
       version: patch.version || index.version || 1,
       key: patch.key || entry.key,
-      name: patch.name || entry.name || entry.key
+      name: patch.name || entry.name || entry.key,
+      description: entry.description || patch.description || "",
+      tags: Array.isArray(entry.tags) ? entry.tags.slice() : patchTags(patch)
     };
   }));
 
@@ -1391,8 +1396,10 @@ function selectPatchOptionForPatch(patch) {
   }
 
   option.textContent = patch.name || "Loaded Sequence";
+  option.title = patch.description || patchTags(patch).join(", ");
   patchSelect.value = key;
   loadedSequencePatches.set(key, clonePatch(patch));
+  updatePatchInfo(patch);
 }
 
 function loadMenuPatch(key, options = {}) {
@@ -1466,8 +1473,92 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   velocity = { x: 0, y: 0 };
   setConstraintStatus("");
   clearTrace();
+  updatePatchInfo(patch);
   drawAll();
   updatePatchInspector();
+}
+
+function patchTags(patch = {}) {
+  if (Array.isArray(patch.tags) && patch.tags.length > 0) {
+    return patch.tags.map((tag) => String(tag)).filter(Boolean);
+  }
+
+  const tags = new Set();
+  if ((patch.sourceBindings || []).length > 0) {
+    tags.add("audio");
+  }
+  if (patch.midiFile) {
+    tags.add("midi-file");
+  }
+  if ((patch.sourceGenerators || []).length > 0) {
+    tags.add("generators");
+  }
+  if ((patch.sourceGeneratorMappings || []).length > 0 || (patch.parameterMappings || []).length > 0) {
+    tags.add("mappings");
+  }
+  if ((patch.movingObjects || []).length > 0) {
+    tags.add("motion");
+  }
+  if ((patch.constraints || []).length > 0) {
+    tags.add("constraints");
+  }
+  if (!tags.size) {
+    tags.add("geometry");
+  }
+  return Array.from(tags);
+}
+
+function updatePatchInfo(patch = activePatch) {
+  if (!patchInfo) {
+    return;
+  }
+
+  patchInfo.replaceChildren();
+  if (!patch) {
+    patchInfo.textContent = "";
+    return;
+  }
+
+  const title = document.createElement("strong");
+  title.textContent = patch.name || "Untitled patch";
+  patchInfo.append(title);
+
+  const description = patch.description || summarizePatchForInfo(patch);
+  if (description) {
+    const summary = document.createElement("span");
+    summary.textContent = description;
+    patchInfo.append(summary);
+  }
+
+  for (const tag of patchTags(patch).slice(0, 5)) {
+    const pill = document.createElement("span");
+    pill.className = "patch-tag";
+    pill.textContent = tag;
+    patchInfo.append(pill);
+  }
+}
+
+function summarizePatchForInfo(patch = {}) {
+  const parts = [];
+  if ((patch.sources || []).length > 0) {
+    parts.push(`${(patch.sources || []).length} sources`);
+  }
+  if ((patch.constraints || []).length > 0) {
+    parts.push(`${(patch.constraints || []).length} constraints`);
+  }
+  if ((patch.movingObjects || []).length > 0) {
+    parts.push(`${(patch.movingObjects || []).length} movers`);
+  }
+  if ((patch.sourceBindings || []).length > 0) {
+    parts.push("audio files");
+  }
+  if ((patch.sourceGenerators || []).length > 0) {
+    parts.push("MIDI generators");
+  }
+  if (patch.midiFile) {
+    parts.push("MIDI sequence");
+  }
+  return parts.join(", ");
 }
 
 function pushUndoSnapshot(reason = "edit") {
@@ -2457,9 +2548,129 @@ function sourceEmitterCapability(sourceOrName) {
   return { audio, midi: midi || generatedMidi, generator: generatedMidi, emits: audio || midi || generatedMidi };
 }
 
+function updateSelectionSummary() {
+  if (!selectionSummary) {
+    return;
+  }
+
+  const summary = selectedEntitySummary(selectedEntity);
+  selectionSummary.replaceChildren();
+  selectionSummary.hidden = !summary;
+  if (!summary) {
+    return;
+  }
+
+  const heading = document.createElement("strong");
+  heading.textContent = summary.title;
+  selectionSummary.append(heading);
+
+  for (const line of summary.lines.slice(0, 5)) {
+    const item = document.createElement("span");
+    item.textContent = line;
+    selectionSummary.append(item);
+  }
+}
+
+function selectedEntitySummary(entity) {
+  if (!entity) {
+    return null;
+  }
+
+  if (entity === listener) {
+    return {
+      title: "Listener",
+      lines: [
+        `${sources.length} sources, ${constraints.length} constraints`,
+        `Mode: ${listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"}`
+      ]
+    };
+  }
+
+  if (entity instanceof SoundSource) {
+    return selectedSourceSummary(entity);
+  }
+
+  if (entity instanceof MovingObject) {
+    return {
+      title: `Mover: ${entity.name}`,
+      lines: [
+        `Trajectory: ${describeTrajectory(entity.trajectory)}`,
+        `${constraints.filter((constraint) => constraintReferencesEntity(constraint, entity)).length} constraints`
+      ]
+    };
+  }
+
+  if (entity instanceof ConstraintNode) {
+    const constraint = findConstraintForNode(entity);
+    const spec = constraint ? constraintEditorSpec(constraint) : null;
+    return {
+      title: entityLabel(entity),
+      lines: [
+        spec?.summary || "Constraint node",
+        "Double-click to edit parameters"
+      ]
+    };
+  }
+
+  return {
+    title: entityLabel(entity),
+    lines: []
+  };
+}
+
+function selectedSourceSummary(source) {
+  const name = source.name;
+  const audioBindings = sourceAudioClient.bindingsForSource(name);
+  const generators = generatorClient.generatorsForSource(name);
+  const generatorMappings = generatorClient.mappingsForSource(name);
+  const midiBindings = (currentPatchSnapshot()?.midiFile?.trackBindings || []).filter((binding) => binding.source === name);
+  const relatedConstraints = constraints.filter((constraint) => constraintReferencesEntity(constraint, source));
+  const lines = [];
+
+  if (audioBindings.length || midiBindings.length || generators.length) {
+    if (audioBindings.length) {
+      lines.push(`Audio: ${audioBindings[0].name || audioBindings[0].url || "file"}`);
+    }
+    if (midiBindings.length) {
+      lines.push(`MIDI sequence: ${midiBindings.map((binding) => binding.track || `track ${binding.trackIndex ?? "?"}`).join(", ")}`);
+    }
+    if (generators.length) {
+      const generator = generatorClient.effectiveGeneratorsForSource?.(name)?.[0] || generators[0];
+      lines.push(`Generator: pitch ${generator.pitch}, period ${Math.round(generator.periodMs)} ms`);
+    }
+  } else {
+    lines.push("Output: none");
+  }
+
+  if (generatorMappings.length) {
+    lines.push(`Mapped controls: ${generatorMappings.map((mapping) => formatMappingOption(mapping.parameter || mapping.target)).join(", ")}`);
+  }
+
+  lines.push(`${relatedConstraints.length} constraints`);
+  return {
+    title: `Source: ${name}`,
+    lines
+  };
+}
+
+function describeTrajectory(trajectory = {}) {
+  if (trajectory.type === "rotator") {
+    return `rotator, ${roundEditorValue(trajectory.periodSeconds || 20)} s`;
+  }
+  if (trajectory.type === "shuttle") {
+    return "shuttle";
+  }
+  if (trajectory.type === "bounce") {
+    return "bounce";
+  }
+  return "free";
+}
+
 function drawAll() {
   configureCanvasResolution();
   updateTraceSelectedButton();
+  updateSelectionSummary();
+  updateOpenSourceMappingReadouts();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
   parameterClient.update();
@@ -4609,12 +4820,18 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   );
   row.querySelector("[data-mapping-field='parameter']").addEventListener("change", () => {
     updateMappingParameterFields(row, { resetValues: true });
+    updateMappingRowReadout(row);
   });
   row.querySelector("[data-mapping-field='feature']").addEventListener("change", () => {
     updateMappingFeatureFields(row, { resetValues: true });
+    updateMappingRowReadout(row);
   });
   updateMappingFeatureFields(row, { resetValues: false });
   updateMappingParameterFields(row, { resetValues: false });
+  for (const control of row.querySelectorAll("[data-mapping-field]")) {
+    control.addEventListener("input", () => updateMappingRowReadout(row));
+    control.addEventListener("change", () => updateMappingRowReadout(row));
+  }
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "mapping-remove";
@@ -4623,6 +4840,11 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   removeButton.textContent = "X";
   removeButton.addEventListener("click", () => row.remove());
   row.append(removeButton);
+  const readout = document.createElement("output");
+  readout.className = "mapping-readout";
+  readout.dataset.mappingReadout = "true";
+  row.append(readout);
+  updateMappingRowReadout(row);
   sourceGeneratorMappingList.append(row);
 }
 
@@ -4682,6 +4904,98 @@ function updateMappingParameterFields(row, { resetValues = false } = {}) {
   outputMaxInput.value = String(clampNumberInput(outputMaxInput.value, spec.min, spec.max, spec.defaultMax));
 }
 
+function updateOpenSourceMappingReadouts() {
+  if (!sourceEditor.hidden && activeSourceEditorSource) {
+    for (const row of sourceGeneratorMappingList.querySelectorAll(".mapping-row")) {
+      updateMappingRowReadout(row);
+    }
+  }
+}
+
+function updateMappingRowReadout(row) {
+  const readout = row.querySelector("[data-mapping-readout='true']");
+  if (!readout) {
+    return;
+  }
+
+  const source = activeSourceEditorSource;
+  if (!source) {
+    readout.value = "";
+    readout.textContent = "";
+    return;
+  }
+
+  const mapping = sourceGeneratorMappingFromRow(row);
+  const rawValue = parameterFeatureValue(mapping.feature, source);
+  const mappedValue = mappedSourceGeneratorValue(mapping, rawValue);
+  const normalizedValue = normalizeSourceGeneratorMappedParameter(mapping.parameter, mappedValue);
+  const featureLabel = formatMappingOption(mapping.feature);
+  const parameterLabel = formatMappingOption(mapping.parameter);
+  const text = `Current: ${featureLabel} ${formatMappingValue(rawValue, mapping.feature)} -> ${parameterLabel} ${formatMappingValue(normalizedValue, mapping.parameter)}`;
+  readout.value = text;
+  readout.textContent = text;
+}
+
+function sourceGeneratorMappingFromRow(row) {
+  const feature = row.querySelector("[data-mapping-field='feature']").value;
+  const parameter = row.querySelector("[data-mapping-field='parameter']").value;
+  const featureSpec = sourceGeneratorFeatureSpec(feature);
+  const spec = sourceGeneratorParameterSpec(parameter);
+  return {
+    feature,
+    parameter,
+    inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
+    inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
+    outputMin: numberFromMappingField(row, "output-min", spec.defaultMin, spec.min, spec.max),
+    outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
+    curve: row.querySelector("[data-mapping-field='curve']").value
+  };
+}
+
+function mappedSourceGeneratorValue(mapping, value) {
+  if (mapping.inputMin === mapping.inputMax) {
+    return mapping.outputMin;
+  }
+  const low = Math.min(mapping.inputMin, mapping.inputMax);
+  const high = Math.max(mapping.inputMin, mapping.inputMax);
+  const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
+  const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
+
+  if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
+    const logMin = Math.log(mapping.outputMin);
+    const logMax = Math.log(mapping.outputMax);
+    return Math.exp(logMin + (logMax - logMin) * t);
+  }
+
+  return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
+}
+
+function normalizeSourceGeneratorMappedParameter(parameter, value) {
+  const spec = sourceGeneratorParameterSpec(parameter);
+  const clamped = clamp(Number(value), spec.min, spec.max);
+  if (["pitch", "velocity", "channel"].includes(parameter)) {
+    return Math.round(clamped);
+  }
+  return clamped;
+}
+
+function formatMappingValue(value, kind) {
+  if (!Number.isFinite(Number(value))) {
+    return "?";
+  }
+  const number = Number(value);
+  if (kind === "periodMs" || kind === "durationMs") {
+    return `${Math.round(number)} ms`;
+  }
+  if (kind === "angle") {
+    return `${roundEditorValue(number)} rad`;
+  }
+  if (kind === "distance" || kind === "x" || kind === "y") {
+    return `${Math.round(number)} px`;
+  }
+  return String(roundEditorValue(number));
+}
+
 function createMappingSelect(labelText, key, options, value) {
   const label = document.createElement("label");
   const select = document.createElement("select");
@@ -4726,19 +5040,7 @@ function formatMappingOption(value) {
 
 function sourceGeneratorMappingsFromEditor() {
   return Array.from(sourceGeneratorMappingList.querySelectorAll(".mapping-row")).map((row) => {
-    const feature = row.querySelector("[data-mapping-field='feature']").value;
-    const parameter = row.querySelector("[data-mapping-field='parameter']").value;
-    const featureSpec = sourceGeneratorFeatureSpec(feature);
-    const spec = sourceGeneratorParameterSpec(parameter);
-    return {
-      feature,
-      parameter,
-      inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
-      inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
-      outputMin: numberFromMappingField(row, "output-min", spec.defaultMin, spec.min, spec.max),
-      outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
-      curve: row.querySelector("[data-mapping-field='curve']").value
-    };
+    return sourceGeneratorMappingFromRow(row);
   });
 }
 

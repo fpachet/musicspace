@@ -5,72 +5,100 @@
     {
       "key": "angle-balance",
       "name": "Angle + Balance",
-      "file": "angle-balance.json"
+      "file": "angle-balance.json",
+      "description": "Basic geometric relations between sources and listener.",
+      "tags": ["geometry", "constraints"]
     },
     {
       "key": "product-limit",
       "name": "Product + Limit",
-      "file": "product-limit.json"
+      "file": "product-limit.json",
+      "description": "Distance product constrained inside radial limits.",
+      "tags": ["geometry", "constraints"]
     },
     {
       "key": "open-trio",
       "name": "Open Trio",
-      "file": "open-trio.json"
+      "file": "open-trio.json",
+      "description": "Small three-source constraint sketch.",
+      "tags": ["geometry", "constraints"]
     },
     {
       "key": "simple-rotator",
       "name": "Simple Rotator",
-      "file": "simple-rotator.json"
+      "file": "simple-rotator.json",
+      "description": "One mover carries linked sources through rotation.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "nested-rotators",
       "name": "Nested Rotators",
-      "file": "nested-rotators.json"
+      "file": "nested-rotators.json",
+      "description": "Linked rotators with nested circular motion.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "cycloid-rotator",
       "name": "Cycloid Rotator",
-      "file": "cycloid-rotator.json"
+      "file": "cycloid-rotator.json",
+      "description": "Cycloid-style movement driven by rotative links.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "shuttle-spin",
       "name": "Shuttle Spin",
-      "file": "shuttle-spin.json"
+      "file": "shuttle-spin.json",
+      "description": "Shuttle and spin trajectories in one moving patch.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "bouncing-constellation",
       "name": "Bouncing Constellation",
-      "file": "bouncing-constellation.json"
+      "file": "bouncing-constellation.json",
+      "description": "Moving objects bounce through a denser constraint graph.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "cycloid-percussion",
       "name": "Cycloid Percussion",
-      "file": "cycloid-percussion.json"
+      "file": "cycloid-percussion.json",
+      "description": "Three bundled percussion loops spatialized by nested motion.",
+      "tags": ["audio", "motion", "constraints"]
     },
     {
       "key": "openspace-ostinatos",
       "name": "OpenSpace Ostinatos",
-      "file": "openspace-ostinatos.json"
+      "file": "openspace-ostinatos.json",
+      "description": "MIDI ostinato generators whose parameters follow source motion.",
+      "tags": ["midi", "generators", "mappings"]
     },
     {
       "key": "beatles-trajectory-study",
       "name": "Beatles Trajectory Study",
-      "file": "beatles-trajectory-study.json"
+      "file": "beatles-trajectory-study.json",
+      "description": "Trajectory and constraint study using named musical roles.",
+      "tags": ["motion", "constraints"]
     },
     {
       "key": "jazz-trio-midi",
       "name": "Jazz Trio MIDI Spatializer",
-      "file": "jazz-trio-midi.json"
+      "file": "jazz-trio-midi.json",
+      "description": "MIDI file tracks spatialized as bass, drums, and piano sources.",
+      "tags": ["midi-file", "spatialization"]
     },
     {
       "key": "faust-control-study",
       "name": "Faust Control Study",
-      "file": "faust-control-study.json"
+      "file": "faust-control-study.json",
+      "description": "Scene mappings drive Faust-style synthesis parameters.",
+      "tags": ["mappings", "backend"]
     },
     {
       "key": "granular-cloud-study",
       "name": "Granular Cloud Study",
-      "file": "granular-cloud-study.json"
+      "file": "granular-cloud-study.json",
+      "description": "Geometric mappings control a granular synthesis target.",
+      "tags": ["mappings", "backend"]
     }
   ]
 }
