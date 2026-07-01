@@ -501,6 +501,7 @@ globalThis.__musicspaceTestApi = {
   getLastPropagationReport,
   getObjectByName,
   getSolverMode,
+  getUiMode,
   handleEntityDoubleClick,
   handleToolButtonClick,
   handleToolClick,
@@ -510,6 +511,7 @@ globalThis.__musicspaceTestApi = {
   refineXpbdAfterDrag,
   resumePropagationAfterPausedDrag,
   setSolverMode,
+  setUiMode,
   setActiveTool,
   serializePatch,
   sourceEmitterCapability,
@@ -617,11 +619,27 @@ globalThis.__musicspaceTestApi = {
     solverMode() {
       return api.getSolverMode();
     },
+    uiMode() {
+      return api.getUiMode();
+    },
+    setUiMode(mode) {
+      api.setUiMode(mode);
+    },
     soundButtonPressed() {
       return document.getElementById("target-toggle").attributes.get("aria-pressed") || "false";
     },
     moversButtonPressed() {
       return document.getElementById("animation-toggle").attributes.get("aria-pressed") || "false";
+    },
+    toolbarVisibility() {
+      return {
+        transportHidden: document.getElementById("transport-toolbar-group").hidden,
+        moversHidden: document.getElementById("animation-toggle").hidden,
+        moversDisabled: document.getElementById("animation-toggle").disabled,
+        soundHidden: document.getElementById("target-toggle").hidden,
+        soundDisabled: document.getElementById("target-toggle").disabled,
+        midiHidden: document.getElementById("midi-toolbar-group").hidden
+      };
     },
     patchInfoText() {
       return textContentDeep(document.getElementById("patch-info"));
@@ -1799,6 +1817,69 @@ test("spacebar toggles MIDI sequence playback through Play Sound", async () => {
 
   await engine.pressCanvasKeyAndSettle(" ");
   assert.equal(engine.soundButtonPressed(), "false");
+});
+
+test("toolbar hides patch-specific transport and MIDI controls", () => {
+  const engine = createEngineHarness();
+  assert.equal(engine.uiMode(), "play");
+  engine.setUiMode("edit");
+  assert.equal(engine.uiMode(), "edit");
+  engine.setUiMode("play");
+
+  engine.loadPatch({
+    name: "Geometry Only",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  let toolbar = engine.toolbarVisibility();
+  assert.equal(toolbar.transportHidden, true);
+  assert.equal(toolbar.moversHidden, true);
+  assert.equal(toolbar.soundHidden, true);
+  assert.equal(toolbar.midiHidden, true);
+
+  engine.loadPatch({
+    name: "Mover Only",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    movingObjects: [{ name: "Wheel", x: 500, y: 300 }],
+    constraints: []
+  });
+
+  toolbar = engine.toolbarVisibility();
+  assert.equal(toolbar.transportHidden, false);
+  assert.equal(toolbar.moversHidden, false);
+  assert.equal(toolbar.soundHidden, true);
+  assert.equal(toolbar.midiHidden, true);
+
+  engine.loadPatch({
+    name: "Audio Only",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    sourceBindings: [
+      {
+        source: "A",
+        type: "audio-file",
+        name: "voice.wav",
+        mimeType: "audio/wav",
+        dataUrl: "data:audio/wav;base64,AAAA",
+        loop: true,
+        gain: 0.75,
+        spatialization: "pan-distance"
+      }
+    ],
+    constraints: []
+  });
+
+  toolbar = engine.toolbarVisibility();
+  assert.equal(toolbar.transportHidden, false);
+  assert.equal(toolbar.moversHidden, true);
+  assert.equal(toolbar.soundHidden, false);
+  assert.equal(toolbar.midiHidden, true);
 });
 
 test("MIDI output controls are hidden for non-sequence patches", () => {

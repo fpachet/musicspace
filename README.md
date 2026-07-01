@@ -48,8 +48,10 @@ npm run smoke
 ## Controls
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
-- Use **Save Patch** / **Load Patch** to export and import scene JSON.
-- Use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
+- Use **Play** mode for the selected patch: runtime transport, MIDI output, fullscreen, and trace controls are shown only when they apply.
+- Use **Edit** mode for authoring: the creation palette, listener mode, solver, import, patch inspector, JSON editor, and save/load patch controls appear there.
+- In Edit mode, use **Save Patch** / **Load Patch** to export and import scene JSON.
+- In Edit mode, use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
 - The patch strip under the toolbar shows the current example description and tags so built-in patches are easier to browse.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
@@ -73,8 +75,9 @@ npm run smoke
 - Pure geometric/control sources draw as light hollow handles; sources with audio-file or MIDI track bindings draw with a stronger emitter style and a small sound or MIDI icon badge.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
-- Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. If a patch has no movers, source A still uses the older smooth random walk fallback.
+- Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. The mover transport appears only on patches with moving objects.
 - Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, MIDI/MusicXML sequence playback, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
+- Transport and MIDI output controls are hidden when they do not apply to the current patch.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.

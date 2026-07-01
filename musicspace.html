@@ -29,6 +29,26 @@
       overflow: hidden;
     }
 
+    body.is-play-mode main {
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 1480px;
+    }
+
+    body.is-play-mode h1 {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    body.is-play-mode .toolbar {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    body.is-play-mode .canvas-column {
+      grid-column: 1;
+      grid-row: 3;
+    }
+
     main {
       width: min(100%, 1480px);
       margin: 0 auto;
@@ -72,6 +92,18 @@
       border: 1px solid #d1d8de;
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.78);
+    }
+
+    .toolbar-group[hidden],
+    .toolbar-group > [hidden],
+    button[hidden],
+    select[hidden] {
+      display: none;
+    }
+
+    body.is-play-mode [data-ui-mode="edit"],
+    body.is-edit-mode [data-ui-mode="play"] {
+      display: none !important;
     }
 
     .toolbar-group-label {
@@ -1411,39 +1443,47 @@
     <header>
       <h1>MusicSpace</h1>
       <div class="toolbar" aria-label="MusicSpace controls">
+        <div class="toolbar-group" aria-label="Workspace mode">
+          <span class="toolbar-group-label">Mode</span>
+          <div class="mode-group" aria-label="Workspace mode">
+            <button id="ui-mode-play" type="button">Play</button>
+            <button id="ui-mode-edit" type="button">Edit</button>
+          </div>
+        </div>
         <div class="toolbar-group" aria-label="Patch controls">
           <span class="toolbar-group-label">Patch</span>
           <select id="patch-select" aria-label="Load built-in patch"></select>
-          <button id="patch-inspector-toggle" type="button" aria-pressed="false">Inspect</button>
-          <button id="save-patch" type="button">Save Patch</button>
-          <button id="load-patch" type="button">Load Patch</button>
+          <button id="patch-inspector-toggle" data-ui-mode="edit" type="button" aria-pressed="false">Inspect</button>
+          <button id="save-patch" data-ui-mode="edit" type="button">Save Patch</button>
+          <button id="load-patch" data-ui-mode="edit" type="button">Load Patch</button>
+          <button id="reset" type="button">Reset</button>
           <input id="patch-file" type="file" accept="application/json,.json" hidden>
         </div>
-        <div class="toolbar-group" aria-label="Listener controls">
+        <div class="toolbar-group" data-ui-mode="edit" aria-label="Listener controls">
           <span class="toolbar-group-label">Listener</span>
           <div class="mode-group" aria-label="Listener drag mode">
             <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
             <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
           </div>
         </div>
-        <div class="toolbar-group" aria-label="Transport controls">
+        <div id="transport-toolbar-group" class="toolbar-group" data-ui-mode="play" aria-label="Transport controls">
           <span class="toolbar-group-label">Play</span>
           <button id="animation-toggle" class="transport-button" type="button" aria-pressed="false">Start Movers</button>
           <button id="target-toggle" class="transport-button" type="button" aria-pressed="false">Play Sound</button>
         </div>
-        <div class="toolbar-group" aria-label="Solver controls">
+        <div class="toolbar-group" data-ui-mode="edit" aria-label="Solver controls">
           <span class="toolbar-group-label">Solver</span>
           <div class="mode-group solver-control" aria-label="Solver mode">
             <button id="solver-mode-propagation" type="button" title="Use bounded propagation solver">Propagation</button>
             <button id="solver-mode-xpbd" type="button" title="Use experimental XPBD solver">XPBD</button>
           </div>
         </div>
-        <div class="toolbar-group" aria-label="Import controls">
+        <div class="toolbar-group" data-ui-mode="edit" aria-label="Import controls">
           <span class="toolbar-group-label">Import</span>
           <button id="midi-load-sequence" type="button">Load MIDI/MusicXML</button>
           <input id="midi-sequence-file" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,audio/midi,audio/x-midi,application/vnd.recordare.musicxml,application/vnd.recordare.musicxml+xml" hidden>
         </div>
-        <div id="midi-toolbar-group" class="toolbar-group" aria-label="MIDI output controls" hidden>
+        <div id="midi-toolbar-group" class="toolbar-group" data-ui-mode="play" aria-label="MIDI output controls" hidden>
           <span class="toolbar-group-label">MIDI</span>
           <select id="midi-mode" aria-label="MIDI playback mode">
             <option value="internal">Internal GM Synth</option>
@@ -1451,14 +1491,13 @@
           </select>
           <select id="midi-output" aria-label="MIDI output" hidden disabled></select>
         </div>
-        <div class="toolbar-group" aria-label="Edit controls">
+        <div class="toolbar-group" data-ui-mode="edit" aria-label="Edit controls">
           <span class="toolbar-group-label">Edit</span>
           <span id="undo-status" class="undo-status" aria-live="polite" hidden></span>
           <button id="patch-inspector-inline-toggle" type="button" aria-pressed="false">Patch Inspector</button>
           <button id="patch-json-inline-toggle" type="button" aria-pressed="false">Patch JSON</button>
-          <button id="reset" type="button">Reset</button>
         </div>
-        <div class="toolbar-group" aria-label="Display and trace controls">
+        <div class="toolbar-group" data-ui-mode="play" aria-label="Display and trace controls">
           <span class="toolbar-group-label">Display</span>
           <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
           <button id="trace-none" type="button" title="Turn drawing off for every object">Stop Drawing All</button>
@@ -1469,7 +1508,7 @@
       </div>
     </header>
     <div class="workspace">
-      <nav class="tool-palette" aria-label="Creation tools">
+      <nav class="tool-palette" data-ui-mode="edit" aria-label="Creation tools">
         <div class="tool-stack">
           <section class="tool-section" aria-labelledby="pointer-tools">
             <span id="pointer-tools" class="tool-section-label">Pointer</span>

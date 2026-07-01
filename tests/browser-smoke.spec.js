@@ -19,30 +19,39 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   const patchSelect = page.locator("#patch-select");
   await expect(patchSelect).toBeEnabled();
   await expect.poll(async () => patchSelect.locator("option").count()).toBeGreaterThan(0);
+  await expect(page.locator("#ui-mode-play")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#transport-toolbar-group")).toBeHidden();
+  await expect(page.locator("#midi-toolbar-group")).toBeHidden();
   await patchSelect.selectOption("cycloid-percussion");
 
-  const patchInspectorToggle = page.locator("#patch-inspector-toggle");
-  await expect(page.locator("#patch-inspector")).toBeHidden();
-  await patchInspectorToggle.click();
-  await expect(page.locator("#patch-inspector")).toBeVisible();
-  await expect(page.locator("#patch-summary")).toContainText("Cycloid Percussion");
-  await expect(page.locator("#canvas")).toBeVisible();
-
   const animationToggle = page.locator("#animation-toggle");
+  await expect(animationToggle).toBeVisible();
   await animationToggle.click();
   await expect(animationToggle).toHaveAttribute("aria-pressed", "true");
   await animationToggle.click();
   await expect(animationToggle).toHaveAttribute("aria-pressed", "false");
 
   const soundToggle = page.locator("#target-toggle");
+  await expect(soundToggle).toBeVisible();
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "true");
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "false");
 
+  const patchInspectorToggle = page.locator("#patch-inspector-toggle");
+  await expect(patchInspectorToggle).toBeHidden();
+  await page.locator("#ui-mode-edit").click();
+  await expect(patchInspectorToggle).toBeVisible();
+  await expect(page.locator("#patch-inspector")).toBeHidden();
+  await patchInspectorToggle.click();
+  await expect(page.locator("#patch-inspector")).toBeVisible();
+  await expect(page.locator("#patch-summary")).toContainText("Cycloid Percussion");
+  await expect(page.locator("#canvas")).toBeVisible();
+
   await patchSelect.selectOption("openspace-ostinatos");
   await expect(page.locator("#patch-summary")).toContainText("OpenSpace Ostinatos");
   await expect(page.locator("#patch-summary")).toContainText("ostinato pitch");
+  await page.locator("#ui-mode-play").click();
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "true");
   await soundToggle.click();

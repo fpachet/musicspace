@@ -9,6 +9,8 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const stage = document.getElementById("stage");
 
+const uiModePlayButton = document.getElementById("ui-mode-play");
+const uiModeEditButton = document.getElementById("ui-mode-edit");
 const animationToggle = document.getElementById("animation-toggle");
 const undoStatus = document.getElementById("undo-status");
 const traceSelectedButton = document.getElementById("trace-selected");
@@ -22,6 +24,7 @@ const resetButton = document.getElementById("reset");
 const fullscreenToggleButton = document.getElementById("fullscreen-toggle");
 const saveTraceButton = document.getElementById("save-trace");
 const patchInfo = document.getElementById("patch-info");
+const transportToolbarGroup = document.getElementById("transport-toolbar-group");
 const targetToggleButton = document.getElementById("target-toggle");
 const targetPanel = document.getElementById("target-panel");
 const targetGrid = document.getElementById("target-grid");
@@ -141,6 +144,8 @@ const MAX_ENTITY_PROPAGATION_COUNT = 8;
 const SOLVER_MODE_PROPAGATION = "propagation";
 const SOLVER_MODE_XPBD = "xpbd";
 const DEFAULT_SOLVER_MODE = SOLVER_MODE_PROPAGATION;
+const UI_MODE_PLAY = "play";
+const UI_MODE_EDIT = "edit";
 const XPBD_ITERATIONS_DRAG = 10;
 const XPBD_ITERATIONS_RELEASE = 40;
 const MAX_XPBD_COMPONENT_ENTITIES = 48;
@@ -1286,6 +1291,7 @@ let activePatch = null;
 let lastPropagationReport = null;
 let propagationPaused = false;
 let solverMode = getInitialSolverMode();
+let uiMode = UI_MODE_PLAY;
 const loadedSequencePatches = new Map();
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   panel: targetPanel,
@@ -1452,6 +1458,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   soundOutputEnabled = false;
   updateSoundToggleButton();
   updateMidiToolbarVisibility();
+  updateToolbarAvailability();
   dragged = null;
   selectedEntity = listener;
   hoveredEntity = null;
@@ -2667,6 +2674,7 @@ function describeTrajectory(trajectory = {}) {
 function drawAll() {
   configureCanvasResolution();
   updateTraceSelectedButton();
+  updateToolbarAvailability();
   updateSelectionSummary();
   updateOpenSourceMappingReadouts();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -3893,6 +3901,23 @@ function getSolverMode() {
   return solverMode;
 }
 
+function getUiMode() {
+  return uiMode;
+}
+
+function setUiMode(nextMode) {
+  uiMode = nextMode === UI_MODE_EDIT ? UI_MODE_EDIT : UI_MODE_PLAY;
+  document.body?.classList?.toggle("is-play-mode", uiMode === UI_MODE_PLAY);
+  document.body?.classList?.toggle("is-edit-mode", uiMode === UI_MODE_EDIT);
+  uiModePlayButton?.setAttribute("aria-pressed", String(uiMode === UI_MODE_PLAY));
+  uiModeEditButton?.setAttribute("aria-pressed", String(uiMode === UI_MODE_EDIT));
+  updateToolbarAvailability();
+  if (listener && Array.isArray(sources)) {
+    configureCanvasResolution();
+    drawAll();
+  }
+}
+
 function updateSolverIndicator() {
   const isXpbd = solverMode === SOLVER_MODE_XPBD;
   solverModePropagationButton?.setAttribute("aria-pressed", String(!isXpbd));
@@ -3915,6 +3940,12 @@ function updateSolverModeUrl() {
 
 async function toggleSoundOutput() {
   const nextEnabled = !soundOutputEnabled;
+  if (nextEnabled && !patchHasSoundOutput()) {
+    setConstraintStatus("This patch has no sound, MIDI, generator, or parameter output.");
+    updateToolbarAvailability();
+    return;
+  }
+
   soundOutputEnabled = nextEnabled;
   updateSoundToggleButton();
 
@@ -3938,6 +3969,7 @@ function updateSoundToggleButton() {
   targetToggleButton.textContent = soundOutputEnabled ? "Stop Sound" : "Play Sound";
   targetToggleButton.setAttribute("aria-pressed", String(soundOutputEnabled));
   targetToggleButton.classList.toggle("is-playing", soundOutputEnabled);
+  updateToolbarAvailability();
 }
 
 function updateMidiToolbarVisibility() {
@@ -3946,6 +3978,40 @@ function updateMidiToolbarVisibility() {
   }
 
   midiToolbarGroup.hidden = !midiFileClient.hasMidiFile();
+}
+
+function patchHasSoundOutput() {
+  return Boolean(
+    parameterClient.hasMappings?.() ||
+    sourceAudioClient.hasBindings?.() ||
+    midiFileClient.hasMidiFile?.() ||
+    generatorClient.hasGenerators?.()
+  );
+}
+
+function patchHasMovers() {
+  return Array.isArray(movingObjects) && movingObjects.length > 0;
+}
+
+function updateToolbarAvailability() {
+  const canAnimate = patchHasMovers();
+  const canPlaySound = patchHasSoundOutput();
+
+  if (animationToggle) {
+    animationToggle.hidden = !canAnimate && !isAnimating;
+    animationToggle.disabled = !canAnimate && !isAnimating;
+  }
+
+  if (targetToggleButton) {
+    targetToggleButton.hidden = !canPlaySound && !soundOutputEnabled;
+    targetToggleButton.disabled = !canPlaySound && !soundOutputEnabled;
+  }
+
+  if (transportToolbarGroup) {
+    transportToolbarGroup.hidden = Boolean(animationToggle?.hidden && targetToggleButton?.hidden);
+  }
+
+  updateMidiToolbarVisibility();
 }
 
 function refreshConstraints() {
@@ -5541,6 +5607,7 @@ function setListenerMode(nextMode) {
 function setAnimationPressedState(isPressed) {
   animationToggle.setAttribute("aria-pressed", String(isPressed));
   animationToggle.classList.toggle("is-playing", isPressed);
+  updateToolbarAvailability();
 }
 
 function updateTraceSelectedButton() {
@@ -5728,6 +5795,12 @@ function animate() {
 
 function startAnimation() {
   if (isAnimating) {
+    return;
+  }
+
+  if (!patchHasMovers()) {
+    setConstraintStatus("This patch has no movers to animate.");
+    updateToolbarAvailability();
     return;
   }
 
@@ -6110,6 +6183,8 @@ for (const button of toolButtons) {
   });
 }
 
+uiModePlayButton.addEventListener("click", () => setUiMode(UI_MODE_PLAY));
+uiModeEditButton.addEventListener("click", () => setUiMode(UI_MODE_EDIT));
 animationToggle.addEventListener("click", toggleAnimation);
 targetToggleButton.addEventListener("click", () => {
   toggleSoundOutput();
@@ -6219,6 +6294,7 @@ async function initializeApp() {
   patchSelect.append(loadingOption);
 
   setActiveTool(TOOL_SELECT);
+  setUiMode(UI_MODE_PLAY);
   setListenerMode(LISTENER_MODE_RETARGET);
   updateSolverIndicator();
   updateSoundToggleButton();
