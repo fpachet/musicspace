@@ -64,7 +64,7 @@
       align-content: flex-start;
     }
 
-    @media (min-width: 1500px) {
+    @media (min-width: 1180px) {
       .toolbar {
         min-height: 88px;
       }
@@ -235,6 +235,13 @@
 
     select {
       min-width: 180px;
+    }
+
+    #patch-select {
+      flex: 0 1 200px;
+      min-width: 0;
+      width: 200px;
+      max-width: 200px;
     }
 
     .mode-group button {
@@ -722,6 +729,11 @@
       margin: 0 0 6px;
     }
 
+    .status-row:has(.status:empty) {
+      min-height: 0;
+      margin-bottom: 0;
+    }
+
     .status {
       min-width: 0;
       min-height: 18px;
@@ -731,6 +743,11 @@
       color: #5f3416;
       font-size: 13px;
       line-height: 1.4;
+    }
+
+    .status:empty {
+      min-height: 0;
+      padding: 0;
     }
 
     .patch-info {
