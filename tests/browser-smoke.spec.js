@@ -71,8 +71,20 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   await expect(page.locator("#patch-summary")).toContainText("additive");
   await page.locator("#ui-mode-play").click();
 
+  await page.locator("#ui-mode-edit").click();
+  await patchSelect.selectOption("fm-space");
+  await expect(page.locator("#patch-summary")).toContainText("FM Space");
+  await expect(page.locator("#patch-summary")).toContainText("/modA/index");
+  await page.locator("#ui-mode-play").click();
+
+  await page.locator("#ui-mode-edit").click();
+  await patchSelect.selectOption("fm-harmonic-space");
+  await expect(page.locator("#patch-summary")).toContainText("FM Harmonic Space");
+  await expect(page.locator("#patch-summary")).toContainText("/modA/ratio");
+  await page.locator("#ui-mode-play").click();
+
   await page.locator("#reset").click();
-  await expect(patchSelect).toHaveValue("rotating-partials");
+  await expect(patchSelect).toHaveValue("fm-harmonic-space");
 
   expect(failures).toEqual([]);
 });

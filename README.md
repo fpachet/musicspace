@@ -138,6 +138,8 @@ npm run export:linkedin
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 - **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output; the Source Inspector can retarget each track's external MIDI channel/program.
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
+- **FM Space** maps constrained source constellations to a Faust-style two-modulator FM synth: carrier frequency, modulator ratios/indices, vibrato, tremolo, feedback color, drive, filter, pan, and gain all move from MusicSpace geometry.
+- **FM Harmonic Space** uses the same Faust-style FM target but snaps modulator ratios to harmonic integer values, letting continuous spatial motion choose stable FM islands instead of sweeping through every in-between ratio.
 - **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 
 ## Repository Layout

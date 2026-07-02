@@ -767,6 +767,12 @@ globalThis.__musicspaceTestApi = {
       if (values.curve !== undefined) {
         row.querySelector("[data-mapping-field='curve']").value = values.curve;
       }
+      if (values.quantize !== undefined) {
+        row.querySelector("[data-mapping-field='quantize']").value = String(values.quantize);
+      }
+      if (values.values !== undefined) {
+        row.querySelector("[data-mapping-field='values']").value = values.values.join(",");
+      }
       return textContentDeep(row);
     },
     applyPatchMappings() {
@@ -984,6 +990,8 @@ globalThis.__musicspaceTestApi = {
         row.querySelector("[data-mapping-field='output-min']").value = String(mapping.outputMin);
         row.querySelector("[data-mapping-field='output-max']").value = String(mapping.outputMax);
         row.querySelector("[data-mapping-field='curve']").value = mapping.curve || "linear";
+        row.querySelector("[data-mapping-field='quantize']").value = mapping.quantize ? String(mapping.quantize) : "";
+        row.querySelector("[data-mapping-field='values']").value = Array.isArray(mapping.values) ? mapping.values.join(",") : "";
       }
       api.applySourceEditor();
       return api.serializePatch();
@@ -1372,6 +1380,49 @@ test("patch validation accepts every built-in patch", () => {
   }
 });
 
+test("generic parameter mappings can snap continuous features", () => {
+  const context = runBrowserScript("musicspace-mapping.js", {});
+  const mappings = context.MusicSpaceMapping.normalizeMappings([
+    {
+      source: "Ratio",
+      feature: "distance",
+      target: "/mod/ratio",
+      inputMin: 0,
+      inputMax: 400,
+      outputMin: 1,
+      outputMax: 8,
+      values: [1, 2, 3, 5, 8]
+    },
+    {
+      source: "Step",
+      feature: "x",
+      target: "/integer/control",
+      inputMin: 0,
+      inputMax: 400,
+      outputMin: 0,
+      outputMax: 10,
+      quantize: 1
+    }
+  ]);
+
+  const values = context.MusicSpaceMapping.valuesForMappings({
+    mappings,
+    defaults: { "/mod/ratio": 1, "/integer/control": 0 },
+    getEntity(name) {
+      return {
+        Ratio: { distance: 220 },
+        Step: { x: 230 }
+      }[name] || null;
+    },
+    getFeature(feature, entity) {
+      return entity[feature];
+    }
+  });
+
+  assert.equal(values["/mod/ratio"], 5);
+  assert.equal(values["/integer/control"], 6);
+});
+
 test("built-in patches do not enable trace drawing by default", () => {
   const index = JSON.parse(fs.readFileSync(path.join(ROOT, "patches", "index.json"), "utf8"));
 
@@ -1640,7 +1691,8 @@ test("source generator mappings drive effective MIDI parameters", () => {
         inputMin: -Math.PI,
         inputMax: Math.PI,
         outputMin: 20,
-        outputMax: 100
+        outputMax: 100,
+        values: [20, 50, 80, 100]
       }
     ]
   });
@@ -1648,7 +1700,7 @@ test("source generator mappings drive effective MIDI parameters", () => {
   let [effective] = generatorClient.effectiveGeneratorsForSource("Pulse");
   assert.equal(effective.pitch, 60);
   assert.equal(effective.periodMs, 1300);
-  assert.equal(effective.velocity, 60);
+  assert.equal(effective.velocity, 50);
 
   sourcePoint.x = 800;
   sourcePoint.y = 300;
@@ -2500,13 +2552,15 @@ test("patch inspector edits generic parameter mappings", () => {
     inputMax: 400,
     outputMin: 300,
     outputMax: 3000,
-    curve: "exp"
+    curve: "exp",
+    quantize: 100,
+    values: [300, 600, 1200, 2400]
   });
   assert.match(rowText, /Current:/);
 
   const patch = engine.applyPatchMappings();
   assert.equal(patch.parameterMappings.length, 1);
-  assert.deepEqual(patch.parameterMappings[0], {
+  assert.equal(JSON.stringify(patch.parameterMappings[0]), JSON.stringify({
     source: "A",
     feature: "distance",
     target: "/filter/frequency",
@@ -2514,8 +2568,10 @@ test("patch inspector edits generic parameter mappings", () => {
     inputMax: 400,
     outputMin: 300,
     outputMax: 3000,
-    curve: "exp"
-  });
+    curve: "exp",
+    quantize: 100,
+    values: [300, 600, 1200, 2400]
+  }));
   assert.equal(engine.patchInspectorState().mappingCount, 1);
   assert.match(engine.patchInspectorState().mappingReadouts[0], /\/filter\/frequency/);
 });

@@ -2327,6 +2327,7 @@ function validateParameterMappings(mappings, names, target, add) {
     validateNumber(mapping.inputMax, "mapping.inputMax", add);
     validateNumber(mapping.outputMin, "mapping.outputMin", add);
     validateNumber(mapping.outputMax, "mapping.outputMax", add);
+    validateMappingSnap(mapping, "mapping", add);
     if (mapping.inputMin === mapping.inputMax) {
       add("warning", `Mapping ${mapping.target || ""} has identical inputMin/inputMax.`);
     }
@@ -2559,6 +2560,7 @@ function validateSourceGeneratorMappings(mappings, names, add) {
     validateNumber(mapping.inputMax, "sourceGeneratorMappings.inputMax", add);
     validateNumber(mapping.outputMin, "sourceGeneratorMappings.outputMin", add);
     validateNumber(mapping.outputMax, "sourceGeneratorMappings.outputMax", add);
+    validateMappingSnap(mapping, "sourceGeneratorMappings", add);
     if (mapping.inputMin === mapping.inputMax) {
       add("warning", `${mapping.source || "Generator"} ${parameter || "mapping"} has identical inputMin/inputMax.`);
     }
@@ -2572,6 +2574,28 @@ function validateMidiValue(value, min, max, label, add) {
   const number = Number(value);
   if (!Number.isInteger(number) || number < min || number > max) {
     add("error", `${label} must be an integer from ${min} to ${max}.`);
+  }
+}
+
+function validateMappingSnap(mapping, label, add) {
+  if (mapping.quantize !== undefined) {
+    const quantize = Number(mapping.quantize);
+    if (!Number.isFinite(quantize) || quantize <= 0) {
+      add("error", `${label}.quantize must be a positive number when present.`);
+    }
+  }
+
+  if (mapping.values !== undefined) {
+    if (!Array.isArray(mapping.values) || mapping.values.length === 0) {
+      add("error", `${label}.values must be a non-empty array of numbers when present.`);
+      return;
+    }
+    for (const value of mapping.values) {
+      if (!Number.isFinite(Number(value))) {
+        add("error", `${label}.values must contain only numbers.`);
+        return;
+      }
+    }
   }
 }
 
@@ -5216,7 +5240,9 @@ function addPatchMappingRow(mapping = defaultParameterMapping()) {
     createMappingNumber("Input max", "input-max", mapping.inputMax),
     createMappingNumber("Output min", "output-min", mapping.outputMin),
     createMappingNumber("Output max", "output-max", mapping.outputMax),
-    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
+    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear"),
+    createMappingOptionalNumber("Quantize", "quantize", mapping.quantize),
+    createMappingText("Values", "values", mapping.values)
   );
 
   row.querySelector("[data-mapping-field='feature']").addEventListener("change", () => {
@@ -5371,7 +5397,7 @@ function parameterMappingFromRow(row) {
   const target = row.querySelector("[data-mapping-field='target']").value;
   const featureSpec = sourceGeneratorFeatureSpec(feature);
   const targetSpec = parameterMappingTargetSpec(target);
-  return {
+  const normalized = {
     source,
     feature,
     target,
@@ -5381,6 +5407,7 @@ function parameterMappingFromRow(row) {
     outputMax: numberFromMappingField(row, "output-max", targetSpec.defaultMax, targetSpec.min, targetSpec.max),
     curve: row.querySelector("[data-mapping-field='curve']").value
   };
+  return mappingWithSnapFields(row, normalized);
 }
 
 function parameterMappingsFromEditor() {
@@ -5443,7 +5470,9 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
     createMappingNumber("Motion max", "input-max", mapping.inputMax),
     createMappingNumber("Parameter min", "output-min", mapping.outputMin),
     createMappingNumber("Parameter max", "output-max", mapping.outputMax),
-    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
+    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear"),
+    createMappingOptionalNumber("Quantize", "quantize", mapping.quantize),
+    createMappingText("Values", "values", mapping.values)
   );
   row.querySelector("[data-mapping-field='parameter']").addEventListener("change", () => {
     updateMappingParameterFields(row, { resetValues: true });
@@ -5568,7 +5597,7 @@ function sourceGeneratorMappingFromRow(row) {
   const parameter = row.querySelector("[data-mapping-field='parameter']").value;
   const featureSpec = sourceGeneratorFeatureSpec(feature);
   const spec = sourceGeneratorParameterSpec(parameter);
-  return {
+  const normalized = {
     feature,
     parameter,
     inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
@@ -5577,24 +5606,47 @@ function sourceGeneratorMappingFromRow(row) {
     outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
     curve: row.querySelector("[data-mapping-field='curve']").value
   };
+  return mappingWithSnapFields(row, normalized);
 }
 
 function mappedSourceGeneratorValue(mapping, value) {
   if (mapping.inputMin === mapping.inputMax) {
-    return mapping.outputMin;
+    return snappedMappingValue(mapping, mapping.outputMin);
   }
   const low = Math.min(mapping.inputMin, mapping.inputMax);
   const high = Math.max(mapping.inputMin, mapping.inputMax);
   const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
   const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
 
+  let mappedValue;
   if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
     const logMin = Math.log(mapping.outputMin);
     const logMax = Math.log(mapping.outputMax);
-    return Math.exp(logMin + (logMax - logMin) * t);
+    mappedValue = Math.exp(logMin + (logMax - logMin) * t);
+  } else {
+    mappedValue = mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
   }
 
-  return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
+  return snappedMappingValue(mapping, mappedValue);
+}
+
+function snappedMappingValue(mapping, value) {
+  const outputLow = Math.min(mapping.outputMin, mapping.outputMax);
+  const outputHigh = Math.max(mapping.outputMin, mapping.outputMax);
+
+  if (Array.isArray(mapping.values) && mapping.values.length > 0) {
+    const nearest = mapping.values.reduce((best, candidate) => (
+      Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
+    ), mapping.values[0]);
+    return clamp(nearest, outputLow, outputHigh);
+  }
+
+  if (Number.isFinite(Number(mapping.quantize)) && Number(mapping.quantize) > 0) {
+    const step = Number(mapping.quantize);
+    return clamp(Math.round(value / step) * step, outputLow, outputHigh);
+  }
+
+  return value;
 }
 
 function normalizeSourceGeneratorMappedParameter(parameter, value) {
@@ -5657,6 +5709,30 @@ function createMappingNumber(labelText, key, value) {
   return label;
 }
 
+function createMappingOptionalNumber(labelText, key, value) {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.dataset.mappingField = key;
+  input.type = "number";
+  input.step = "0.001";
+  input.min = "0";
+  input.placeholder = "Off";
+  input.value = Number.isFinite(Number(value)) && Number(value) > 0 ? String(value) : "";
+  label.append(labelText, input);
+  return label;
+}
+
+function createMappingText(labelText, key, value) {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.dataset.mappingField = key;
+  input.type = "text";
+  input.placeholder = "e.g. 1,2,3";
+  input.value = Array.isArray(value) ? value.join(", ") : "";
+  label.append(labelText, input);
+  return label;
+}
+
 function formatMappingOption(value) {
   if (!value) {
     return "None";
@@ -5695,6 +5771,26 @@ function numberFromMappingField(row, field, fallback, min = null, max = null) {
     return fallback;
   }
   return Number.isFinite(min) && Number.isFinite(max) ? clamp(value, min, max) : value;
+}
+
+function mappingWithSnapFields(row, mapping) {
+  const quantize = Number(row.querySelector("[data-mapping-field='quantize']")?.value);
+  const values = parseMappingValues(row.querySelector("[data-mapping-field='values']")?.value);
+  return {
+    ...mapping,
+    ...(Number.isFinite(quantize) && quantize > 0 ? { quantize } : {}),
+    ...(values.length > 0 ? { values } : {})
+  };
+}
+
+function parseMappingValues(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return [];
+  }
+  return value
+    .split(/[\s,]+/)
+    .map(Number)
+    .filter((number) => Number.isFinite(number));
 }
 
 function sourceGeneratorFromEditor(sourceName) {

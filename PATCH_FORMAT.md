@@ -160,6 +160,8 @@ For additive generators, `frequencyHz` is the generator fundamental, `gain` is t
 
 `sourceGeneratorMappings` can dynamically map spatial features onto generator parameters while playback is running. They can be edited from the selected source's Source Inspector or directly in patch JSON. Supported features are `x`, `y`, `distance`, and `angle`; `angle` is in radians from `-pi` to `pi`, while `x`, `y`, and `distance` use canvas pixels. Supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, `channel`, `frequencyHz`, and `gain`. The inspector clamps pitch and velocity mappings to MIDI ranges, channel to `1..16`, timing mappings to millisecond ranges, additive frequency to `20..16000`, and gain to `0..1`.
 
+Mappings can stay continuous or snap their output after the linear/exponential curve is evaluated. Use `quantize` for a fixed numeric step, such as `1` for integers, or `values` for an explicit set of allowed outputs, such as harmonic FM ratios. When both are present, `values` takes precedence.
+
 ```json
 {
   "source": "Pulse C",
@@ -169,7 +171,8 @@ For additive generators, `frequencyHz` is the generator fundamental, `gain` is t
   "inputMax": 3.14159,
   "outputMin": 48,
   "outputMax": 76,
-  "curve": "linear"
+  "curve": "linear",
+  "quantize": 1
 }
 ```
 
@@ -257,6 +260,22 @@ Mappings then connect scene features to Faust parameter addresses:
   "outputMin": 0.1,
   "outputMax": 0.95,
   "curve": "linear"
+}
+```
+
+Snapped target mappings use the same optional `quantize` and `values` fields. For example, an FM ratio can move continuously in space while only producing stable harmonic integer ratios:
+
+```json
+{
+  "source": "Ratio A",
+  "feature": "angle",
+  "target": "/modA/ratio",
+  "inputMin": -3.14159,
+  "inputMax": 3.14159,
+  "outputMin": 1,
+  "outputMax": 6,
+  "curve": "linear",
+  "values": [1, 2, 3, 4, 5, 6]
 }
 ```
 

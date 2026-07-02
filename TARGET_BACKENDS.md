@@ -61,7 +61,7 @@ The Web Audio examples expose Faust-style parameter paths, but they are not comp
 
 `Play Sound` does not start a backend merely because a `target` exists or because the default `subtractive` backend is available. It enables parameter targets only when the patch has `parameterMappings`, direct source audio when the patch has `sourceBindings`, generated note sources when the patch has `sourceGenerators`, and sequence playback when the patch has `midiFile`.
 
-Patch-level `parameterMappings` can be edited from the Patch Inspector. The editor lists the active backend's declared parameter names, lets a source feature drive a target parameter range, and shows the current mapped value while the canvas changes.
+Patch-level `parameterMappings` can be edited from the Patch Inspector. The editor lists the active backend's declared parameter names, lets a source feature drive a target parameter range, and shows the current mapped value while the canvas changes. Mappings may also snap the post-curve value with `quantize` or an explicit `values` list, which is useful when continuous space should choose discrete musical states such as FM ratio integers.
 
 ## Patch-Level Faust Binding
 
@@ -87,7 +87,7 @@ A patch specifies the actual Faust target in its `target` object:
 
 The adapter module must export `createFaustNode(context, target)` or a default factory. MusicSpace resolves `wasm`, `json`, and `metadata` URLs before passing the target object to the adapter. A `dsp` source path can also be provided for documentation or adapter-specific compilation workflows. The factory returns either an `AudioNode` with `setParamValue(path, value)`, or an object with `node`/`output`, `setParamValue`, and optional `destroy`/`dispose`.
 
-`parameterMappings` then map MusicSpace features to the Faust parameter addresses exposed by that target.
+`parameterMappings` then map MusicSpace features to the Faust parameter addresses exposed by that target. The bundled **FM Space** and **FM Harmonic Space** patches use this same contract with a Faust-style DSP source and browser adapter, so the MusicSpace control experiment can run locally even before adding a compiled `.wasm` artifact.
 
 ## MIDI File Client
 

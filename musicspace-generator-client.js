@@ -297,7 +297,9 @@
         inputMax: finiteNumber(mapping.inputMax, 1),
         outputMin: finiteNumber(mapping.outputMin, 0),
         outputMax: finiteNumber(mapping.outputMax, 1),
-        curve: mapping.curve === "exp" ? "exp" : "linear"
+        curve: mapping.curve === "exp" ? "exp" : "linear",
+        ...(finitePositive(mapping.quantize) ? { quantize: Number(mapping.quantize) } : {}),
+        ...(finiteValues(mapping.values).length > 0 ? { values: finiteValues(mapping.values) } : {})
       };
     }
 
@@ -472,20 +474,42 @@
 
     function mappedGeneratorValue(mapping, value) {
       if (mapping.inputMin === mapping.inputMax) {
-        return mapping.outputMin;
+        return snappedMappingValue(mapping, mapping.outputMin);
       }
       const low = Math.min(mapping.inputMin, mapping.inputMax);
       const high = Math.max(mapping.inputMin, mapping.inputMax);
       const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
       const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
 
+      let mappedValue;
       if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
         const logMin = Math.log(mapping.outputMin);
         const logMax = Math.log(mapping.outputMax);
-        return Math.exp(logMin + (logMax - logMin) * t);
+        mappedValue = Math.exp(logMin + (logMax - logMin) * t);
+      } else {
+        mappedValue = mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
       }
 
-      return mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
+      return snappedMappingValue(mapping, mappedValue);
+    }
+
+    function snappedMappingValue(mapping, value) {
+      const outputLow = Math.min(mapping.outputMin, mapping.outputMax);
+      const outputHigh = Math.max(mapping.outputMin, mapping.outputMax);
+
+      if (Array.isArray(mapping.values) && mapping.values.length > 0) {
+        const nearest = mapping.values.reduce((best, candidate) => (
+          Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
+        ), mapping.values[0]);
+        return clamp(nearest, outputLow, outputHigh);
+      }
+
+      if (finitePositive(mapping.quantize)) {
+        const step = Number(mapping.quantize);
+        return clamp(Math.round(value / step) * step, outputLow, outputHigh);
+      }
+
+      return value;
     }
 
     function normalizeGeneratorParameter(parameter, value, fallback) {
@@ -833,10 +857,20 @@
     return clamp(number, min, max);
   }
 
-  function finiteNumber(value, fallback) {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : fallback;
-  }
+    function finiteNumber(value, fallback) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    }
+
+    function finitePositive(value) {
+      return Number.isFinite(Number(value)) && Number(value) > 0;
+    }
+
+    function finiteValues(values) {
+      return Array.isArray(values)
+        ? values.map(Number).filter((value) => Number.isFinite(value))
+        : [];
+    }
 
   function clampInteger(value, min, max, fallback) {
     const number = Number(value);

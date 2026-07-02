@@ -101,6 +101,20 @@
       "tags": ["mappings", "backend"]
     },
     {
+      "key": "fm-space",
+      "name": "FM Space",
+      "file": "fm-space.json",
+      "description": "Constrained spatial controls drive a Faust-style FM synth.",
+      "tags": ["fm", "faust", "mappings", "constraints"]
+    },
+    {
+      "key": "fm-harmonic-space",
+      "name": "FM Harmonic Space",
+      "file": "fm-harmonic-space.json",
+      "description": "Spatial controls drive FM synthesis with snapped harmonic integer ratios.",
+      "tags": ["fm", "faust", "mappings", "constraints", "quantized"]
+    },
+    {
       "key": "granular-cloud-study",
       "name": "Granular Cloud Study",
       "file": "granular-cloud-study.json",

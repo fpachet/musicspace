@@ -1,0 +1,257 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "fm-harmonic-space",
+  "name": "FM Harmonic Space",
+  "description": "A calmer FM patch where spatial controls snap modulator ratios to harmonic integer values.",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    { "name": "Carrier", "x": 245, "y": 250 },
+    { "name": "Ratio A", "x": 336, "y": 174 },
+    { "name": "Index A", "x": 238, "y": 367 },
+    { "name": "Ratio B", "x": 526, "y": 186 },
+    { "name": "Index B", "x": 582, "y": 345 },
+    { "name": "Feedback", "x": 648, "y": 266 },
+    { "name": "Bright", "x": 438, "y": 432 },
+    { "name": "Motion", "x": 366, "y": 414 },
+    { "name": "Space", "x": 545, "y": 452 },
+    { "name": "Level", "x": 312, "y": 497 }
+  ],
+  "movingObjects": [
+    {
+      "name": "FM Orbit",
+      "x": 400,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 24,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Envelope Shuttle",
+      "x": 400,
+      "y": 460,
+      "trajectory": {
+        "type": "shuttle",
+        "ax": 265,
+        "ay": 500,
+        "bx": 590,
+        "by": 430,
+        "phase": 0.25,
+        "speed": 0.0022,
+        "direction": 1,
+        "showPath": true
+      }
+    }
+  ],
+  "constraints": [
+    { "type": "solid", "carrier": "FM Orbit", "attached": "Ratio A" },
+    { "type": "solid", "carrier": "FM Orbit", "attached": "Ratio B" },
+    { "type": "solid", "carrier": "FM Orbit", "attached": "Index A" },
+    { "type": "solid", "carrier": "FM Orbit", "attached": "Index B" },
+    { "type": "solid", "carrier": "Envelope Shuttle", "attached": "Level" },
+    { "type": "fixedDistance", "anchor": "Carrier", "target": "Index A", "distance": 150 },
+    { "type": "distanceRatio", "sources": ["Index A", "Index B"], "ratio": 0.82 },
+    { "type": "fixedDistance", "anchor": "Feedback", "target": "Bright", "distance": 205 },
+    { "type": "sum", "sources": ["Carrier", "Bright", "Space"] },
+    { "type": "radialLimit", "source": "Feedback", "minDistance": 90, "maxDistance": 240 },
+    { "type": "radialLimit", "source": "Motion", "minDistance": 70, "maxDistance": 210 },
+    { "type": "angleSector", "source": "Space", "centerAngle": 0.65, "width": 2.2 }
+  ],
+  "target": {
+    "type": "faust-wasm",
+    "name": "FM Harmonic Space",
+    "module": "targets/faust/fm-space-adapter.js",
+    "dsp": "targets/faust/fm-space.dsp",
+    "parameters": {
+      "/carrier/frequency": { "default": 165, "min": 40, "max": 700, "unit": " Hz", "digits": 0 },
+      "/modA/ratio": { "default": 2, "min": 1, "max": 6, "digits": 0 },
+      "/modA/index": { "default": 1.1, "min": 0, "max": 4.5, "digits": 2 },
+      "/modB/ratio": { "default": 3, "min": 1, "max": 8, "digits": 0 },
+      "/modB/index": { "default": 0.28, "min": 0, "max": 2.6, "digits": 2 },
+      "/vibrato/rate": { "default": 3.2, "min": 0.05, "max": 8, "unit": " Hz", "digits": 2 },
+      "/vibrato/depth": { "default": 1.5, "min": 0, "max": 16, "unit": " Hz", "digits": 1 },
+      "/tremolo/rate": { "default": 0.7, "min": 0.02, "max": 5, "unit": " Hz", "digits": 2 },
+      "/tremolo/depth": { "default": 0.06, "min": 0, "max": 0.35, "digits": 2 },
+      "/filter/frequency": { "default": 2400, "min": 120, "max": 6500, "unit": " Hz", "digits": 0 },
+      "/filter/q": { "default": 0.9, "min": 0.1, "max": 8, "digits": 2 },
+      "/drive/amount": { "default": 0.04, "min": 0, "max": 0.35, "digits": 2 },
+      "/feedback/amount": { "default": 0.04, "min": 0, "max": 0.28, "digits": 2 },
+      "/feedback/delay": { "default": 0.024, "min": 0.006, "max": 0.055, "unit": " s", "digits": 3 },
+      "/output/gain": { "default": 0.18, "min": 0, "max": 0.5, "digits": 2 },
+      "/space/pan": { "default": 0, "min": -1, "max": 1, "digits": 2 }
+    }
+  },
+  "parameterMappings": [
+    {
+      "source": "Carrier",
+      "feature": "x",
+      "target": "/carrier/frequency",
+      "inputMin": 170,
+      "inputMax": 650,
+      "outputMin": 55,
+      "outputMax": 440,
+      "curve": "exp"
+    },
+    {
+      "source": "Ratio A",
+      "feature": "angle",
+      "target": "/modA/ratio",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1,
+      "outputMax": 6,
+      "curve": "linear",
+      "values": [1, 2, 3, 4, 5, 6]
+    },
+    {
+      "source": "Index A",
+      "feature": "distance",
+      "target": "/modA/index",
+      "inputMin": 55,
+      "inputMax": 260,
+      "outputMin": 0.15,
+      "outputMax": 3.6,
+      "curve": "linear"
+    },
+    {
+      "source": "Ratio B",
+      "feature": "angle",
+      "target": "/modB/ratio",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1,
+      "outputMax": 8,
+      "curve": "linear",
+      "values": [1, 2, 3, 4, 5, 6, 8]
+    },
+    {
+      "source": "Index B",
+      "feature": "distance",
+      "target": "/modB/index",
+      "inputMin": 55,
+      "inputMax": 260,
+      "outputMin": 0,
+      "outputMax": 1.8,
+      "curve": "linear"
+    },
+    {
+      "source": "Motion",
+      "feature": "angle",
+      "target": "/vibrato/rate",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.3,
+      "outputMax": 5,
+      "curve": "exp"
+    },
+    {
+      "source": "Motion",
+      "feature": "distance",
+      "target": "/vibrato/depth",
+      "inputMin": 50,
+      "inputMax": 230,
+      "outputMin": 0,
+      "outputMax": 9,
+      "curve": "linear"
+    },
+    {
+      "source": "Bright",
+      "feature": "distance",
+      "target": "/filter/frequency",
+      "inputMin": 60,
+      "inputMax": 260,
+      "outputMin": 350,
+      "outputMax": 5200,
+      "curve": "exp"
+    },
+    {
+      "source": "Bright",
+      "feature": "angle",
+      "target": "/filter/q",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.4,
+      "outputMax": 4.8,
+      "curve": "linear"
+    },
+    {
+      "source": "Feedback",
+      "feature": "distance",
+      "target": "/feedback/amount",
+      "inputMin": 90,
+      "inputMax": 240,
+      "outputMin": 0,
+      "outputMax": 0.18,
+      "curve": "linear"
+    },
+    {
+      "source": "Feedback",
+      "feature": "angle",
+      "target": "/feedback/delay",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.009,
+      "outputMax": 0.045,
+      "curve": "exp"
+    },
+    {
+      "source": "Space",
+      "feature": "x",
+      "target": "/space/pan",
+      "inputMin": 170,
+      "inputMax": 650,
+      "outputMin": -0.75,
+      "outputMax": 0.75,
+      "curve": "linear"
+    },
+    {
+      "source": "Space",
+      "feature": "distance",
+      "target": "/drive/amount",
+      "inputMin": 70,
+      "inputMax": 260,
+      "outputMin": 0,
+      "outputMax": 0.2,
+      "curve": "linear"
+    },
+    {
+      "source": "Level",
+      "feature": "y",
+      "target": "/output/gain",
+      "inputMin": 530,
+      "inputMax": 170,
+      "outputMin": 0.04,
+      "outputMax": 0.36,
+      "curve": "linear"
+    },
+    {
+      "source": "Level",
+      "feature": "x",
+      "target": "/tremolo/depth",
+      "inputMin": 240,
+      "inputMax": 620,
+      "outputMin": 0,
+      "outputMax": 0.24,
+      "curve": "linear"
+    },
+    {
+      "source": "Level",
+      "feature": "angle",
+      "target": "/tremolo/rate",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.08,
+      "outputMax": 3.5,
+      "curve": "exp"
+    }
+  ],
+  "version": 1
+}

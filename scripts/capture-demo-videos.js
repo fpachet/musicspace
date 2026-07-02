@@ -6,7 +6,7 @@ const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "..");
 const videoDir = path.join(root, "assets", "videos");
-const demoVideos = [
+const defaultDemoVideos = [
   {
     patchKey: "cycloid-rotator",
     outputName: "musicspace-cycloid-rotator.webm",
@@ -28,6 +28,7 @@ const demoVideos = [
     durationMs: 7000
   }
 ];
+const demoVideos = demosFromArgs(process.argv.slice(2));
 
 const contentTypes = {
   ".css": "text/css",
@@ -37,8 +38,23 @@ const contentTypes = {
   ".mid": "audio/midi",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".webm": "video/webm",
   ".wav": "audio/wav"
 };
+
+function demosFromArgs(args) {
+  if (args.length === 0) {
+    return defaultDemoVideos;
+  }
+
+  const [patchKey, outputName = `musicspace-${patchKey}.webm`, durationText = "7000"] = args;
+  const durationMs = Number(durationText);
+  if (!patchKey || !Number.isFinite(durationMs) || durationMs <= 0) {
+    throw new Error("Usage: node scripts/capture-demo-videos.js [patch-key] [output.webm] [duration-ms]");
+  }
+
+  return [{ patchKey, outputName, durationMs }];
+}
 
 function requestPath(url) {
   const parsed = new URL(url, "http://127.0.0.1");
