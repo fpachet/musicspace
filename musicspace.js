@@ -2883,7 +2883,9 @@ function drawAll() {
   updateOpenSourceMappingReadouts();
   updateOpenPatchMappingReadouts();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  drawGrid(ctx);
+  if (uiMode === UI_MODE_EDIT) {
+    drawGrid(ctx);
+  }
   parameterClient.update();
   midiFileClient.updateSpatial();
   generatorClient.updateSpatial();
@@ -2920,7 +2922,7 @@ function drawAll() {
 }
 
 function drawGrid(ctx) {
-  ctx.strokeStyle = "#e5e7eb";
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
   ctx.lineWidth = 1;
 
   for (let x = 40; x < WIDTH; x += 40) {
