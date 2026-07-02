@@ -51,7 +51,7 @@ npm run smoke
 - Use **Play** mode for the selected patch: runtime transport, MIDI output, fullscreen, and trace controls are shown only when they apply.
 - Use **Edit** mode for authoring: the creation palette, solver, import, patch inspector, JSON editor, and save/load patch controls appear there.
 - In Edit mode, use **Save Patch** / **Load Patch** to export and import scene JSON.
-- In Edit mode, use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
+- In Edit mode, use **Inspect** in the Patch toolbar to open the Patch Inspector popup, validate scene/backend references, edit generic parameter mappings, or open **JSON** for an editable patch snapshot. Applying edited JSON creates a separate edited patch entry in the menu.
 - The patch strip under the toolbar shows the current example description and tags so built-in patches are easier to browse.
 - Use the tool palette to create sources, movers, constraints, and simple trajectories directly on the canvas.
 - Sum and Product constraints accept two or more sources. Click the tool, select each source, then click the same Sum/Product tool again to finish.
@@ -59,6 +59,7 @@ npm run smoke
 - Use **Spin** to create a rotative object. Link sources or movers to it with **Link**; linked objects rotate around it.
 - Double-click a source to open the Source Inspector. A source can stay as a pure geometric/control object, or it can be renamed and assigned to one active output mode: audio file, MIDI ostinato generator, or, for imported sequence patches, MIDI file track. The inspector shows only the controls that apply to the selected output mode; changing the output and applying removes the previous source output binding.
 - MIDI ostinatos can map source position features to pitch, period, duration, velocity, or channel.
+- Patch-level parameter mappings can be edited in the Patch Inspector. Use **Add Mapping** to connect a source feature such as `distance` or `angle` to a target parameter such as `/filter/frequency`, then apply the mapping and use **Play Sound** to hear the backend follow the scene.
 - Double-click a rotative mover to open its popup editor, where its start state, revolution period, direction, and displacement-induced rotation can be changed.
 - Double-click a shuttle mover to open its popup editor, change endpoints, and toggle its dotted path line. Each endpoint can be a fixed point or an existing object such as a source, mover, or the listener.
 - Double-click the listener to open the Listener Inspector and choose listener mode:
@@ -157,7 +158,7 @@ npm run smoke
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
 - Built-in product + radial limit example for deterministic backoff.
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
-- Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies.
+- Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies, plus a Patch Inspector mapping editor for changing those bindings without editing JSON.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
 - Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel, and Source Inspector mappings can connect spatial features to generator pitch, period, duration, velocity, or channel.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.

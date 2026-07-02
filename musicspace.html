@@ -1091,6 +1091,17 @@
       min-width: 34px;
     }
 
+    .patch-mapping-editor {
+      margin-bottom: 10px;
+    }
+
+    .patch-mapping-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
     .editor-actions {
       display: flex;
       flex-wrap: wrap;
@@ -1650,6 +1661,16 @@
         </div>
       </div>
       <div id="patch-summary" class="inspector-grid"></div>
+      <section id="patch-mapping-editor" class="mapping-editor patch-mapping-editor" aria-label="Parameter mapping editor">
+        <div class="mapping-editor-header">
+          <h3>Parameter Mappings</h3>
+          <button id="patch-mapping-add" type="button">Add Mapping</button>
+        </div>
+        <div id="patch-mapping-list" class="mapping-list"></div>
+        <div class="patch-mapping-actions">
+          <button id="patch-mapping-apply" type="button">Apply Mappings</button>
+        </div>
+      </section>
       <div id="patch-validation" class="validation-list" aria-live="polite"></div>
       <div id="patch-json-editor" class="patch-json-editor" hidden>
         <textarea id="patch-json" spellcheck="false" aria-label="Patch JSON"></textarea>

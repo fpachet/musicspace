@@ -37,7 +37,6 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 - Add a server-backed audio stem-splitting import flow. The first trial used `audio-separator` with the Demucs `htdemucs` model to produce vocals, drums, bass, and other stems; MusicSpace can then create one source binding per stem.
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
-- Add a patch-level editor for generic parameter mappings instead of defining them only in built-in JSON.
 - Expand `sourceGenerators` beyond the first editable `midi-ostinato` prototype with pattern generators and mappings from spatial features to pitch, period, velocity, or density.
 - Explore OpenSpace-style musical constraints over generated source parameters without folding generator scheduling into the geometric constraint engine.
 - Expand the Faust target backend beyond the current adapter-based `faust-wasm` bridge, including compiled DSP loading/introspection workflows.

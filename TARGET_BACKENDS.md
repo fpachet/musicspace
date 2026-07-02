@@ -61,6 +61,8 @@ The Web Audio examples expose Faust-style parameter paths, but they are not comp
 
 `Play Sound` does not start a backend merely because a `target` exists or because the default `subtractive` backend is available. It enables parameter targets only when the patch has `parameterMappings`, direct source audio when the patch has `sourceBindings`, generated note sources when the patch has `sourceGenerators`, and sequence playback when the patch has `midiFile`.
 
+Patch-level `parameterMappings` can be edited from the Patch Inspector. The editor lists the active backend's declared parameter names, lets a source feature drive a target parameter range, and shows the current mapped value while the canvas changes.
+
 ## Patch-Level Faust Binding
 
 A patch specifies the actual Faust target in its `target` object:

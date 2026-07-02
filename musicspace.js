@@ -43,6 +43,10 @@ const patchInspector = document.getElementById("patch-inspector");
 const patchInspectorToggle = document.getElementById("patch-inspector-toggle");
 const patchInspectorInlineToggle = document.getElementById("patch-inspector-inline-toggle");
 const patchInspectorClose = document.getElementById("patch-inspector-close");
+const patchMappingEditor = document.getElementById("patch-mapping-editor");
+const patchMappingList = document.getElementById("patch-mapping-list");
+const patchMappingAddButton = document.getElementById("patch-mapping-add");
+const patchMappingApplyButton = document.getElementById("patch-mapping-apply");
 const patchJsonToggle = document.getElementById("patch-json-toggle");
 const patchJsonInlineToggle = document.getElementById("patch-json-inline-toggle");
 const patchJsonEditor = document.getElementById("patch-json-editor");
@@ -1933,6 +1937,7 @@ function updatePatchInspector({ refreshJson = true } = {}) {
 
   const patch = currentPatchSnapshot();
   renderPatchSummary(patch);
+  fillPatchMappingsEditor(parameterClient.mappings?.() || []);
   renderPatchValidation(validatePatch(patch));
 
   if (
@@ -2696,6 +2701,7 @@ function drawAll() {
   updateToolbarAvailability();
   updateSelectionSummary();
   updateOpenSourceMappingReadouts();
+  updateOpenPatchMappingReadouts();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawGrid(ctx);
   parameterClient.update();
@@ -4976,6 +4982,260 @@ function fillSourceMidiFileEditor(binding) {
   sourceMidiDrumsInput.checked = Boolean(nextBinding.isDrums);
 }
 
+function fillPatchMappingsEditor(mappings = []) {
+  if (!patchMappingList) {
+    return;
+  }
+
+  const targetOptions = parameterMappingTargetOptions();
+  const sourceOptions = parameterMappingSourceOptions();
+  const canEditMappings = targetOptions.length > 0 && sourceOptions.length > 0;
+  if (patchMappingEditor) {
+    patchMappingEditor.hidden = !canEditMappings && mappings.length === 0;
+  }
+  if (patchMappingAddButton) {
+    patchMappingAddButton.disabled = !canEditMappings;
+  }
+  if (patchMappingApplyButton) {
+    patchMappingApplyButton.disabled = !canEditMappings && mappings.length === 0;
+  }
+
+  patchMappingList.replaceChildren();
+  for (const mapping of mappings) {
+    addPatchMappingRow(mapping);
+  }
+}
+
+function defaultParameterMapping() {
+  const sourceName = parameterMappingSourceOptions()[0] || "";
+  const target = parameterMappingTargetOptions()[0] || "";
+  const featureSpec = sourceGeneratorFeatureSpec("distance");
+  const targetSpec = parameterMappingTargetSpec(target);
+
+  return {
+    source: sourceName,
+    feature: "distance",
+    target,
+    inputMin: featureSpec.defaultMin,
+    inputMax: featureSpec.defaultMax,
+    outputMin: targetSpec.defaultMin,
+    outputMax: targetSpec.defaultMax,
+    curve: targetSpec.defaultCurve || "linear"
+  };
+}
+
+function addPatchMappingRow(mapping = defaultParameterMapping()) {
+  if (!patchMappingList) {
+    return;
+  }
+
+  const sourceOptions = parameterMappingSourceOptions();
+  const targetOptions = parameterMappingTargetOptions();
+  const row = document.createElement("div");
+  row.className = "mapping-row";
+  row.append(
+    createMappingSelect("Source", "source", sourceOptions, mapping.source),
+    createMappingSelect("Feature", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
+    createMappingSelect("Target", "target", targetOptions, mapping.target),
+    createMappingNumber("Input min", "input-min", mapping.inputMin),
+    createMappingNumber("Input max", "input-max", mapping.inputMax),
+    createMappingNumber("Output min", "output-min", mapping.outputMin),
+    createMappingNumber("Output max", "output-max", mapping.outputMax),
+    createMappingSelect("Curve", "curve", SOURCE_GENERATOR_MAPPING_CURVES, mapping.curve || "linear")
+  );
+
+  row.querySelector("[data-mapping-field='feature']").addEventListener("change", () => {
+    updateMappingFeatureFields(row, { resetValues: true });
+    updatePatchMappingRowReadout(row);
+  });
+  row.querySelector("[data-mapping-field='target']").addEventListener("change", () => {
+    updatePatchMappingTargetFields(row, { resetValues: true });
+    updatePatchMappingRowReadout(row);
+  });
+  updateMappingFeatureFields(row, { resetValues: false });
+  updatePatchMappingTargetFields(row, { resetValues: false });
+
+  for (const control of row.querySelectorAll("[data-mapping-field]")) {
+    control.addEventListener("input", () => updatePatchMappingRowReadout(row));
+    control.addEventListener("change", () => updatePatchMappingRowReadout(row));
+  }
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "mapping-remove";
+  removeButton.title = "Remove mapping";
+  removeButton.setAttribute("aria-label", "Remove mapping");
+  removeButton.textContent = "X";
+  removeButton.addEventListener("click", () => row.remove());
+  row.append(removeButton);
+
+  const readout = document.createElement("output");
+  readout.className = "mapping-readout";
+  readout.dataset.mappingReadout = "true";
+  row.append(readout);
+  updatePatchMappingRowReadout(row);
+  patchMappingList.append(row);
+}
+
+function parameterMappingSourceOptions() {
+  return [...sources, ...movingObjects].map((entity) => entity.name);
+}
+
+function parameterMappingTargetOptions() {
+  const metadata = parameterClient.targetMetadata?.() || {};
+  return Array.isArray(metadata.parameters) ? metadata.parameters : [];
+}
+
+function parameterMappingTargetSpec(target) {
+  const defaults = parameterClient.targetDefaults?.() || {};
+  const targetSpec = parameterClient.targetSpec?.() || {};
+  const declared = targetSpec.parameters?.[target] || targetSpec.params?.[target] || targetSpec.defaults?.[target] || {};
+  const config = parameterClient.targetParameterConfig?.(target) || {};
+  const defaultValue = Number(declared.default ?? defaults[target] ?? 1);
+  const hasDeclaredRange = Number.isFinite(Number(declared.min)) && Number.isFinite(Number(declared.max));
+
+  if (hasDeclaredRange) {
+    return {
+      min: Number(declared.min),
+      max: Number(declared.max),
+      step: parameterMappingStep(config),
+      defaultMin: Number(declared.min),
+      defaultMax: Number(declared.max),
+      defaultCurve: target.includes("freq") || target.includes("frequency") ? "exp" : "linear"
+    };
+  }
+
+  if (target.includes("freq") || target.includes("frequency")) {
+    return { min: 20, max: 20000, step: 1, defaultMin: 110, defaultMax: 4200, defaultCurve: "exp" };
+  }
+  if (target.includes("/filter/q")) {
+    return { min: 0.1, max: 30, step: 0.01, defaultMin: 0.5, defaultMax: 18, defaultCurve: "linear" };
+  }
+  if (target.includes("gain") || target.includes("spread")) {
+    return { min: 0, max: 1, step: 0.01, defaultMin: 0, defaultMax: Math.max(0.2, defaultValue || 0.2), defaultCurve: "linear" };
+  }
+  if (target.includes("/grain/rate")) {
+    return { min: 1, max: 80, step: 0.1, defaultMin: 4, defaultMax: 42, defaultCurve: "linear" };
+  }
+  if (target.includes("/grain/size")) {
+    return { min: 0.01, max: 1, step: 0.001, defaultMin: 0.03, defaultMax: 0.22, defaultCurve: "linear" };
+  }
+  if (target.includes("/grain/pitch")) {
+    return { min: 0.1, max: 4, step: 0.01, defaultMin: 0.5, defaultMax: 2, defaultCurve: "linear" };
+  }
+
+  const max = Math.max(1, Number.isFinite(defaultValue) ? Math.abs(defaultValue) * 2 : 1);
+  return { min: 0, max, step: parameterMappingStep(config), defaultMin: 0, defaultMax: max, defaultCurve: "linear" };
+}
+
+function parameterMappingStep(config = {}) {
+  const digits = Number.isInteger(config.digits) ? config.digits : 2;
+  return digits <= 0 ? 1 : 1 / (10 ** Math.min(digits, 6));
+}
+
+function updatePatchMappingTargetFields(row, { resetValues = false } = {}) {
+  const target = row.querySelector("[data-mapping-field='target']").value;
+  const spec = parameterMappingTargetSpec(target);
+  const outputMinInput = row.querySelector("[data-mapping-field='output-min']");
+  const outputMaxInput = row.querySelector("[data-mapping-field='output-max']");
+
+  for (const input of [outputMinInput, outputMaxInput]) {
+    input.min = String(spec.min);
+    input.max = String(spec.max);
+    input.step = String(spec.step);
+  }
+
+  if (resetValues) {
+    outputMinInput.value = String(roundEditorValue(spec.defaultMin));
+    outputMaxInput.value = String(roundEditorValue(spec.defaultMax));
+    row.querySelector("[data-mapping-field='curve']").value = spec.defaultCurve || "linear";
+    return;
+  }
+
+  outputMinInput.value = String(roundEditorValue(
+    clampNumberInput(outputMinInput.value, spec.min, spec.max, spec.defaultMin)
+  ));
+  outputMaxInput.value = String(roundEditorValue(
+    clampNumberInput(outputMaxInput.value, spec.min, spec.max, spec.defaultMax)
+  ));
+}
+
+function updateOpenPatchMappingReadouts() {
+  if (!patchInspector.hidden && patchMappingList) {
+    for (const row of patchMappingList.querySelectorAll(".mapping-row")) {
+      updatePatchMappingRowReadout(row);
+    }
+  }
+}
+
+function updatePatchMappingRowReadout(row) {
+  const readout = row.querySelector("[data-mapping-readout='true']");
+  if (!readout) {
+    return;
+  }
+
+  const mapping = parameterMappingFromRow(row);
+  const entity = getObjectByName(mapping.source);
+  if (!entity || !mapping.target) {
+    readout.value = "Choose a source and target.";
+    readout.textContent = readout.value;
+    return;
+  }
+
+  const rawValue = parameterFeatureValue(mapping.feature, entity);
+  const mappedValue = mappedSourceGeneratorValue(mapping, rawValue);
+  const featureLabel = formatMappingOption(mapping.feature);
+  const text = `Current: ${mapping.source}.${featureLabel} ${formatMappingValue(rawValue, mapping.feature)} -> ${mapping.target} ${formatParameterMappingValue(mappedValue, mapping.target)}`;
+  readout.value = text;
+  readout.textContent = text;
+}
+
+function parameterMappingFromRow(row) {
+  const source = row.querySelector("[data-mapping-field='source']").value;
+  const feature = row.querySelector("[data-mapping-field='feature']").value;
+  const target = row.querySelector("[data-mapping-field='target']").value;
+  const featureSpec = sourceGeneratorFeatureSpec(feature);
+  const targetSpec = parameterMappingTargetSpec(target);
+  return {
+    source,
+    feature,
+    target,
+    inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
+    inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
+    outputMin: numberFromMappingField(row, "output-min", targetSpec.defaultMin, targetSpec.min, targetSpec.max),
+    outputMax: numberFromMappingField(row, "output-max", targetSpec.defaultMax, targetSpec.min, targetSpec.max),
+    curve: row.querySelector("[data-mapping-field='curve']").value
+  };
+}
+
+function parameterMappingsFromEditor() {
+  if (!patchMappingList) {
+    return [];
+  }
+  return Array.from(patchMappingList.querySelectorAll(".mapping-row")).map((row) => parameterMappingFromRow(row));
+}
+
+function formatParameterMappingValue(value, target) {
+  if (!Number.isFinite(Number(value))) {
+    return "?";
+  }
+  const config = parameterClient.targetParameterConfig?.(target) || { suffix: "", digits: 2 };
+  const digits = Number.isInteger(config.digits) ? config.digits : 2;
+  return `${Number(value).toFixed(Math.max(0, Math.min(6, digits)))}${config.suffix || ""}`;
+}
+
+function applyPatchMappingsEditor() {
+  if (!patchMappingList) {
+    return;
+  }
+
+  pushUndoSnapshot("edit parameter mappings");
+  const mappings = parameterClient.setMappings(parameterMappingsFromEditor());
+  setConstraintStatus(`${mappings.length} parameter mapping${mappings.length === 1 ? "" : "s"} applied.`);
+  updatePatchInspector();
+  drawAll();
+}
+
 function fillSourceGeneratorMappingsEditor(mappings = []) {
   sourceGeneratorMappingList.replaceChildren();
   const editorMappings = mappings.length > 0 ? mappings : [defaultSourceGeneratorMapping()];
@@ -5192,13 +5452,15 @@ function createMappingSelect(labelText, key, options, value) {
   const label = document.createElement("label");
   const select = document.createElement("select");
   select.dataset.mappingField = key;
-  for (const optionValue of options) {
+  const selectOptions = options.length > 0 ? options : [""];
+  for (const optionValue of selectOptions) {
     const option = document.createElement("option");
     option.value = optionValue;
-    option.textContent = formatMappingOption(optionValue);
+    option.textContent = optionValue ? formatMappingOption(optionValue) : "None";
+    option.disabled = optionValue === "";
     select.append(option);
   }
-  select.value = options.includes(value) ? value : options[0];
+  select.value = selectOptions.includes(value) ? value : selectOptions[0];
   label.append(labelText, select);
   return label;
 }
@@ -5215,6 +5477,9 @@ function createMappingNumber(labelText, key, value) {
 }
 
 function formatMappingOption(value) {
+  if (!value) {
+    return "None";
+  }
   if (value === "periodMs") {
     return "Period";
   }
@@ -6405,6 +6670,8 @@ patchJsonApplyButton.addEventListener("click", applyPatchJsonEditor);
 patchInspectorToggle.addEventListener("click", togglePatchInspector);
 patchInspectorClose.addEventListener("click", closePatchInspector);
 patchValidateButton.addEventListener("click", validatePatchEditor);
+patchMappingAddButton.addEventListener("click", () => addPatchMappingRow());
+patchMappingApplyButton.addEventListener("click", applyPatchMappingsEditor);
 midiLoadSequenceButton.addEventListener("click", () => {
   midiSequenceFileInput.click();
 });

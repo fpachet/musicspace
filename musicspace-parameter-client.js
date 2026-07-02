@@ -45,8 +45,29 @@
       hasMappings() {
         return mappings.length > 0;
       },
+      mappings() {
+        return mappings.map((mapping) => ({ ...mapping }));
+      },
+      setMappings(nextMappings = []) {
+        mappings = normalizeMappings(nextMappings);
+        update({ immediate: true });
+        updateToggle();
+        return mappings.map((mapping) => ({ ...mapping }));
+      },
       mappedEntityNames() {
         return Array.from(new Set(mappings.map((mapping) => mapping.source)));
+      },
+      targetSpec() {
+        return { ...targetSpec };
+      },
+      targetDefaults() {
+        return targetController?.defaults() || {};
+      },
+      targetMetadata() {
+        return targetController?.metadata() || { parameters: [] };
+      },
+      targetParameterConfig(target) {
+        return targetController?.parameterConfig(target) || { suffix: "", digits: 2 };
       },
       renameSource(oldName, newName) {
         mappings = mappings.map((mapping) => (

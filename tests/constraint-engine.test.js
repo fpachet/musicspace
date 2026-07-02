@@ -319,6 +319,15 @@ function createEngineHarness() {
           hasMappings() {
             return mappings.length > 0;
           },
+          mappings() {
+            return mappings.map((mapping) => ({ ...mapping }));
+          },
+          setMappings(nextMappings = []) {
+            mappings = nextMappings
+              .filter((mapping) => mapping?.source && mapping?.feature && mapping?.target)
+              .map((mapping) => ({ ...mapping }));
+            return mappings.map((mapping) => ({ ...mapping }));
+          },
           loadPatch(patch = {}) {
             mappings = Array.isArray(patch.parameterMappings)
               ? patch.parameterMappings.map((mapping) => ({ ...mapping }))
@@ -334,6 +343,36 @@ function createEngineHarness() {
           },
           serialize() {
             return { parameterMappings: mappings.map((mapping) => ({ ...mapping })) };
+          },
+          targetSpec() {
+            return {
+              type: "subtractive",
+              parameters: {
+                "/osc/freq": { default: 220, min: 110, max: 880, unit: "Hz", digits: 0 },
+                "/filter/frequency": { default: 1600, min: 250, max: 4200, unit: "Hz", digits: 0 },
+                "/filter/q": { default: 2, min: 0.5, max: 18, digits: 2 },
+                "/output/gain": { default: 0.12, min: 0, max: 0.3, digits: 2 }
+              }
+            };
+          },
+          targetDefaults() {
+            return {
+              "/osc/freq": 220,
+              "/filter/frequency": 1600,
+              "/filter/q": 2,
+              "/output/gain": 0.12
+            };
+          },
+          targetMetadata() {
+            return {
+              parameters: ["/osc/freq", "/filter/frequency", "/filter/q", "/output/gain"]
+            };
+          },
+          targetParameterConfig(target) {
+            if (target === "/osc/freq" || target === "/filter/frequency") {
+              return { suffix: " Hz", digits: 0 };
+            }
+            return { suffix: "", digits: 2 };
           },
           isEnabled() {
             return false;
@@ -693,8 +732,46 @@ globalThis.__musicspaceTestApi = {
         inlinePressed: document.getElementById("patch-inspector-inline-toggle").attributes.get("aria-pressed"),
         jsonToolbarPressed: document.getElementById("patch-json-toggle").attributes.get("aria-pressed"),
         jsonInlinePressed: document.getElementById("patch-json-inline-toggle").attributes.get("aria-pressed"),
+        mappingCount: document.getElementById("patch-mapping-list").querySelectorAll(".mapping-row").length,
+        mappingReadouts: Array.from(
+          document.getElementById("patch-mapping-list").querySelectorAll(".mapping-readout")
+        ).map((output) => output.textContent),
         jsonText: document.getElementById("patch-json").value
       };
+    },
+    addPatchMapping(values = {}) {
+      document.getElementById("patch-mapping-add").click();
+      const list = document.getElementById("patch-mapping-list");
+      const row = list.lastElementChild;
+      if (values.source !== undefined) {
+        row.querySelector("[data-mapping-field='source']").value = values.source;
+      }
+      if (values.feature !== undefined) {
+        row.querySelector("[data-mapping-field='feature']").value = values.feature;
+      }
+      if (values.target !== undefined) {
+        row.querySelector("[data-mapping-field='target']").value = values.target;
+      }
+      if (values.inputMin !== undefined) {
+        row.querySelector("[data-mapping-field='input-min']").value = String(values.inputMin);
+      }
+      if (values.inputMax !== undefined) {
+        row.querySelector("[data-mapping-field='input-max']").value = String(values.inputMax);
+      }
+      if (values.outputMin !== undefined) {
+        row.querySelector("[data-mapping-field='output-min']").value = String(values.outputMin);
+      }
+      if (values.outputMax !== undefined) {
+        row.querySelector("[data-mapping-field='output-max']").value = String(values.outputMax);
+      }
+      if (values.curve !== undefined) {
+        row.querySelector("[data-mapping-field='curve']").value = values.curve;
+      }
+      return textContentDeep(row);
+    },
+    applyPatchMappings() {
+      document.getElementById("patch-mapping-apply").click();
+      return api.serializePatch();
     },
     clickInlinePatchInspector() {
       document.getElementById("patch-inspector-inline-toggle").click();
@@ -2278,6 +2355,48 @@ test("edit toolbar opens patch inspector and JSON editor", () => {
   assert.equal(state.jsonToolbarPressed, "true");
   assert.equal(state.jsonInlinePressed, "true");
   assert.match(state.jsonText, /Patch Inspector Buttons/);
+});
+
+test("patch inspector edits generic parameter mappings", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Mapping Editor",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  engine.closePatchInspectorForTest();
+  engine.clickInlinePatchInspector();
+  assert.equal(engine.patchInspectorState().mappingCount, 0);
+
+  const rowText = engine.addPatchMapping({
+    source: "A",
+    feature: "distance",
+    target: "/filter/frequency",
+    inputMin: 0,
+    inputMax: 400,
+    outputMin: 300,
+    outputMax: 3000,
+    curve: "exp"
+  });
+  assert.match(rowText, /Current:/);
+
+  const patch = engine.applyPatchMappings();
+  assert.equal(patch.parameterMappings.length, 1);
+  assert.deepEqual(patch.parameterMappings[0], {
+    source: "A",
+    feature: "distance",
+    target: "/filter/frequency",
+    inputMin: 0,
+    inputMax: 400,
+    outputMin: 300,
+    outputMax: 3000,
+    curve: "exp"
+  });
+  assert.equal(engine.patchInspectorState().mappingCount, 1);
+  assert.match(engine.patchInspectorState().mappingReadouts[0], /\/filter\/frequency/);
 });
 
 test("sound clients do not enable without mappings or source bindings", async () => {

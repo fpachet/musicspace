@@ -11,7 +11,7 @@ The formal schemas are:
 
 ## Inspecting And Validating Patches
 
-The app includes a Patch Inspector popup opened from the Patch toolbar. It summarizes the active patch, shows the selected backend and any MIDI/Faust artifacts, lists constraints and mappings, and reports validation findings.
+The app includes a Patch Inspector popup opened from the Patch toolbar. It summarizes the active patch, shows the selected backend and any MIDI/Faust artifacts, lists constraints and mappings, edits patch-level `parameterMappings`, and reports validation findings.
 
 Use **JSON** in the inspector to open an editable snapshot of the active patch. **Apply JSON** parses that snapshot, validates it, and loads it as a separate edited patch entry instead of overwriting a built-in patch.
 
@@ -75,7 +75,7 @@ Trace state is serialized with `drawTrace` on listeners, sources, movers, and co
 }
 ```
 
-Parameter mappings connect a source feature to a target parameter path:
+Parameter mappings connect a source feature to a target parameter path. They can be edited in the Patch Inspector or directly in JSON:
 
 ```json
 {
