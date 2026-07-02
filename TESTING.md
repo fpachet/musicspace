@@ -31,6 +31,12 @@ npm run capture:video
 
 The video capture script records canvas motion in Chromium and uses the app's explicit Web Audio capture bus plus `ffmpeg` muxing for demos that generate sound.
 
+Export LinkedIn-friendly MP4 copies of the audio demo clips with:
+
+```sh
+npm run export:linkedin
+```
+
 Current coverage:
 
 - Sum redistribution.

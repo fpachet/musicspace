@@ -4,11 +4,12 @@
   "private": true,
   "description": "A static JavaScript prototype of the MusicSpace constraint-based spatialization interface.",
   "scripts": {
-    "check": "node --check musicspace-audio-capture.js && node --check musicspace-mapping.js && node --check musicspace-targets.js && node --check musicspace-parameter-client.js && node --check musicspace-source-audio-client.js && node --check musicspace-midi-file-client.js && node --check musicspace-generator-client.js && node --check musicspace.js && node --check targets/faust/faust-control-study-adapter.js",
+    "check": "node --check musicspace-audio-capture.js && node --check musicspace-mapping.js && node --check musicspace-targets.js && node --check musicspace-parameter-client.js && node --check musicspace-source-audio-client.js && node --check musicspace-midi-file-client.js && node --check musicspace-generator-client.js && node --check musicspace.js && node --check targets/faust/faust-control-study-adapter.js && node --check scripts/export-linkedin-videos.js",
     "test": "node --test tests/constraint-engine.test.js",
     "smoke": "playwright test",
     "capture:screenshot": "node scripts/capture-readme-screenshot.js",
     "capture:video": "node scripts/capture-demo-videos.js",
+    "export:linkedin": "node scripts/export-linkedin-videos.js",
     "serve": "python3 -m http.server 8000"
   },
   "devDependencies": {

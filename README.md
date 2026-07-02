@@ -73,6 +73,12 @@ npm run capture:video
 
 The video capture script uses Playwright/Chromium for the canvas recording and `ffmpeg` to mux the recorded Web Audio bus into the `.webm` files.
 
+Export LinkedIn-friendly MP4 versions of the sound demos with:
+
+```sh
+npm run export:linkedin
+```
+
 ## Controls
 
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
