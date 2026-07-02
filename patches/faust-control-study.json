@@ -145,9 +145,9 @@
         "digits": 2
       },
       "/output/gain": {
-        "default": 0.12,
+        "default": 0.22,
         "min": 0,
-        "max": 0.3,
+        "max": 0.55,
         "digits": 2
       }
     }
@@ -189,8 +189,8 @@
       "target": "/output/gain",
       "inputMin": 500,
       "inputMax": 150,
-      "outputMin": 0.03,
-      "outputMax": 0.22,
+      "outputMin": 0.08,
+      "outputMax": 0.48,
       "curve": "linear"
     }
   ],

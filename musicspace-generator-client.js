@@ -435,6 +435,9 @@
       envelope.connect(destination);
       if (panNode) {
         panNode.connect(context.destination);
+        captureConnect(context, panNode);
+      } else {
+        captureConnect(context, envelope);
       }
       oscillator.start(startTime);
       oscillator.stop(startTime + durationSeconds + 0.02);
@@ -520,6 +523,10 @@
       } catch (error) {
         // Best-effort cleanup for browser audio nodes.
       }
+    }
+
+    function captureConnect(context, node) {
+      global.MusicSpaceAudioCapture?.connect?.(context, node);
     }
 
     function updateSpatial() {

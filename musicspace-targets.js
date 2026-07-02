@@ -191,6 +191,7 @@
       oscillator.connect(filter);
       filter.connect(gain);
       gain.connect(context.destination);
+      captureConnect(context, gain);
       oscillator.start();
 
       return { type: "subtractive", context, oscillator, filter, gain };
@@ -261,6 +262,7 @@
       filter.connect(compressor);
       compressor.connect(gain);
       gain.connect(context.destination);
+      captureConnect(context, gain);
 
       return {
         type: "granular",
@@ -542,6 +544,7 @@
     const output = runtime.controller.output || runtime.controller.node;
     if (typeof output?.connect === "function") {
       output.connect(runtime.context.destination);
+      captureConnect(runtime.context, output);
       runtime.connected = true;
     }
   }
@@ -558,6 +561,7 @@
       } catch (error) {
         output.disconnect();
       }
+      captureDisconnect(runtime.context, output);
     }
     runtime.connected = false;
   }
@@ -665,6 +669,14 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function captureConnect(context, node) {
+    global.MusicSpaceAudioCapture?.connect?.(context, node);
+  }
+
+  function captureDisconnect(context, node) {
+    global.MusicSpaceAudioCapture?.disconnect?.(context, node);
   }
 
   global.MusicSpaceTargets = {

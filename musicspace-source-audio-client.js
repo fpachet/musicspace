@@ -226,8 +226,10 @@
       if (panNode) {
         directGainNode.connect(panNode);
         panNode.connect(context.destination);
+        captureConnect(context, panNode);
       } else {
         directGainNode.connect(context.destination);
+        captureConnect(context, directGainNode);
       }
       if (reverbBus) {
         reverbSendNode.connect(reverbBus.input);
@@ -358,8 +360,13 @@
       delay.connect(output);
     }
     output.connect(context.destination);
+    captureConnect(context, output);
 
     return { input, delay, feedback, output, tone };
+  }
+
+  function captureConnect(context, node) {
+    global.MusicSpaceAudioCapture?.connect?.(context, node);
   }
 
   function dataUrlToArrayBuffer(dataUrl) {

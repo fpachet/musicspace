@@ -17,11 +17,19 @@ npm run smoke
 
 The smoke test starts a local HTTP server, loads `musicspace.html` in Chromium, checks for console/page errors, verifies that built-in patches populate, loads Cycloid Percussion, and exercises mover, sound, and reset controls.
 
-Refresh the README screenshot with:
+Refresh the README screenshots with:
 
 ```sh
 npm run capture:screenshot
 ```
+
+Refresh the README demo videos with:
+
+```sh
+npm run capture:video
+```
+
+The video capture script records canvas motion in Chromium and uses the app's explicit Web Audio capture bus plus `ffmpeg` muxing for demos that generate sound.
 
 Current coverage:
 

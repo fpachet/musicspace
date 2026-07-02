@@ -16,6 +16,14 @@ Live demo: <https://fpachet.github.io/musicspace/>
 | Jazz Trio MIDI Spatializer | Granular Cloud Study |
 | ![MusicSpace Jazz Trio MIDI spatialization demo](assets/screenshots/musicspace-jazz-trio-midi.png?v=demo-gallery) | ![MusicSpace Granular Cloud parameter mapping demo](assets/screenshots/musicspace-granular-cloud-study.png?v=demo-gallery) |
 
+Short WebM captures. Cycloid Percussion, Faust Control Study, and Granular Cloud Study include recorded sound; Cycloid Rotator is motion-only.
+
+| Cycloid Rotator | Cycloid Percussion |
+| --- | --- |
+| [Watch clip](assets/videos/musicspace-cycloid-rotator.webm) | [Watch clip](assets/videos/musicspace-cycloid-percussion.webm) |
+| Faust Control Study | Granular Cloud Study |
+| [Watch clip](assets/videos/musicspace-faust-control-study.webm) | [Watch clip](assets/videos/musicspace-granular-cloud-study.webm) |
+
 ## Running
 
 Serve the directory locally:
@@ -56,6 +64,14 @@ Refresh the README screenshots with:
 ```sh
 npm run capture:screenshot
 ```
+
+Refresh the demo videos with:
+
+```sh
+npm run capture:video
+```
+
+The video capture script uses Playwright/Chromium for the canvas recording and `ffmpeg` to mux the recorded Web Audio bus into the `.webm` files.
 
 ## Controls
 
@@ -126,8 +142,9 @@ npm run capture:screenshot
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan, distance gain, and distance reverb send for `sourceBindings`.
 - `musicspace-generator-client.js` owns lightweight per-source generated note playback for `sourceGenerators`.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
+- `musicspace-audio-capture.js` provides the optional recording bus used by the demo video capture script.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
-- `assets/` contains the favicon and README screenshot.
+- `assets/` contains the favicon, README screenshots, and short demo video captures.
 - `audio/cycloid-percussion/` contains the small bundled WAV loops used by the Cycloid Percussion patch.
 - `patches/index.json` lists the built-in patch files loaded by the patch menu.
 - `patches/*.json` contains built-in MusicSpace patches using the same JSON format as saved patches.
