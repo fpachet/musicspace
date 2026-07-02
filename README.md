@@ -80,7 +80,7 @@ npm run smoke
 - Transport and MIDI output controls are hidden when they do not apply to the current patch.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
-- On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.
+- On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Double-click a MIDI-file source to edit its track channel, program, and drum flag in the Source Inspector; channel changes are mainly meaningful for External MIDI because the internal browser synth is track-based. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.
 - MIDI ostinato mapping rows show the current source-motion value and resulting MIDI parameter value, so mappings such as angle-to-period can be checked while editing.
 - Use **Clear Trace** in the Display toolbar to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
@@ -99,7 +99,7 @@ npm run smoke
 - **Cycloid Percussion** binds three short bundled marimba, timbale, and bell loops to nested cycloid-style source motion, so Play Sound immediately demonstrates spatialized audio-file playback with changing rhythmic perspective.
 - **OpenSpace Ostinatos** revives the Agon/Delerue OpenSpace idea in miniature: each source is a generated MIDI-style ostinato, and a rotative object moves the pulses through the stereo field.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
-- **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output.
+- **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output; the Source Inspector can retarget each track's external MIDI channel/program.
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
 - **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 

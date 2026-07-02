@@ -1795,6 +1795,7 @@
           <select id="source-output-type">
             <option value="none">None</option>
             <option value="audio-file">Audio file</option>
+            <option value="midi-file">MIDI file track</option>
             <option value="midi-ostinato">MIDI ostinato</option>
           </select>
         </label>
@@ -1857,7 +1858,23 @@
           Channel
           <input id="source-generator-channel" type="number" min="1" max="16" step="1" value="1">
         </label>
-        <label class="editor-check">
+        <label id="source-midi-track-row">
+          MIDI track
+          <input id="source-midi-track" type="text" readonly>
+        </label>
+        <label id="source-midi-channel-row">
+          MIDI channel
+          <input id="source-midi-channel" type="number" min="1" max="16" step="1" value="1">
+        </label>
+        <label id="source-midi-program-row">
+          MIDI program
+          <input id="source-midi-program" type="number" min="1" max="128" step="1" value="1">
+        </label>
+        <label id="source-midi-drums-row" class="editor-check">
+          <input id="source-midi-drums" type="checkbox">
+          Drums
+        </label>
+        <label id="source-muted-row" class="editor-check">
           <input id="source-muted" type="checkbox">
           Muted
         </label>

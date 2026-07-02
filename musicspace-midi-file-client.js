@@ -86,6 +86,35 @@
           trackBindings.find((binding) => binding.source === sourceName) ||
           patchMidiSpec?.trackBindings?.find((binding) => binding.source === sourceName)
         );
+      },
+      bindingsForSource(sourceName) {
+        if (typeof sourceName !== "string" || sourceName.trim() === "") {
+          return [];
+        }
+        const bindings = trackBindings.length > 0 ? trackBindings : patchMidiSpec?.trackBindings || [];
+        return bindings.filter((binding) => binding.source === sourceName).map((binding) => ({ ...binding }));
+      },
+      updateTrackBinding(sourceName, updates = {}) {
+        if (!patchMidiSpec?.trackBindings || typeof sourceName !== "string" || sourceName.trim() === "") {
+          return null;
+        }
+
+        const updatedSpecBindings = patchMidiSpec.trackBindings.map((binding) => (
+          binding.source === sourceName ? normalizeTrackBindingUpdate(binding, updates) : binding
+        ));
+        const updatedSpecBinding = updatedSpecBindings.find((binding) => binding.source === sourceName) || null;
+        if (!updatedSpecBinding) {
+          return null;
+        }
+
+        patchMidiSpec = { ...patchMidiSpec, trackBindings: updatedSpecBindings };
+        trackBindings = trackBindings.map((binding) => (
+          binding.source === sourceName ? normalizeTrackBindingUpdate(binding, updatedSpecBinding) : binding
+        ));
+        updatePanel();
+        updateSpatial(true);
+        setStatus(`${sourceName} MIDI track set to channel ${updatedSpecBinding.channel}.`);
+        return { ...updatedSpecBinding };
       }
     };
 
@@ -503,6 +532,18 @@
       .filter(Boolean);
   }
 
+  function normalizeTrackBindingUpdate(binding, updates = {}) {
+    return {
+      ...binding,
+      source: updates.source || binding.source,
+      track: updates.track || binding.track,
+      trackIndex: Number.isInteger(updates.trackIndex) ? updates.trackIndex : binding.trackIndex,
+      channel: clampInt(updates.channel ?? binding.channel ?? 1, 1, 16),
+      program: clampInt(updates.program ?? binding.program ?? 1, 1, 128),
+      isDrums: Boolean(updates.isDrums ?? binding.isDrums)
+    };
+  }
+
   async function parseSequenceFile(name, arrayBuffer) {
     const bytes = new Uint8Array(arrayBuffer);
     const lowerName = String(name || "").toLowerCase();
@@ -801,10 +842,12 @@
     const lastSpatial = new Map();
     const panicTimers = [];
     let activeChannels = [];
+    let bindingByTrackIndex = new Map();
 
     return {
       start(bindings) {
         clearPanicTimers();
+        bindingByTrackIndex = new Map(bindings.map((binding) => [binding.trackIndex, binding]));
         activeChannels = Array.from(new Set(bindings.map((binding) => channelIndex(binding.channel))));
         for (const binding of bindings) {
           if (binding.program && !binding.isDrums) {
@@ -817,7 +860,8 @@
           return;
         }
 
-        output.send(event.bytes, global.performance.now() + delaySeconds * 1000);
+        const binding = bindingByTrackIndex.get(event.trackIndex);
+        output.send(retargetMidiEventBytes(event, binding), global.performance.now() + delaySeconds * 1000);
       },
       applySpatial(bindings, immediate) {
         for (const binding of bindings) {
@@ -838,6 +882,7 @@
       stop() {
         sendMidiPanic(output, activeChannels);
         clearPanicTimers();
+        bindingByTrackIndex = new Map();
 
         // Web MIDI cannot cancel note-ons already scheduled with future timestamps.
         // Repeat panic after the scheduler lookahead window so those notes are also released.
@@ -868,6 +913,20 @@
         output.send([0x80 + channel, note, 0]);
       }
     }
+  }
+
+  function retargetMidiEventBytes(event, binding) {
+    if (!binding?.channel || !event.bytes?.length) {
+      return event.bytes;
+    }
+
+    const status = event.bytes[0];
+    const command = status & 0xf0;
+    if (command < 0x80 || command > 0xe0) {
+      return event.bytes;
+    }
+
+    return [command + channelIndex(binding.channel), ...event.bytes.slice(1)];
   }
 
   function sendCcIfChanged(output, cache, channel, cc, value, immediate) {

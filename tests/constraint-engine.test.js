@@ -270,6 +270,25 @@ function createEngineHarness() {
           hasTrackBindingForSource(sourceName) {
             return Boolean(midiFile?.trackBindings?.find((binding) => binding.source === sourceName));
           },
+          bindingsForSource(sourceName) {
+            return (midiFile?.trackBindings || [])
+              .filter((binding) => binding.source === sourceName)
+              .map((binding) => ({ ...binding }));
+          },
+          updateTrackBinding(sourceName, updates = {}) {
+            if (!midiFile?.trackBindings) {
+              return null;
+            }
+            let updatedBinding = null;
+            midiFile.trackBindings = midiFile.trackBindings.map((binding) => {
+              if (binding.source !== sourceName) {
+                return binding;
+              }
+              updatedBinding = { ...binding, ...updates };
+              return updatedBinding;
+            });
+            return updatedBinding ? { ...updatedBinding } : null;
+          },
           isEnabled() {
             return enabled;
           },
@@ -735,6 +754,10 @@ globalThis.__musicspaceTestApi = {
         generatorOutputMode: document.getElementById("source-generator-output-mode").value,
         generatorOutputId: document.getElementById("source-generator-output").value,
         generatorChannel: document.getElementById("source-generator-channel").value,
+        midiTrack: document.getElementById("source-midi-track").value,
+        midiChannel: document.getElementById("source-midi-channel").value,
+        midiProgram: document.getElementById("source-midi-program").value,
+        midiDrums: Boolean(document.getElementById("source-midi-drums").checked),
         generatorMappingCount: document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-row").length,
         generatorMappingReadouts: Array.from(
           document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-readout")
@@ -853,6 +876,19 @@ globalThis.__musicspaceTestApi = {
         row.querySelector("[data-mapping-field='output-min']").value = String(mapping.outputMin);
         row.querySelector("[data-mapping-field='output-max']").value = String(mapping.outputMax);
         row.querySelector("[data-mapping-field='curve']").value = mapping.curve || "linear";
+      }
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
+    setOpenSourceMidiTrack(values) {
+      if (values.channel !== undefined) {
+        document.getElementById("source-midi-channel").value = String(values.channel);
+      }
+      if (values.program !== undefined) {
+        document.getElementById("source-midi-program").value = String(values.program);
+      }
+      if (values.isDrums !== undefined) {
+        document.getElementById("source-midi-drums").checked = Boolean(values.isDrums);
       }
       api.applySourceEditor();
       return api.serializePatch();
@@ -1696,6 +1732,34 @@ test("source inspector edits the audio loop parameter", () => {
 
   engine.openSourceInspector("A");
   assert.equal(engine.sourceInspectorState().loop, false);
+});
+
+test("source inspector edits MIDI file track channel bindings", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "MIDI Track Source",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Bass", x: 250, y: 300 }],
+    target: { type: "midi-file" },
+    midiFile: {
+      url: "Midifiles/triojazz.mid",
+      trackBindings: [{ track: "Bass", source: "Bass", channel: 2, program: 33 }]
+    },
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Bass"), true);
+  const inspector = engine.sourceInspectorState();
+  assert.equal(inspector.outputType, "midi-file");
+  assert.equal(inspector.midiTrack, "Bass");
+  assert.equal(inspector.midiChannel, "2");
+  assert.equal(inspector.midiProgram, "33");
+
+  const patch = engine.setOpenSourceMidiTrack({ channel: 5, program: 34, isDrums: true });
+  assert.equal(patch.midiFile.trackBindings[0].channel, 5);
+  assert.equal(patch.midiFile.trackBindings[0].program, 34);
+  assert.equal(patch.midiFile.trackBindings[0].isDrums, true);
 });
 
 test("m key toggles mute for the selected source audio binding", () => {

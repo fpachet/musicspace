@@ -122,6 +122,15 @@ const sourceGeneratorOutputRow = document.getElementById("source-generator-outpu
 const sourceGeneratorOutputInput = document.getElementById("source-generator-output");
 const sourceGeneratorChannelRow = document.getElementById("source-generator-channel-row");
 const sourceGeneratorChannelInput = document.getElementById("source-generator-channel");
+const sourceMidiTrackRow = document.getElementById("source-midi-track-row");
+const sourceMidiTrackInput = document.getElementById("source-midi-track");
+const sourceMidiChannelRow = document.getElementById("source-midi-channel-row");
+const sourceMidiChannelInput = document.getElementById("source-midi-channel");
+const sourceMidiProgramRow = document.getElementById("source-midi-program-row");
+const sourceMidiProgramInput = document.getElementById("source-midi-program");
+const sourceMidiDrumsRow = document.getElementById("source-midi-drums-row");
+const sourceMidiDrumsInput = document.getElementById("source-midi-drums");
+const sourceMutedRow = document.getElementById("source-muted-row");
 const sourceGeneratorMappingsPanel = document.getElementById("source-generator-mappings");
 const sourceGeneratorMappingList = document.getElementById("source-generator-mapping-list");
 const sourceGeneratorMappingAddButton = document.getElementById("source-generator-mapping-add");
@@ -163,6 +172,7 @@ const RATIO_EPSILON = 0.01;
 const RELATIVE_PRODUCT_EPSILON = 0.001;
 const TOOL_SELECT = "select";
 const SOURCE_BINDING_AUDIO_FILE = "audio-file";
+const SOURCE_OUTPUT_MIDI_FILE = "midi-file";
 const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
 const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
 const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel"];
@@ -4853,6 +4863,7 @@ function updateSourceEditorVisibility() {
   const outputType = sourceOutputTypeInput.value;
   const isAudio = outputType === SOURCE_BINDING_AUDIO_FILE;
   const isGenerator = outputType === SOURCE_OUTPUT_MIDI_OSTINATO;
+  const isMidiFile = outputType === SOURCE_OUTPUT_MIDI_FILE;
 
   sourceAudioFileRow.hidden = !isAudio;
   sourceGainRow.hidden = !isAudio;
@@ -4867,6 +4878,11 @@ function updateSourceEditorVisibility() {
   sourceGeneratorOutputRow.hidden = !isGenerator || sourceGeneratorOutputModeInput.value !== "external";
   sourceGeneratorChannelRow.hidden = !isGenerator;
   sourceGeneratorMappingsPanel.hidden = !isGenerator;
+  sourceMidiTrackRow.hidden = !isMidiFile;
+  sourceMidiChannelRow.hidden = !isMidiFile;
+  sourceMidiProgramRow.hidden = !isMidiFile;
+  sourceMidiDrumsRow.hidden = !isMidiFile;
+  sourceMutedRow.hidden = !(isAudio || isGenerator);
 }
 
 async function refreshSourceGeneratorMidiOutputs() {
@@ -4923,6 +4939,14 @@ function fillSourceGeneratorEditor(generator) {
   sourceGeneratorChannelInput.value = String(nextGenerator.channel ?? 1);
   sourceSpatializationInput.value = nextGenerator.spatialization || "pan-distance";
   sourceMutedInput.checked = Boolean(nextGenerator.muted);
+}
+
+function fillSourceMidiFileEditor(binding) {
+  const nextBinding = binding || {};
+  sourceMidiTrackInput.value = nextBinding.track || `Track ${nextBinding.trackIndex ?? ""}`.trim();
+  sourceMidiChannelInput.value = String(nextBinding.channel ?? 1);
+  sourceMidiProgramInput.value = String(nextBinding.program ?? 1);
+  sourceMidiDrumsInput.checked = Boolean(nextBinding.isDrums);
 }
 
 function fillSourceGeneratorMappingsEditor(mappings = []) {
@@ -5220,6 +5244,18 @@ function sourceGeneratorFromEditor(sourceName) {
   };
 }
 
+function sourceMidiFileBindingFromEditor(sourceName) {
+  const [existingBinding] = midiFileClient.bindingsForSource(sourceName);
+  return {
+    track: existingBinding?.track || sourceMidiTrackInput.value,
+    trackIndex: existingBinding?.trackIndex,
+    source: sourceName,
+    channel: clampIntegerInput(sourceMidiChannelInput.value, 1, 16, existingBinding?.channel || 1),
+    program: clampIntegerInput(sourceMidiProgramInput.value, 1, 128, existingBinding?.program || 1),
+    isDrums: sourceMidiDrumsInput.checked
+  };
+}
+
 function clampNumberInput(value, min, max, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number)) {
@@ -5252,28 +5288,35 @@ function openSourceEditor(source) {
 
   const [binding] = sourceAudioClient.bindingsForSource(source.name);
   const [generator] = generatorClient.generatorsForSource(source.name);
+  const [midiBinding] = midiFileClient.bindingsForSource(source.name);
   const generatorMappings = generatorClient.mappingsForSource(source.name);
   sourceNameInput.value = source.name;
   sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE
     ? SOURCE_BINDING_AUDIO_FILE
     : generator?.type === SOURCE_OUTPUT_MIDI_OSTINATO
     ? SOURCE_OUTPUT_MIDI_OSTINATO
+    : midiBinding
+    ? SOURCE_OUTPUT_MIDI_FILE
     : "none";
+  sourceOutputTypeInput.disabled = Boolean(midiBinding);
   activeSourceEditorInitialOutputType = sourceOutputTypeInput.value;
   sourceSpatializationInput.value = binding?.spatialization || generator?.spatialization || "pan-distance";
   sourceGainInput.value = String(binding?.gain ?? 1);
   sourceLoopInput.checked = binding?.loop !== false;
   sourceMutedInput.checked = Boolean(generator ? generator.muted : binding?.muted);
   fillSourceGeneratorEditor(generator);
+  fillSourceMidiFileEditor(midiBinding);
   fillSourceGeneratorMappingsEditor(generatorMappings);
   if (sourceOutputTypeInput.value === SOURCE_BINDING_AUDIO_FILE) {
     sourceSpatializationInput.value = binding?.spatialization || "pan-distance";
     sourceMutedInput.checked = Boolean(binding?.muted);
-  } else if (!generator) {
+  } else if (!generator && !midiBinding) {
     sourceSpatializationInput.value = "pan-distance";
   }
   sourceAudioFileInput.value = "";
-  sourceAudioFileName.textContent = generator
+  sourceAudioFileName.textContent = midiBinding
+    ? `MIDI file track: ${midiBinding.track || "track"} · ch ${midiBinding.channel || 1}`
+    : generator
     ? "MIDI ostinato generator assigned."
     : binding?.name
     ? `Selected: ${binding.name}`
@@ -5357,6 +5400,21 @@ function applySourceEditor() {
     setConstraintStatus(generator
       ? `${sourceName} MIDI ostinato updated.`
       : `${sourceName} MIDI ostinato could not be updated.`);
+    updatePatchInspector();
+    drawAll();
+    return;
+  }
+
+  if (outputType === SOURCE_OUTPUT_MIDI_FILE) {
+    sourceAudioClient.removeBinding(sourceName);
+    generatorClient.removeGenerator(sourceName);
+    const updatedBinding = midiFileClient.updateTrackBinding(sourceName, sourceMidiFileBindingFromEditor(sourceName));
+    sourceAudioFileName.textContent = updatedBinding
+      ? `MIDI file track: ${updatedBinding.track || "track"} · ch ${updatedBinding.channel || 1}`
+      : "No MIDI file track assigned.";
+    setConstraintStatus(updatedBinding
+      ? `${sourceName} MIDI file track updated.`
+      : `${sourceName} has no MIDI file track binding.`);
     updatePatchInspector();
     drawAll();
     return;
@@ -5451,6 +5509,7 @@ function closeSourceEditor() {
   activeSourceEditorSource = null;
   activeSourceEditorInitialOutputType = "none";
   pendingSourceAudioFile = null;
+  sourceOutputTypeInput.disabled = false;
   updateInspectorNavButtons();
 }
 
@@ -6361,6 +6420,8 @@ sourceOutputTypeInput.addEventListener("change", () => {
   refreshSourceGeneratorMidiOutputs();
   if (sourceOutputTypeInput.value === SOURCE_OUTPUT_MIDI_OSTINATO) {
     sourceAudioFileName.textContent = "MIDI ostinato generator assigned.";
+  } else if (sourceOutputTypeInput.value === SOURCE_OUTPUT_MIDI_FILE) {
+    sourceAudioFileName.textContent = "MIDI file track assigned.";
   } else if (sourceOutputTypeInput.value === "none") {
     sourceAudioFileName.textContent = "No sound assigned.";
   }
