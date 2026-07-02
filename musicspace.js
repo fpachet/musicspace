@@ -133,6 +133,14 @@ const sourceApplyButton = document.getElementById("source-apply");
 const sourceToggleMuteButton = document.getElementById("source-toggle-mute");
 const sourceRemoveBindingButton = document.getElementById("source-remove-binding");
 const sourceCloseButton = document.getElementById("source-close");
+const listenerEditor = document.getElementById("listener-editor");
+const listenerXInput = document.getElementById("listener-x");
+const listenerYInput = document.getElementById("listener-y");
+const listenerDrawTraceInput = document.getElementById("listener-draw-trace");
+const listenerPrevButton = document.getElementById("listener-prev");
+const listenerNextButton = document.getElementById("listener-next");
+const listenerApplyButton = document.getElementById("listener-apply");
+const listenerCloseButton = document.getElementById("listener-close");
 
 const LISTENER_MODE_RETARGET = "retarget";
 const LISTENER_MODE_PRESERVE = "preserve";
@@ -1475,6 +1483,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   shuttleEditor.hidden = true;
   constraintEditor.hidden = true;
   sourceEditor.hidden = true;
+  listenerEditor.hidden = true;
   velocity = { x: 0, y: 0 };
   setConstraintStatus("");
   clearTrace();
@@ -4288,6 +4297,7 @@ function assignTrajectoryFromTool(mover, tool) {
 
 function editableInspectorTargets() {
   return [
+    { entity: listener, label: "Listener", open: () => openListenerEditor() },
     ...sources.map((source) => ({ entity: source, label: entityLabel(source), open: () => openSourceEditor(source) })),
     ...movingObjects
       .filter((mover) => mover.trajectory?.type === "rotator" || mover.trajectory?.type === "shuttle")
@@ -4311,6 +4321,9 @@ function editableInspectorTargets() {
 }
 
 function currentInspectorEntity() {
+  if (!listenerEditor.hidden) {
+    return listener;
+  }
   if (!sourceEditor.hidden && activeSourceEditorSource) {
     return activeSourceEditorSource;
   }
@@ -4354,10 +4367,71 @@ function updateInspectorNavButtons() {
     constraintPrevButton,
     constraintNextButton,
     sourcePrevButton,
-    sourceNextButton
+    sourceNextButton,
+    listenerPrevButton,
+    listenerNextButton
   ]) {
     button.disabled = !canNavigate;
   }
+}
+
+function openListenerEditor() {
+  if (!listener) {
+    return;
+  }
+
+  rotationEditor.hidden = true;
+  activeRotationMover = null;
+  shuttleEditor.hidden = true;
+  activeShuttleMover = null;
+  closeConstraintEditor();
+  closeSourceEditor();
+  listenerXInput.value = String(roundEditorValue(listener.x));
+  listenerYInput.value = String(roundEditorValue(listener.y));
+  listenerDrawTraceInput.checked = Boolean(listener.drawTrace);
+  setListenerMode(listenerMode);
+  listenerEditor.hidden = false;
+  updateInspectorNavButtons();
+  setConstraintStatus("Editing listener.");
+  revealEditor(listenerEditor);
+}
+
+function applyListenerEditor() {
+  if (!listener || listenerEditor.hidden) {
+    return;
+  }
+
+  const nextX = clampNumberInput(listenerXInput.value, 0, WIDTH, listener.x);
+  const nextY = clampNumberInput(listenerYInput.value, 0, HEIGHT, listener.y);
+  const nextDrawTrace = Boolean(listenerDrawTraceInput.checked);
+  const moved = nextX !== listener.x || nextY !== listener.y;
+  const changedTrace = nextDrawTrace !== Boolean(listener.drawTrace);
+
+  if (!moved && !changedTrace) {
+    setConstraintStatus("Listener unchanged.");
+    return;
+  }
+
+  pushUndoSnapshot("edit listener");
+  selectedEntity = listener;
+  listener.drawTrace = nextDrawTrace;
+  if (changedTrace) {
+    listener.prevX = listener.x;
+    listener.prevY = listener.y;
+  }
+  if (moved) {
+    moveEntity(listener, nextX, nextY);
+  } else {
+    drawAll();
+  }
+  updateTraceSelectedButton();
+  updatePatchInspector();
+  setConstraintStatus(`Listener updated in ${listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"} mode.`);
+}
+
+function closeListenerEditor() {
+  listenerEditor.hidden = true;
+  updateInspectorNavButtons();
 }
 
 function openRotationEditor(mover) {
@@ -4373,6 +4447,7 @@ function openRotationEditor(mover) {
   activeShuttleMover = null;
   closeConstraintEditor();
   closeSourceEditor();
+  closeListenerEditor();
   activeRotationMover = mover;
   rotationRunningInput.checked = Boolean(mover.trajectory.running);
   rotationDisplacementInput.checked = Boolean(mover.trajectory.displacementInducesRotation);
@@ -4422,6 +4497,7 @@ function openShuttleEditor(mover) {
   activeRotationMover = null;
   closeConstraintEditor();
   closeSourceEditor();
+  closeListenerEditor();
   activeShuttleMover = mover;
   populateEndpointSelect(shuttleStartRefInput, mover);
   populateEndpointSelect(shuttleEndRefInput, mover);
@@ -4619,6 +4695,7 @@ function openConstraintEditor(constraint) {
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeSourceEditor();
+  closeListenerEditor();
   activeConstraintEditorConstraint = constraint;
 
   const spec = constraintEditorSpec(constraint);
@@ -5169,6 +5246,7 @@ function openSourceEditor(source) {
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeConstraintEditor();
+  closeListenerEditor();
   activeSourceEditorSource = source;
   pendingSourceAudioFile = null;
 
@@ -5534,6 +5612,13 @@ function handleEntityDoubleClick(entity) {
   if (entity instanceof SoundSource) {
     openSourceEditor(entity);
     selectedEntity = entity;
+    drawAll();
+    return true;
+  }
+
+  if (entity === listener) {
+    openListenerEditor();
+    selectedEntity = listener;
     drawAll();
     return true;
   }
@@ -6194,9 +6279,17 @@ traceNoneButton.addEventListener("click", stopAllDrawing);
 
 listenerModeRetargetButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_RETARGET);
+  if (!listenerEditor.hidden) {
+    setConstraintStatus("Listener drag mode: re-anchor constraints to the new geometry.");
+    drawAll();
+  }
 });
 listenerModePreserveButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_PRESERVE);
+  if (!listenerEditor.hidden) {
+    setConstraintStatus("Listener drag mode: preserve current constraints while moving.");
+    drawAll();
+  }
 });
 solverModePropagationButton.addEventListener("click", () => {
   setSolverMode(SOLVER_MODE_PROPAGATION, { updateUrl: true });
@@ -6285,6 +6378,10 @@ sourceNextButton.addEventListener("click", () => navigateInspector(1));
 sourceToggleMuteButton.addEventListener("click", toggleSelectedSourceMute);
 sourceRemoveBindingButton.addEventListener("click", removeSourceBindingFromEditor);
 sourceCloseButton.addEventListener("click", closeSourceEditor);
+listenerApplyButton.addEventListener("click", applyListenerEditor);
+listenerPrevButton.addEventListener("click", () => navigateInspector(-1));
+listenerNextButton.addEventListener("click", () => navigateInspector(1));
+listenerCloseButton.addEventListener("click", closeListenerEditor);
 
 async function initializeApp() {
   patchSelect.disabled = true;

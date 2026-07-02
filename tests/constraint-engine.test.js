@@ -688,6 +688,38 @@ globalThis.__musicspaceTestApi = {
       assert.ok(entity, `Expected entity ${name} to exist`);
       return api.handleEntityDoubleClick(entity);
     },
+    openListenerInspector() {
+      const entity = api.getObjectByName("Listener");
+      assert.ok(entity, "Expected listener to exist");
+      return api.handleEntityDoubleClick(entity);
+    },
+    listenerInspectorState() {
+      return {
+        hidden: document.getElementById("listener-editor").hidden,
+        x: document.getElementById("listener-x").value,
+        y: document.getElementById("listener-y").value,
+        drawTrace: Boolean(document.getElementById("listener-draw-trace").checked),
+        retargetPressed: document.getElementById("listener-mode-retarget").attributes.get("aria-pressed"),
+        preservePressed: document.getElementById("listener-mode-preserve").attributes.get("aria-pressed")
+      };
+    },
+    applyOpenListener(values) {
+      if (values.x !== undefined) {
+        document.getElementById("listener-x").value = String(values.x);
+      }
+      if (values.y !== undefined) {
+        document.getElementById("listener-y").value = String(values.y);
+      }
+      if (values.drawTrace !== undefined) {
+        document.getElementById("listener-draw-trace").checked = Boolean(values.drawTrace);
+      }
+      document.getElementById("listener-apply").click();
+      return api.serializePatch();
+    },
+    clickListenerMode(mode) {
+      const id = mode === "preserve" ? "listener-mode-preserve" : "listener-mode-retarget";
+      document.getElementById(id).click();
+    },
     sourceInspectorState() {
       return {
         hidden: document.getElementById("source-editor").hidden,
@@ -749,6 +781,7 @@ globalThis.__musicspaceTestApi = {
     },
     clickInspectorNext() {
       const buttons = [
+        "listener-next",
         "source-next",
         "rotation-next",
         "shuttle-next",
@@ -760,6 +793,7 @@ globalThis.__musicspaceTestApi = {
     },
     clickInspectorPrevious() {
       const buttons = [
+        "listener-prev",
         "source-prev",
         "rotation-prev",
         "shuttle-prev",
@@ -2220,6 +2254,36 @@ test("double-clicking a source opens the source inspector", () => {
   assert.equal(inspector.name, "A");
   assert.equal(inspector.outputType, "none");
   assert.equal(inspector.fileLabel, "No audio file assigned.");
+});
+
+test("double-clicking the listener opens the listener inspector", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Listener Inspector",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "A", x: 250, y: 300 }],
+    constraints: []
+  });
+
+  assert.equal(engine.openListenerInspector(), true);
+  let inspector = engine.listenerInspectorState();
+  assert.equal(inspector.hidden, false);
+  assert.equal(inspector.x, "400");
+  assert.equal(inspector.y, "300");
+  assert.equal(inspector.drawTrace, false);
+  assert.equal(inspector.retargetPressed, "true");
+  assert.equal(inspector.preservePressed, "false");
+
+  engine.clickListenerMode("preserve");
+  inspector = engine.listenerInspectorState();
+  assert.equal(inspector.retargetPressed, "false");
+  assert.equal(inspector.preservePressed, "true");
+
+  const patch = engine.applyOpenListener({ x: 420, y: 310, drawTrace: true });
+  assert.equal(patch.listener.x, 420);
+  assert.equal(patch.listener.y, 310);
+  assert.equal(patch.listener.drawTrace, true);
 });
 
 test("constraint inspector edits radial limit distances", () => {

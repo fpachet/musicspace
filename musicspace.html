@@ -982,7 +982,8 @@
       min-width: 34px;
     }
 
-    #source-editor {
+    #source-editor,
+    #listener-editor {
       width: min(620px, calc(100vw - 40px));
     }
 
@@ -1398,7 +1399,8 @@
         padding: 8px;
       }
 
-      #source-editor {
+      #source-editor,
+      #listener-editor {
         width: auto;
       }
 
@@ -1463,13 +1465,6 @@
           <button id="load-patch" data-ui-mode="edit" type="button">Load Patch</button>
           <button id="reset" type="button">Reset</button>
           <input id="patch-file" type="file" accept="application/json,.json" hidden>
-        </div>
-        <div class="toolbar-group" data-ui-mode="edit" aria-label="Listener controls">
-          <span class="toolbar-group-label">Listener</span>
-          <div class="mode-group" aria-label="Listener drag mode">
-            <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
-            <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
-          </div>
         </div>
         <div id="transport-toolbar-group" class="toolbar-group" data-ui-mode="play" aria-label="Transport controls">
           <span class="toolbar-group-label">Play</span>
@@ -1880,6 +1875,40 @@
         <button id="source-toggle-mute" type="button">Mute / Unmute</button>
         <button id="source-remove-binding" type="button">Remove Sound</button>
         <button id="source-close" type="button">Close</button>
+      </div>
+    </section>
+    <section id="listener-editor" class="editor-panel popup-panel" aria-label="Listener inspector" hidden>
+      <div class="editor-header">
+        <h2>Listener Inspector</h2>
+        <div class="editor-nav" aria-label="Inspector navigation">
+          <button id="listener-prev" type="button" title="Previous editable item" aria-label="Previous editable item">&larr;</button>
+          <button id="listener-next" type="button" title="Next editable item" aria-label="Next editable item">&rarr;</button>
+        </div>
+      </div>
+      <div class="editor-grid">
+        <label>
+          X
+          <input id="listener-x" type="number" min="0" max="800" step="1">
+        </label>
+        <label>
+          Y
+          <input id="listener-y" type="number" min="0" max="600" step="1">
+        </label>
+        <label>
+          Drag behavior
+          <div class="mode-group" aria-label="Listener drag mode">
+            <button id="listener-mode-retarget" type="button" title="Move the listener and retarget constraints to the new geometry">Re-anchor</button>
+            <button id="listener-mode-preserve" type="button" title="Move the listener while preserving the current constraints">Preserve</button>
+          </div>
+        </label>
+        <label class="editor-check">
+          <input id="listener-draw-trace" type="checkbox">
+          Draw trace
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button id="listener-apply" type="button">Apply</button>
+        <button id="listener-close" type="button">Close</button>
       </div>
     </section>
   </main>
