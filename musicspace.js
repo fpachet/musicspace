@@ -4904,6 +4904,14 @@ function setEditorRowAvailability(row, visible, controls = []) {
   }
 }
 
+function updateSourceOutputTypeOptions(hasMidiBinding) {
+  sourceOutputTypeInput.disabled = false;
+  const midiFileOption = sourceOutputTypeInput.querySelector(`option[value="${SOURCE_OUTPUT_MIDI_FILE}"]`);
+  if (midiFileOption) {
+    midiFileOption.disabled = !hasMidiBinding;
+  }
+}
+
 async function refreshSourceGeneratorMidiOutputs() {
   if (sourceOutputTypeInput.value !== SOURCE_OUTPUT_MIDI_OSTINATO
       || sourceGeneratorOutputModeInput.value !== "external") {
@@ -5317,7 +5325,7 @@ function openSourceEditor(source) {
     : midiBinding
     ? SOURCE_OUTPUT_MIDI_FILE
     : "none";
-  sourceOutputTypeInput.disabled = Boolean(midiBinding);
+  updateSourceOutputTypeOptions(Boolean(midiBinding));
   activeSourceEditorInitialOutputType = sourceOutputTypeInput.value;
   sourceSpatializationInput.value = binding?.spatialization || generator?.spatialization || "pan-distance";
   sourceGainInput.value = String(binding?.gain ?? 1);
@@ -5399,6 +5407,7 @@ function applySourceEditor() {
   if (outputType === "none") {
     sourceAudioClient.removeBinding(sourceName);
     generatorClient.removeGenerator(sourceName);
+    midiFileClient.removeTrackBinding(sourceName);
     pendingSourceAudioFile = null;
     sourceAudioFileName.textContent = "No sound assigned.";
     setConstraintStatus(`${sourceName} has no sound or generator binding.`);
@@ -5409,6 +5418,7 @@ function applySourceEditor() {
 
   if (outputType === SOURCE_OUTPUT_MIDI_OSTINATO) {
     sourceAudioClient.removeBinding(sourceName);
+    midiFileClient.removeTrackBinding(sourceName);
     const generator = generatorClient.upsertGenerator(sourceGeneratorFromEditor(sourceName));
     generatorClient.setMappingsForSource(sourceName, sourceGeneratorMappingsFromEditor());
     pendingSourceAudioFile = null;
@@ -5442,6 +5452,7 @@ function applySourceEditor() {
   if (outputType !== activeSourceEditorInitialOutputType) {
     generatorClient.removeGenerator(sourceName);
   }
+  midiFileClient.removeTrackBinding(sourceName);
   const gain = Number(sourceGainInput.value);
   sourceAudioClient.upsertBinding({
     source: sourceName,
@@ -5528,7 +5539,7 @@ function closeSourceEditor() {
   activeSourceEditorSource = null;
   activeSourceEditorInitialOutputType = "none";
   pendingSourceAudioFile = null;
-  sourceOutputTypeInput.disabled = false;
+  updateSourceOutputTypeOptions(false);
   updateInspectorNavButtons();
 }
 

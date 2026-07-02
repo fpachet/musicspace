@@ -115,6 +115,27 @@
         updateSpatial(true);
         setStatus(`${sourceName} MIDI track set to channel ${updatedSpecBinding.channel}.`);
         return { ...updatedSpecBinding };
+      },
+      removeTrackBinding(sourceName) {
+        if (!patchMidiSpec?.trackBindings || typeof sourceName !== "string" || sourceName.trim() === "") {
+          return false;
+        }
+
+        const nextSpecBindings = patchMidiSpec.trackBindings.filter((binding) => binding.source !== sourceName);
+        const removed = nextSpecBindings.length !== patchMidiSpec.trackBindings.length;
+        if (!removed) {
+          return false;
+        }
+
+        patchMidiSpec = { ...patchMidiSpec, trackBindings: nextSpecBindings };
+        trackBindings = trackBindings.filter((binding) => binding.source !== sourceName);
+        if (isPlaying) {
+          stop();
+        }
+        updatePanel();
+        updateSpatial(true);
+        setStatus(`${sourceName} MIDI track binding removed.`);
+        return true;
       }
     };
 

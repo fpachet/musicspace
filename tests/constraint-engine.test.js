@@ -289,6 +289,14 @@ function createEngineHarness() {
             });
             return updatedBinding ? { ...updatedBinding } : null;
           },
+          removeTrackBinding(sourceName) {
+            if (!midiFile?.trackBindings) {
+              return false;
+            }
+            const previousLength = midiFile.trackBindings.length;
+            midiFile.trackBindings = midiFile.trackBindings.filter((binding) => binding.source !== sourceName);
+            return midiFile.trackBindings.length !== previousLength;
+          },
           isEnabled() {
             return enabled;
           },
@@ -854,6 +862,11 @@ globalThis.__musicspaceTestApi = {
     },
     setOpenSourceLoop(loop) {
       document.getElementById("source-loop").checked = Boolean(loop);
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
+    setOpenSourceOutputType(type) {
+      document.getElementById("source-output-type").value = type;
       api.applySourceEditor();
       return api.serializePatch();
     },
@@ -1771,7 +1784,7 @@ test("source inspector edits MIDI file track channel bindings", () => {
   assert.equal(engine.openSourceInspector("Bass"), true);
   const inspector = engine.sourceInspectorState();
   assert.equal(inspector.outputType, "midi-file");
-  assert.equal(inspector.outputTypeDisabled, true);
+  assert.equal(inspector.outputTypeDisabled, false);
   assert.equal(inspector.midiTrack, "Bass");
   assert.equal(inspector.midiChannel, "2");
   assert.equal(inspector.midiChannelDisabled, false);
@@ -1785,6 +1798,10 @@ test("source inspector edits MIDI file track channel bindings", () => {
   assert.equal(patch.midiFile.trackBindings[0].channel, 5);
   assert.equal(patch.midiFile.trackBindings[0].program, 34);
   assert.equal(patch.midiFile.trackBindings[0].isDrums, true);
+
+  engine.openSourceInspector("Bass");
+  const removedPatch = engine.setOpenSourceOutputType("none");
+  assert.equal(removedPatch.midiFile.trackBindings.length, 0);
 });
 
 test("m key toggles mute for the selected source audio binding", () => {
@@ -2342,6 +2359,7 @@ test("double-clicking a source opens the source inspector", () => {
   assert.equal(inspector.hidden, false);
   assert.equal(inspector.name, "A");
   assert.equal(inspector.outputType, "none");
+  assert.equal(inspector.outputTypeDisabled, false);
   assert.equal(inspector.loopDisabled, true);
   assert.equal(inspector.generatorPitchDisabled, true);
   assert.equal(inspector.midiChannelDisabled, true);
@@ -2515,10 +2533,6 @@ test("source inspector rename updates patch references", () => {
         outputMax: 880
       }
     ],
-    midiFile: {
-      sequenceData: { title: "Stub" },
-      trackBindings: [{ track: "Lead", source: "A", channel: 1, program: 1 }]
-    },
     sourceGenerators: [
       {
         source: "A",
@@ -2553,7 +2567,6 @@ test("source inspector rename updates patch references", () => {
   assert.equal(patch.constraints.find((constraint) => constraint.type === "solid").attached, "Lead");
   assert.equal(patch.sourceBindings[0].source, "Lead");
   assert.equal(patch.parameterMappings[0].source, "Lead");
-  assert.equal(patch.midiFile.trackBindings[0].source, "Lead");
   assert.equal(patch.sourceGenerators[0].source, "Lead");
   assert.equal(patch.sourceGeneratorMappings[0].source, "Lead");
   assert.equal(patch.movingObjects[0].trajectory.start.name, "Lead");
