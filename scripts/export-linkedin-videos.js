@@ -16,6 +16,10 @@ const clips = [
     output: "musicspace-faust-control-study-linkedin.mp4"
   },
   {
+    input: "musicspace-fm-harmonic-space.webm",
+    output: "musicspace-fm-harmonic-space-linkedin.mp4"
+  },
+  {
     input: "musicspace-granular-cloud-study.webm",
     output: "musicspace-granular-cloud-study-linkedin.mp4"
   }
