@@ -5,12 +5,20 @@
 
 (function exposeMusicSpaceGeneratorClient(global) {
   const MIDI_OSTINATO_TYPE = "midi-ostinato";
+  const ADDITIVE_SYNTH_TYPE = "additive-synth";
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const SCHEDULER_INTERVAL_MS = 30;
   const SPATIAL_INTERVAL_MS = 60;
   const MAX_SPATIAL_DISTANCE = 360;
-  const GENERATOR_PARAMETERS = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel"]);
+  const GENERATOR_PARAMETERS = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel", "frequencyHz", "gain"]);
   const MAPPING_FEATURES = new Set(["x", "y", "distance", "angle"]);
+  const DEFAULT_ADDITIVE_PARTIALS = [
+    { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.06 },
+    { ratio: 2, amplitude: 0.42, detuneCents: 1.5, detuneLfoHz: 0.04, detuneLfoCents: 3 },
+    { ratio: 3, amplitude: 0.24, detuneCents: -2, amplitudeLfoHz: 0.07, amplitudeLfoDepth: 0.1 },
+    { ratio: 5, amplitude: 0.12, detuneLfoHz: 0.03, detuneLfoCents: 5 },
+    { ratio: 8, amplitude: 0.07, detuneCents: 3, amplitudeLfoHz: 0.09, amplitudeLfoDepth: 0.16 }
+  ];
 
   function createGeneratorClient(options = {}) {
     const onStatus = options.onStatus || (() => {});
@@ -136,7 +144,10 @@
           ...generator,
           nextAt: startAt + index * 0.035
         }));
-        schedulerTimer = global.setInterval(scheduleDueNotes, SCHEDULER_INTERVAL_MS);
+        startSustainedGenerators(startAt);
+        if (generators.some((generator) => generator.type === MIDI_OSTINATO_TYPE && !generator.muted)) {
+          schedulerTimer = global.setInterval(scheduleDueNotes, SCHEDULER_INTERVAL_MS);
+        }
         spatialTimer = global.setInterval(updateSpatial, SPATIAL_INTERVAL_MS);
         scheduleDueNotes();
         updateSpatial();
@@ -178,28 +189,83 @@
       if (!generator || typeof generator !== "object") {
         return null;
       }
-      if (generator.type !== MIDI_OSTINATO_TYPE) {
-        return null;
-      }
       if (typeof generator.source !== "string" || generator.source.trim() === "") {
         return null;
       }
 
+      if (generator.type === MIDI_OSTINATO_TYPE) {
+        return {
+          source: generator.source,
+          type: MIDI_OSTINATO_TYPE,
+          pitch: clampInteger(generator.pitch, 0, 127, 60),
+          periodMs: clampNumber(generator.periodMs, 40, 60000, 1000),
+          durationMs: clampNumber(generator.durationMs, 10, 10000, 160),
+          velocity: clampInteger(generator.velocity, 1, 127, 80),
+          channel: clampInteger(generator.channel, 1, 16, 1),
+          muted: Boolean(generator.muted),
+          waveform: ["sine", "triangle", "sawtooth", "square"].includes(generator.waveform) ? generator.waveform : "triangle",
+          outputMode: generator.outputMode === "external" ? "external" : "internal",
+          outputId: typeof generator.outputId === "string" ? generator.outputId : "",
+          outputName: typeof generator.outputName === "string" ? generator.outputName : "",
+          spatialization: generator.spatialization === "stereo-pan" ? "stereo-pan" : "pan-distance",
+          nextAt: 0
+        };
+      }
+
+      if (generator.type === ADDITIVE_SYNTH_TYPE) {
+        const frequencyHz = clampNumber(
+          generator.frequencyHz ?? midiToFrequency(clampInteger(generator.pitch, 0, 127, 57)),
+          20,
+          16000,
+          220
+        );
+        const partials = normalizePartials(generator.partials);
+        return {
+          source: generator.source,
+          type: ADDITIVE_SYNTH_TYPE,
+          frequencyHz,
+          pitch: clamp(Math.round(frequencyToMidi(frequencyHz)), 0, 127),
+          gain: clampNumber(generator.gain ?? Number(generator.velocity) / 127, 0, 1, 0.18),
+          attackMs: clampNumber(generator.attackMs, 1, 5000, 90),
+          releaseMs: clampNumber(generator.releaseMs, 1, 10000, 450),
+          muted: Boolean(generator.muted),
+          spatialization: generator.spatialization === "stereo-pan" ? "stereo-pan" : "pan-distance",
+          partials,
+          nextAt: 0
+        };
+      }
+
+      return null;
+    }
+
+    function normalizePartials(partials) {
+      const normalized = Array.isArray(partials)
+        ? partials.map(normalizePartial).filter(Boolean)
+        : [];
+      return (normalized.length > 0 ? normalized : DEFAULT_ADDITIVE_PARTIALS).slice(0, 32).map(normalizePartial).filter(Boolean);
+    }
+
+    function normalizePartial(partial, index = 0) {
+      if (!partial || typeof partial !== "object") {
+        return null;
+      }
+      const ratio = clampNumber(partial.ratio ?? partial.frequencyRatio, 0.01, 64, index + 1);
+      const frequencyHz = partial.frequencyHz === undefined
+        ? null
+        : clampNumber(partial.frequencyHz, 20, 16000, null);
       return {
-        source: generator.source,
-        type: MIDI_OSTINATO_TYPE,
-        pitch: clampInteger(generator.pitch, 0, 127, 60),
-        periodMs: clampNumber(generator.periodMs, 40, 60000, 1000),
-        durationMs: clampNumber(generator.durationMs, 10, 10000, 160),
-        velocity: clampInteger(generator.velocity, 1, 127, 80),
-        channel: clampInteger(generator.channel, 1, 16, 1),
-        muted: Boolean(generator.muted),
-        waveform: ["sine", "triangle", "sawtooth", "square"].includes(generator.waveform) ? generator.waveform : "triangle",
-        outputMode: generator.outputMode === "external" ? "external" : "internal",
-        outputId: typeof generator.outputId === "string" ? generator.outputId : "",
-        outputName: typeof generator.outputName === "string" ? generator.outputName : "",
-        spatialization: generator.spatialization === "stereo-pan" ? "stereo-pan" : "pan-distance",
-        nextAt: 0
+        ratio,
+        ...(frequencyHz ? { frequencyHz } : {}),
+        amplitude: clampNumber(partial.amplitude, 0, 1, 1 / Math.max(1, ratio)),
+        detuneCents: clampNumber(partial.detuneCents, -4800, 4800, 0),
+        amplitudeLfoHz: clampNumber(partial.amplitudeLfoHz, 0, 40, 0),
+        amplitudeLfoDepth: clampNumber(partial.amplitudeLfoDepth, 0, 1, 0),
+        detuneLfoHz: clampNumber(partial.detuneLfoHz, 0, 40, 0),
+        detuneLfoCents: clampNumber(partial.detuneLfoCents, 0, 4800, 0),
+        swellHz: clampNumber(partial.swellHz, 0, 20, 0),
+        swellDepth: clampNumber(partial.swellDepth, 0, 1, 0),
+        swellShape: clampNumber(partial.swellShape, 0.25, 8, 2),
+        lfoPhase: clampNumber(partial.lfoPhase, -Math.PI * 2, Math.PI * 2, 0)
       };
     }
 
@@ -236,6 +302,20 @@
     }
 
     function serializeGenerator(generator) {
+      if (generator.type === ADDITIVE_SYNTH_TYPE) {
+        return {
+          source: generator.source,
+          type: generator.type,
+          frequencyHz: generator.frequencyHz,
+          gain: generator.gain,
+          attackMs: generator.attackMs,
+          releaseMs: generator.releaseMs,
+          muted: generator.muted,
+          spatialization: generator.spatialization,
+          partials: generator.partials.map((partial) => ({ ...partial }))
+        };
+      }
+
       return {
         source: generator.source,
         type: generator.type,
@@ -259,8 +339,12 @@
 
     async function ensureOutputsForGenerators() {
       const activeGenerators = generators.filter((generator) => !generator.muted);
-      const needsInternal = activeGenerators.some((generator) => generator.outputMode !== "external");
-      const needsExternal = activeGenerators.some((generator) => generator.outputMode === "external");
+      const needsInternal = activeGenerators.some((generator) => (
+        generator.type === ADDITIVE_SYNTH_TYPE || generator.outputMode !== "external"
+      ));
+      const needsExternal = activeGenerators.some((generator) => (
+        generator.type === MIDI_OSTINATO_TYPE && generator.outputMode === "external"
+      ));
 
       if (needsInternal) {
         await ensureContext();
@@ -318,6 +402,9 @@
       const now = clockSeconds();
       const horizon = now + SCHEDULE_AHEAD_SECONDS;
       generators = generators.map((generator) => {
+        if (generator.type !== MIDI_OSTINATO_TYPE) {
+          return generator;
+        }
         const effectiveGenerator = generatorWithMappings(generator);
         let nextAt = generator.nextAt || now;
         while (nextAt <= horizon) {
@@ -347,9 +434,24 @@
           return nextGenerator;
         }
         const mappedValue = mappedGeneratorValue(mapping, featureValue);
+        const normalizedValue = normalizeGeneratorParameter(mapping.parameter, mappedValue, nextGenerator[mapping.parameter]);
+        if (mapping.parameter === "pitch" && nextGenerator.type === ADDITIVE_SYNTH_TYPE) {
+          return {
+            ...nextGenerator,
+            pitch: normalizedValue,
+            frequencyHz: midiToFrequency(normalizedValue)
+          };
+        }
+        if (mapping.parameter === "frequencyHz" && nextGenerator.type === ADDITIVE_SYNTH_TYPE) {
+          return {
+            ...nextGenerator,
+            frequencyHz: normalizedValue,
+            pitch: clamp(Math.round(frequencyToMidi(normalizedValue)), 0, 127)
+          };
+        }
         return {
           ...nextGenerator,
-          [mapping.parameter]: normalizeGeneratorParameter(mapping.parameter, mappedValue, nextGenerator[mapping.parameter])
+          [mapping.parameter]: normalizedValue
         };
       }, generator);
     }
@@ -402,7 +504,74 @@
       if (parameter === "durationMs") {
         return clampNumber(value, 10, 10000, fallback);
       }
+      if (parameter === "frequencyHz") {
+        return clampNumber(value, 20, 16000, fallback);
+      }
+      if (parameter === "gain") {
+        return clampNumber(value, 0, 1, fallback);
+      }
       return fallback;
+    }
+
+    function startSustainedGenerators(startAt) {
+      for (const generator of generators) {
+        const effectiveGenerator = generatorWithMappings(generator);
+        if (
+          effectiveGenerator.type === ADDITIVE_SYNTH_TYPE
+          && !effectiveGenerator.muted
+          && getSource(effectiveGenerator.source)
+        ) {
+          startAdditiveVoice(effectiveGenerator, startAt);
+        }
+      }
+    }
+
+    function startAdditiveVoice(generator, startTime) {
+      if (!context) {
+        return;
+      }
+
+      const panNode = context.createStereoPanner ? context.createStereoPanner() : null;
+      const outputGain = context.createGain();
+      const destination = panNode || context.destination;
+      const spatial = spatialValuesForSource(getSource(generator.source), generator.spatialization);
+      const targetGain = additiveOutputGain(generator, spatial);
+      const partialNodes = [];
+
+      outputGain.gain.setValueAtTime(0.0001, startTime);
+      outputGain.gain.linearRampToValueAtTime(Math.max(0.0001, targetGain), startTime + generator.attackMs / 1000);
+      if (panNode) {
+        panNode.pan.setValueAtTime(spatial.pan, startTime);
+      }
+
+      for (const partial of generator.partials) {
+        const oscillator = context.createOscillator();
+        const partialGain = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(partialFrequency(generator, partial, startTime), startTime);
+        partialGain.gain.setValueAtTime(partialAmplitude(partial, startTime), startTime);
+        oscillator.connect(partialGain);
+        partialGain.connect(outputGain);
+        oscillator.start(startTime);
+        partialNodes.push({ oscillator, gain: partialGain, partial });
+      }
+
+      outputGain.connect(destination);
+      if (panNode) {
+        panNode.connect(context.destination);
+        captureConnect(context, panNode);
+      } else {
+        captureConnect(context, outputGain);
+      }
+
+      activeVoices.push({
+        source: generator.source,
+        type: ADDITIVE_SYNTH_TYPE,
+        outputGain,
+        panNode,
+        partialNodes,
+        stopped: false
+      });
     }
 
     function scheduleNote(generator, startTime) {
@@ -518,8 +687,13 @@
         return;
       }
       try {
-        voice.envelope?.gain?.cancelScheduledValues?.(context?.currentTime || 0);
-        voice.envelope?.gain?.setTargetAtTime?.(0.0001, context?.currentTime || 0, 0.01);
+        const now = context?.currentTime || 0;
+        const gainParam = voice.outputGain?.gain || voice.envelope?.gain;
+        gainParam?.cancelScheduledValues?.(now);
+        gainParam?.setTargetAtTime?.(0.0001, now, 0.01);
+        for (const partialNode of voice.partialNodes || []) {
+          partialNode.oscillator?.stop?.(now + 0.12);
+        }
       } catch (error) {
         // Best-effort cleanup for browser audio nodes.
       }
@@ -539,9 +713,62 @@
           continue;
         }
         const generator = generators.find((candidate) => candidate.source === voice.source);
-        const spatial = spatialValuesForSource(getSource(voice.source), generator?.spatialization);
+        const effectiveGenerator = generator ? generatorWithMappings(generator) : null;
+        const spatial = spatialValuesForSource(getSource(voice.source), effectiveGenerator?.spatialization);
         voice.panNode?.pan?.setTargetAtTime?.(spatial.pan, context.currentTime, 0.04);
+        if (voice.type === ADDITIVE_SYNTH_TYPE && effectiveGenerator) {
+          updateAdditiveVoice(voice, effectiveGenerator, spatial);
+        }
       }
+    }
+
+    function updateAdditiveVoice(voice, generator, spatial) {
+      const now = context.currentTime;
+      voice.outputGain?.gain?.setTargetAtTime?.(additiveOutputGain(generator, spatial), now, 0.08);
+      for (let index = 0; index < voice.partialNodes.length; index += 1) {
+        const partialNode = voice.partialNodes[index];
+        const partial = generator.partials[index];
+        if (!partial) {
+          partialNode.gain?.gain?.setTargetAtTime?.(0.0001, now, 0.04);
+          continue;
+        }
+        partialNode.oscillator?.frequency?.setTargetAtTime?.(partialFrequency(generator, partial, now), now, 0.08);
+        partialNode.gain?.gain?.setTargetAtTime?.(partialAmplitude(partial, now), now, 0.08);
+      }
+    }
+
+    function additiveOutputGain(generator, spatial) {
+      return clamp(generator.gain * 0.5 * spatial.gain, 0.0001, 0.8);
+    }
+
+    function partialFrequency(generator, partial, time = 0) {
+      const baseFrequency = Number.isFinite(partial.frequencyHz)
+        ? partial.frequencyHz
+        : generator.frequencyHz * partial.ratio;
+      const detune = partial.detuneCents + lfoValue(time, partial.detuneLfoHz, partial.detuneLfoCents, partial.lfoPhase);
+      return clamp(baseFrequency * Math.pow(2, detune / 1200), 20, 20000);
+    }
+
+    function partialAmplitude(partial, time = 0) {
+      const movement = lfoValue(time, partial.amplitudeLfoHz, partial.amplitudeLfoDepth, partial.lfoPhase);
+      const swell = swellValue(time, partial.swellHz, partial.swellDepth, partial.swellShape, partial.lfoPhase);
+      return clamp(partial.amplitude * (1 + movement) * swell, 0.0001, 1);
+    }
+
+    function lfoValue(time, frequencyHz = 0, depth = 0, phase = 0) {
+      if (!frequencyHz || !depth) {
+        return 0;
+      }
+      return Math.sin(time * Math.PI * 2 * frequencyHz + phase) * depth;
+    }
+
+    function swellValue(time, frequencyHz = 0, depth = 0, shape = 2, phase = 0) {
+      if (!frequencyHz || !depth) {
+        return 1;
+      }
+      const unipolar = (Math.sin(time * Math.PI * 2 * frequencyHz + phase) + 1) / 2;
+      const shaped = Math.pow(unipolar, shape);
+      return 1 - depth + shaped * depth;
     }
 
     function spatialValuesForSource(source, spatialization = "pan-distance") {
@@ -592,6 +819,10 @@
 
   function midiToFrequency(pitch) {
     return 440 * Math.pow(2, (pitch - 69) / 12);
+  }
+
+  function frequencyToMidi(frequencyHz) {
+    return 69 + 12 * Math.log2(frequencyHz / 440);
   }
 
   function clampNumber(value, min, max, fallback) {

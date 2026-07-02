@@ -50,8 +50,8 @@ The Source Inspector edits one active output mode for a source at a time: no exp
 - `movingObjects`: optional named movers with trajectory descriptions.
 - `constraints`: optional geometric/relational constraints.
 - `sourceBindings`: optional direct audio emitters bound to sources.
-- `sourceGenerators`: optional generated note emitters bound to sources.
-- `sourceGeneratorMappings`: optional mappings from source features to generator MIDI parameters.
+- `sourceGenerators`: optional generated emitters bound to sources, including MIDI ostinatos and additive sine partials.
+- `sourceGeneratorMappings`: optional mappings from source features to generator parameters.
 - `target`: optional parameter target selection.
 - `parameterMappings`: optional mappings from scene features to target parameters.
 - `midiFile`: optional MIDI/MusicXML sequence-file binding.
@@ -108,7 +108,9 @@ Source bindings make a source a direct audio emitter. The Source Inspector write
 
 `loop` defaults to `true` when omitted and can be changed in the Source Inspector. `muted` silences the source without changing its gain, geometry, serialized audio file, or generator parameters. Select a source and press `m`, or use **Mute / Unmute** in the Source Inspector. `spatialization: "pan-distance"` maps listener-relative left/right position to stereo pan, distance to gain attenuation, and distance to a shared reverb send. `spatialization: "stereo-pan"` keeps gain constant and only pans. Source names can be edited in the Source Inspector; the app updates constraints, source bindings, source generators, parameter mappings, MIDI track bindings, and object-referenced shuttle endpoints.
 
-Source generators make a source emit generated musical events without requiring an audio file or imported MIDI sequence. The first generator type is `midi-ostinato`, inspired by the OpenSpace prototype: it repeats one MIDI pitch at a fixed period. The Source Inspector edits pitch, period, duration, velocity, waveform, spatialization, mute state, MIDI output/channel settings, and optional control mappings. `outputMode: "internal"` renders through the browser synth used by **Play Sound**. `outputMode: "external"` sends note events through Web MIDI using `outputId`/`outputName` and `channel`.
+Source generators make a source emit generated sound or musical events without requiring an audio file or imported MIDI sequence.
+
+The `midi-ostinato` generator, inspired by the OpenSpace prototype, repeats one MIDI pitch at a fixed period. The Source Inspector edits pitch, period, duration, velocity, waveform, spatialization, mute state, MIDI output/channel settings, and optional control mappings. `outputMode: "internal"` renders through the browser synth used by **Play Sound**. `outputMode: "external"` sends note events through Web MIDI using `outputId`/`outputName` and `channel`.
 
 ```json
 {
@@ -127,7 +129,36 @@ Source generators make a source emit generated musical events without requiring 
 
 Generator sources using the internal browser synth use the same listener-relative pan and distance gain model as direct audio sources. External MIDI generator output keeps the source geometry and timing in MusicSpace while leaving sound rendering to the selected MIDI device.
 
-`sourceGeneratorMappings` can dynamically map spatial features onto generator MIDI parameters while playback is running. They can be edited from the selected source's Source Inspector or directly in patch JSON. Supported features are `x`, `y`, `distance`, and `angle`; `angle` is in radians from `-pi` to `pi`, while `x`, `y`, and `distance` use canvas pixels. Supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, and `channel`. The inspector clamps pitch and velocity mappings to MIDI ranges, channel to `1..16`, and timing mappings to millisecond ranges.
+The `additive-synth` generator makes a source emit a bank of sine partials. A single visible partial source can be modeled as one `additive-synth` generator with exactly one partial. The **Rotating Partials** patch uses this style: forty visible partial sources each emit one sinusoid, and ordinary `solid` constraints hold them into four timbre constellations.
+
+```json
+{
+  "source": "Core.01",
+  "type": "additive-synth",
+  "frequencyHz": 146.83,
+  "gain": 0.2,
+  "attackMs": 140,
+  "releaseMs": 700,
+  "spatialization": "pan-distance",
+  "partials": [
+    {
+      "ratio": 1,
+      "amplitude": 1,
+      "amplitudeLfoHz": 0.055,
+      "amplitudeLfoDepth": 0.08,
+      "detuneLfoHz": 0.028,
+      "detuneLfoCents": 4,
+      "swellHz": 0.03,
+      "swellDepth": 0.18,
+      "swellShape": 1.2
+    }
+  ]
+}
+```
+
+For additive generators, `frequencyHz` is the generator fundamental, `gain` is the source output level, and `attackMs`/`releaseMs` define the start/stop envelope. Each partial may use `ratio` or `frequencyHz`, `amplitude`, optional `detuneCents`, slow amplitude/detune drift (`amplitudeLfoHz`, `amplitudeLfoDepth`, `detuneLfoHz`, `detuneLfoCents`, `lfoPhase`), and a repeating swell envelope (`swellHz`, `swellDepth`, `swellShape`).
+
+`sourceGeneratorMappings` can dynamically map spatial features onto generator parameters while playback is running. They can be edited from the selected source's Source Inspector or directly in patch JSON. Supported features are `x`, `y`, `distance`, and `angle`; `angle` is in radians from `-pi` to `pi`, while `x`, `y`, and `distance` use canvas pixels. Supported generator parameters are `pitch`, `periodMs`, `durationMs`, `velocity`, `channel`, `frequencyHz`, and `gain`. The inspector clamps pitch and velocity mappings to MIDI ranges, channel to `1..16`, timing mappings to millisecond ranges, additive frequency to `20..16000`, and gain to `0..1`.
 
 ```json
 {

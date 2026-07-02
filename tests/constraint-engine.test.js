@@ -962,6 +962,15 @@ globalThis.__musicspaceTestApi = {
       api.applySourceEditor();
       return api.serializePatch();
     },
+    setOpenSourceAdditiveGenerator(values) {
+      document.getElementById("source-output-type").value = "additive-synth";
+      document.getElementById("source-generator-pitch").value = String(values.pitch ?? 60);
+      document.getElementById("source-generator-velocity").value = String(values.velocity ?? 80);
+      document.getElementById("source-spatialization").value = values.spatialization || "pan-distance";
+      document.getElementById("source-muted").checked = Boolean(values.muted);
+      api.applySourceEditor();
+      return api.serializePatch();
+    },
     setOpenSourceGeneratorMappings(mappings) {
       const list = document.getElementById("source-generator-mapping-list");
       list.replaceChildren();
@@ -1648,6 +1657,69 @@ test("source generator mappings drive effective MIDI parameters", () => {
   assert.equal(effective.periodMs, 1600);
 });
 
+test("additive source generators serialize and map frequency/gain", () => {
+  const sourcePoint = { name: "Tone", x: 600, y: 300 };
+  const listenerPoint = { name: "Listener", x: 400, y: 300 };
+  const generatorContext = runBrowserScript("musicspace-generator-client.js", {});
+  const generatorClient = generatorContext.MusicSpaceGeneratorClient.createGeneratorClient({
+    getSource: () => sourcePoint,
+    getListener: () => listenerPoint
+  });
+
+  generatorClient.loadPatch({
+    sourceGenerators: [
+      {
+        source: "Tone",
+        type: "additive-synth",
+        frequencyHz: 220,
+        gain: 0.16,
+        partials: [
+          { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.1, swellHz: 0.04, swellDepth: 0.25, swellShape: 2.5 },
+          { ratio: 2.01, amplitude: 0.35, detuneCents: 4, detuneLfoHz: 0.07, detuneLfoCents: 6, lfoPhase: 1.2 },
+          { ratio: 3, amplitude: 0.18 }
+        ]
+      }
+    ],
+    sourceGeneratorMappings: [
+      {
+        source: "Tone",
+        feature: "distance",
+        parameter: "frequencyHz",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 110,
+        outputMax: 440,
+        curve: "exp"
+      },
+      {
+        source: "Tone",
+        feature: "x",
+        parameter: "gain",
+        inputMin: 0,
+        inputMax: 800,
+        outputMin: 0.04,
+        outputMax: 0.24
+      }
+    ]
+  });
+
+  const serialized = generatorClient.serialize();
+  assert.equal(serialized.sourceGenerators[0].type, "additive-synth");
+  assert.equal(serialized.sourceGenerators[0].partials.length, 3);
+  assert.equal(serialized.sourceGenerators[0].partials[0].amplitudeLfoDepth, 0.1);
+  assert.equal(serialized.sourceGenerators[0].partials[0].swellDepth, 0.25);
+  assert.equal(serialized.sourceGenerators[0].partials[1].detuneLfoCents, 6);
+
+  let [effective] = generatorClient.effectiveGeneratorsForSource("Tone");
+  assert.ok(Math.abs(effective.frequencyHz - 220) < 0.001);
+  assert.equal(effective.gain, 0.19);
+
+  sourcePoint.x = 800;
+  [effective] = generatorClient.effectiveGeneratorsForSource("Tone");
+  assert.ok(Math.abs(effective.frequencyHz - 440) < 0.001);
+  assert.equal(effective.gain, 0.24);
+});
+
 test("source inspector edits MIDI ostinato generator parameters", () => {
   const engine = createEngineHarness();
   engine.loadPatch({
@@ -1705,6 +1777,55 @@ test("source inspector edits MIDI ostinato generator parameters", () => {
   assert.equal(patch.sourceGenerators[0].outputId, "midi-out-a");
   assert.equal(patch.sourceGenerators[0].muted, true);
   assert.equal(patch.sourceBindings?.length || 0, 0);
+});
+
+test("source inspector edits additive synth generator parameters", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch({
+    name: "Edit Additive Generator",
+    version: 1,
+    listener: { x: 400, y: 300 },
+    sources: [{ name: "Tone", x: 250, y: 300 }],
+    sourceGenerators: [
+      {
+        source: "Tone",
+        type: "additive-synth",
+        frequencyHz: 220,
+        gain: 0.2,
+        attackMs: 120,
+        releaseMs: 600,
+        spatialization: "pan-distance",
+        partials: [
+          { ratio: 1, amplitude: 1 },
+          { ratio: 2, amplitude: 0.4 }
+        ]
+      }
+    ],
+    constraints: []
+  });
+
+  assert.equal(engine.openSourceInspector("Tone"), true);
+  const state = engine.sourceInspectorState();
+  assert.equal(state.outputType, "additive-synth");
+  assert.equal(state.generatorPitch, "57");
+  assert.equal(state.generatorPeriod, "1000");
+  assert.equal(state.generatorChannelDisabled, true);
+  assert.equal(state.mutedHidden, false);
+  assert.match(state.fileLabel, /Additive synth/);
+
+  const patch = engine.setOpenSourceAdditiveGenerator({
+    pitch: 60,
+    velocity: 64,
+    spatialization: "stereo-pan",
+    muted: true
+  });
+  assert.equal(patch.sourceGenerators.length, 1);
+  assert.equal(patch.sourceGenerators[0].type, "additive-synth");
+  assert.ok(Math.abs(patch.sourceGenerators[0].frequencyHz - 261.625565) < 0.001);
+  assert.ok(Math.abs(patch.sourceGenerators[0].gain - 64 / 127) < 0.001);
+  assert.equal(patch.sourceGenerators[0].spatialization, "stereo-pan");
+  assert.equal(patch.sourceGenerators[0].muted, true);
+  assert.equal(patch.sourceGenerators[0].partials.length, 2);
 });
 
 test("source inspector edits MIDI ostinato control mappings", () => {
@@ -2721,7 +2842,17 @@ test("patch validation checks source generators", () => {
     sourceGenerators: [
       { source: "Missing", type: "midi-ostinato", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
       { source: "A", type: "loop", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
-      { source: "A", type: "midi-ostinato", pitch: 140, periodMs: -1, durationMs: 0, velocity: 200, channel: 20 }
+      { source: "A", type: "midi-ostinato", pitch: 140, periodMs: -1, durationMs: 0, velocity: 200, channel: 20 },
+      {
+        source: "A",
+        type: "additive-synth",
+        frequencyHz: 8,
+        gain: 2,
+        partials: [
+          { ratio: -1, amplitude: 0.5, amplitudeLfoHz: -0.1, swellHz: -0.2 },
+          { ratio: 2, amplitude: 1.5, amplitudeLfoDepth: 2, detuneLfoHz: -1, swellDepth: 2, swellShape: -1 }
+        ]
+      }
     ],
     sourceGeneratorMappings: [
       { source: "Missing", feature: "distance", parameter: "pitch", inputMin: 0, inputMax: 400, outputMin: 48, outputMax: 72 },
@@ -2737,6 +2868,16 @@ test("patch validation checks source generators", () => {
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.pitch")));
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.periodMs")));
   assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.velocity")));
+  assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.frequencyHz")));
+  assert.ok(findings.some((finding) => finding.message.includes("sourceGenerators.gain")));
+  assert.ok(findings.some((finding) => finding.message.includes("partials[0]")));
+  assert.ok(findings.some((finding) => finding.message.includes("partials[1]")));
+  assert.ok(findings.some((finding) => finding.message.includes("amplitudeLfoHz")));
+  assert.ok(findings.some((finding) => finding.message.includes("amplitudeLfoDepth")));
+  assert.ok(findings.some((finding) => finding.message.includes("detuneLfoHz")));
+  assert.ok(findings.some((finding) => finding.message.includes("swellHz")));
+  assert.ok(findings.some((finding) => finding.message.includes("swellDepth")));
+  assert.ok(findings.some((finding) => finding.message.includes("swellShape")));
   assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping feature")));
   assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping parameter")));
   assert.ok(findings.some((finding) => finding.message.includes("Exponential source generator mapping")));

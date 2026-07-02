@@ -108,16 +108,16 @@ npm run export:linkedin
 - Use **Fullscreen** in the Display toolbar to let the canvas fill the viewport; press Escape to return to the normal layout.
 - Use **Draw Selected** in the Display toolbar to let the selected listener, source, mover, or constraint node draw on the trace layer while it moves.
 - Use **Stop Drawing All** to turn off drawing for every object without erasing the current trace.
-- Pure geometric/control sources draw as light hollow handles; sources with audio-file, MIDI-file track, or generated MIDI output draw with a stronger emitter style and a small sound or MIDI icon badge.
+- Pure geometric/control sources draw as light hollow handles; sources with audio-file, additive synth, MIDI-file track, or generated MIDI output draw with a stronger emitter style and a small sound or MIDI icon badge.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
 - Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. The mover transport appears only on patches with moving objects.
-- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, MIDI/MusicXML sequence playback, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding or generated MIDI ostinato.
+- Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, MIDI/MusicXML sequence playback, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding, additive synth, or generated MIDI ostinato.
 - Transport and MIDI output controls are hidden when they do not apply to the current patch.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
 - Use **Save Patch** after importing a sequence file if you want a portable patch JSON; user-loaded sequence patches embed their parsed note data because they do not have a project-local URL.
 - On MIDI/MusicXML patches, the MIDI output controls appear automatically. **Internal GM Synth** renders basic browser piano, bass, and drum sounds; **External MIDI** sends notes and spatial control changes through Web MIDI when an output is available. Double-click a MIDI-file source to edit its track channel, program, and drum flag in the Source Inspector; channel changes are mainly meaningful for External MIDI because the internal browser synth is track-based. The Source Inspector can also convert that source away from its MIDI-file track output by choosing another output mode and applying the change. Stopping Play Sound sends MIDI panic messages so external synths release pending notes.
-- MIDI ostinato mapping rows show the current source-motion value and resulting MIDI parameter value, so mappings such as angle-to-period can be checked while editing.
+- Source generator mapping rows show the current source-motion value and resulting generator parameter value, so mappings such as angle-to-period or distance-to-gain can be checked while editing.
 - Use **Clear Trace** in the Display toolbar to erase the trace canvas.
 - Use **Save Trace** to download the current trace as `musicspace_trace.png`.
 - Use **Reset** to restore the currently selected patch.
@@ -134,6 +134,7 @@ npm run export:linkedin
 - **Bouncing Constellation** carries a rotative object with a bouncing mover while preserving simple separation constraints.
 - **Cycloid Percussion** binds three short bundled marimba, timbale, and bell loops to nested cycloid-style source motion, so Play Sound immediately demonstrates spatialized audio-file playback with changing rhythmic perspective.
 - **OpenSpace Ostinatos** revives the Agon/Delerue OpenSpace idea in miniature: each source is a generated MIDI-style ostinato, and a rotative object moves the pulses through the stereo field.
+- **Rotating Partials** uses native additive synthesis with partials as real sources: forty constrained sine oscillators form four rotating timbre constellations while mappings bend gain/frequency and independent swell envelopes animate the spectrum.
 - **Beatles Trajectory Study** sketches the trajectory-driven remixing pattern: a rotative object carries several sources through solid links while ordinary constraints still propagate.
 - **Jazz Trio MIDI Spatializer** declares a `midi-file` target, loads `Midifiles/triojazz.mid`, represents Bass, Drums, and Piano as three MusicSpace sources, and maps their listener-relative positions to pan, gain, reverb, and filter controls in either an internal browser synth or external MIDI output; the Source Inspector can retarget each track's external MIDI channel/program.
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
@@ -146,7 +147,7 @@ npm run export:linkedin
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan, distance gain, and distance reverb send for `sourceBindings`.
-- `musicspace-generator-client.js` owns lightweight per-source generated note playback for `sourceGenerators`.
+- `musicspace-generator-client.js` owns lightweight per-source generated playback for `sourceGenerators`, including MIDI ostinatos and additive sine-partial timbres.
 - `musicspace-targets.js` contains the target backend registry plus Web Audio subtractive and granular examples.
 - `musicspace-audio-capture.js` provides the optional recording bus used by the demo video capture script.
 - `musicspace-midi-file-client.js` contains MIDI/MusicXML parsing, transport, Web MIDI output, and internal browser synth playback for sequence-file patches.
@@ -195,7 +196,7 @@ npm run export:linkedin
 - Built-in rotative-object + solid-link example for trajectory-driven remixing.
 - Built-in parameter mapping examples with live Web Audio output, including Faust-style oscillator/filter and granular synthesis studies, plus a Patch Inspector mapping editor for changing those bindings without editing JSON.
 - Per-source audio-file bindings through the Source Inspector, with listener-relative stereo pan, optional distance gain, and per-source mute.
-- Per-source MIDI-style ostinato generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches. Generators can render through the internal browser synth or an external Web MIDI output/channel, and Source Inspector mappings can connect spatial features to generator pitch, period, duration, velocity, or channel.
+- Per-source generators, editable in the Source Inspector, for small OpenSpace-inspired generated-note patches and sustained additive sine-partial timbres with optional partial-level amplitude drift, detune drift, and swell envelopes. MIDI ostinatos can render through the internal browser synth or an external Web MIDI output/channel, and Source Inspector mappings can connect spatial features to generator pitch, period, duration, velocity, channel, frequency, or gain.
 - Built-in MIDI/MusicXML spatialization support with one source per playable track or part controlling pan, gain, reverb, and filter behavior.
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.

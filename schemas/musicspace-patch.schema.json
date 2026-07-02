@@ -324,58 +324,184 @@
       }
     },
     "sourceGenerator": {
+      "oneOf": [
+        { "$ref": "#/$defs/midiOstinatoGenerator" },
+        { "$ref": "#/$defs/additiveSynthGenerator" }
+      ]
+    },
+    "sourceGeneratorBase": {
       "type": "object",
-      "required": ["source", "type", "pitch", "periodMs", "durationMs", "velocity", "channel"],
+      "required": ["source", "type"],
       "additionalProperties": true,
       "properties": {
         "source": {
           "$ref": "#/$defs/entityName"
         },
         "type": {
-          "enum": ["midi-ostinato"]
-        },
-        "pitch": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 127
-        },
-        "periodMs": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "durationMs": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "velocity": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 127
-        },
-        "channel": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 16
+          "type": "string"
         },
         "muted": {
           "type": "boolean"
-        },
-        "waveform": {
-          "enum": ["sine", "triangle", "sawtooth", "square"]
-        },
-        "outputMode": {
-          "enum": ["internal", "external"]
-        },
-        "outputId": {
-          "type": "string"
-        },
-        "outputName": {
-          "type": "string"
         },
         "spatialization": {
           "enum": ["pan-distance", "stereo-pan"]
         }
       }
+    },
+    "midiOstinatoGenerator": {
+      "allOf": [
+        { "$ref": "#/$defs/sourceGeneratorBase" },
+        {
+          "type": "object",
+          "required": ["source", "type", "pitch", "periodMs", "durationMs", "velocity", "channel"],
+          "properties": {
+            "type": {
+              "const": "midi-ostinato"
+            },
+            "pitch": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 127
+            },
+            "periodMs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "durationMs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "velocity": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 127
+            },
+            "channel": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "waveform": {
+              "enum": ["sine", "triangle", "sawtooth", "square"]
+            },
+            "outputMode": {
+              "enum": ["internal", "external"]
+            },
+            "outputId": {
+              "type": "string"
+            },
+            "outputName": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "additiveSynthGenerator": {
+      "allOf": [
+        { "$ref": "#/$defs/sourceGeneratorBase" },
+        {
+          "type": "object",
+          "required": ["source", "type", "frequencyHz", "gain", "partials"],
+          "properties": {
+            "type": {
+              "const": "additive-synth"
+            },
+            "frequencyHz": {
+              "type": "number",
+              "minimum": 20,
+              "maximum": 16000
+            },
+            "gain": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "attackMs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "releaseMs": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "partials": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "$ref": "#/$defs/additivePartial"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "additivePartial": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["amplitude"],
+      "properties": {
+        "ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "frequencyRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "frequencyHz": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 16000
+        },
+        "amplitude": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detuneCents": {
+          "type": "number"
+        },
+        "amplitudeLfoHz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "amplitudeLfoDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "detuneLfoHz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "detuneLfoCents": {
+          "type": "number",
+          "minimum": 0
+        },
+        "swellHz": {
+          "type": "number",
+          "minimum": 0
+        },
+        "swellDepth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "swellShape": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lfoPhase": {
+          "type": "number"
+        }
+      },
+      "anyOf": [
+        { "required": ["ratio"] },
+        { "required": ["frequencyRatio"] },
+        { "required": ["frequencyHz"] }
+      ]
     },
     "sourceGeneratorMapping": {
       "type": "object",
@@ -384,7 +510,7 @@
       "properties": {
         "source": { "$ref": "#/$defs/entityName" },
         "feature": { "enum": ["x", "y", "angle", "distance"] },
-        "parameter": { "enum": ["pitch", "periodMs", "durationMs", "velocity", "channel"] },
+        "parameter": { "enum": ["pitch", "periodMs", "durationMs", "velocity", "channel", "frequencyHz", "gain"] },
         "inputMin": { "type": "number" },
         "inputMax": { "type": "number" },
         "outputMin": { "type": "number" },

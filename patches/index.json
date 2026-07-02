@@ -73,6 +73,13 @@
       "tags": ["midi", "generators", "mappings"]
     },
     {
+      "key": "rotating-partials",
+      "name": "Rotating Partials",
+      "file": "rotating-partials.json",
+      "description": "Additive sine partials orbit as sustained spatial timbres.",
+      "tags": ["audio", "synthesis", "generators", "motion", "mappings"]
+    },
+    {
       "key": "beatles-trajectory-study",
       "name": "Beatles Trajectory Study",
       "file": "beatles-trajectory-study.json",

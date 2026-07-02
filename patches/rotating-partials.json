@@ -1,0 +1,2046 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "key": "rotating-partials",
+  "name": "Rotating Partials",
+  "description": "Forty compact partial sources: constrained sine oscillators form four rotating additive timbres with angle-driven gain and independent swell envelopes.",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Core.01",
+      "x": 500,
+      "y": 255.54
+    },
+    {
+      "name": "Core.02",
+      "x": 522.824,
+      "y": 268.585
+    },
+    {
+      "name": "Core.03",
+      "x": 533.988,
+      "y": 288.957
+    },
+    {
+      "name": "Core.04",
+      "x": 532.526,
+      "y": 310.568
+    },
+    {
+      "name": "Core.05",
+      "x": 519.564,
+      "y": 326.927
+    },
+    {
+      "name": "Core.06",
+      "x": 500,
+      "y": 332.345
+    },
+    {
+      "name": "Core.07",
+      "x": 481.259,
+      "y": 325.795
+    },
+    {
+      "name": "Core.08",
+      "x": 470.529,
+      "y": 309.576
+    },
+    {
+      "name": "Core.09",
+      "x": 471.07,
+      "y": 290.6
+    },
+    {
+      "name": "Core.10",
+      "x": 482.427,
+      "y": 275.813
+    },
+    {
+      "name": "Glass.01",
+      "x": 414,
+      "y": 381.345
+    },
+    {
+      "name": "Glass.02",
+      "x": 436.278,
+      "y": 393.337
+    },
+    {
+      "name": "Glass.03",
+      "x": 447.474,
+      "y": 413.124
+    },
+    {
+      "name": "Glass.04",
+      "x": 447.649,
+      "y": 434.933
+    },
+    {
+      "name": "Glass.05",
+      "x": 433.843,
+      "y": 451.311
+    },
+    {
+      "name": "Glass.06",
+      "x": 414,
+      "y": 457.031
+    },
+    {
+      "name": "Glass.07",
+      "x": 395.166,
+      "y": 449.923
+    },
+    {
+      "name": "Glass.08",
+      "x": 383.995,
+      "y": 433.749
+    },
+    {
+      "name": "Glass.09",
+      "x": 384.809,
+      "y": 414.515
+    },
+    {
+      "name": "Glass.10",
+      "x": 396.329,
+      "y": 399.678
+    },
+    {
+      "name": "Air.01",
+      "x": 286,
+      "y": 324.958
+    },
+    {
+      "name": "Air.02",
+      "x": 306.346,
+      "y": 336.996
+    },
+    {
+      "name": "Air.03",
+      "x": 320.627,
+      "y": 353.749
+    },
+    {
+      "name": "Air.04",
+      "x": 318.726,
+      "y": 375.633
+    },
+    {
+      "name": "Air.05",
+      "x": 306.102,
+      "y": 392.668
+    },
+    {
+      "name": "Air.06",
+      "x": 286,
+      "y": 398.031
+    },
+    {
+      "name": "Air.07",
+      "x": 266.903,
+      "y": 391.285
+    },
+    {
+      "name": "Air.08",
+      "x": 255.801,
+      "y": 374.812
+    },
+    {
+      "name": "Air.09",
+      "x": 256.343,
+      "y": 355.364
+    },
+    {
+      "name": "Air.10",
+      "x": 268.207,
+      "y": 340.509
+    },
+    {
+      "name": "Bass.01",
+      "x": 332,
+      "y": 162.54
+    },
+    {
+      "name": "Bass.02",
+      "x": 353.4,
+      "y": 177.545
+    },
+    {
+      "name": "Bass.03",
+      "x": 367.221,
+      "y": 195.556
+    },
+    {
+      "name": "Bass.04",
+      "x": 364.526,
+      "y": 217.568
+    },
+    {
+      "name": "Bass.05",
+      "x": 352.346,
+      "y": 235.004
+    },
+    {
+      "name": "Bass.06",
+      "x": 332,
+      "y": 239.767
+    },
+    {
+      "name": "Bass.07",
+      "x": 313.221,
+      "y": 232.847
+    },
+    {
+      "name": "Bass.08",
+      "x": 302.271,
+      "y": 216.66
+    },
+    {
+      "name": "Bass.09",
+      "x": 302.937,
+      "y": 197.557
+    },
+    {
+      "name": "Bass.10",
+      "x": 314.497,
+      "y": 182.909
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Timbre Rotor",
+      "x": 400,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": true,
+        "periodSeconds": 28,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Core",
+      "x": 500,
+      "y": 300,
+      "trajectory": {
+        "type": "rotator",
+        "running": false,
+        "periodSeconds": 32,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Glass",
+      "x": 414,
+      "y": 424,
+      "trajectory": {
+        "type": "rotator",
+        "running": false,
+        "periodSeconds": 32,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Air",
+      "x": 286,
+      "y": 365,
+      "trajectory": {
+        "type": "rotator",
+        "running": false,
+        "periodSeconds": 32,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    },
+    {
+      "name": "Bass",
+      "x": 332,
+      "y": 207,
+      "trajectory": {
+        "type": "rotator",
+        "running": false,
+        "periodSeconds": 32,
+        "direction": 1,
+        "displacementInducesRotation": true,
+        "phase": 0,
+        "rotationDelta": 0
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "solid",
+      "carrier": "Timbre Rotor",
+      "attached": "Core"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.01"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.02"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.03"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.04"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.05"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.06"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.07"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.08"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.09"
+    },
+    {
+      "type": "solid",
+      "carrier": "Core",
+      "attached": "Core.10"
+    },
+    {
+      "type": "solid",
+      "carrier": "Timbre Rotor",
+      "attached": "Glass"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.01"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.02"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.03"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.04"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.05"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.06"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.07"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.08"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.09"
+    },
+    {
+      "type": "solid",
+      "carrier": "Glass",
+      "attached": "Glass.10"
+    },
+    {
+      "type": "solid",
+      "carrier": "Timbre Rotor",
+      "attached": "Air"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.01"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.02"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.03"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.04"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.05"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.06"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.07"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.08"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.09"
+    },
+    {
+      "type": "solid",
+      "carrier": "Air",
+      "attached": "Air.10"
+    },
+    {
+      "type": "solid",
+      "carrier": "Timbre Rotor",
+      "attached": "Bass"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.01"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.02"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.03"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.04"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.05"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.06"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.07"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.08"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.09"
+    },
+    {
+      "type": "solid",
+      "carrier": "Bass",
+      "attached": "Bass.10"
+    }
+  ],
+  "sourceGenerators": [
+    {
+      "source": "Core.01",
+      "type": "additive-synth",
+      "frequencyHz": 146.83,
+      "gain": 0.2,
+      "attackMs": 140,
+      "releaseMs": 700,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.055,
+          "amplitudeLfoDepth": 0.08,
+          "lfoPhase": 0.2,
+          "detuneLfoHz": 0.028,
+          "detuneLfoCents": 4,
+          "swellHz": 0.03,
+          "swellDepth": 0.18,
+          "swellShape": 1.2
+        }
+      ]
+    },
+    {
+      "source": "Core.02",
+      "type": "additive-synth",
+      "frequencyHz": 293.66,
+      "gain": 0.09,
+      "attackMs": 158,
+      "releaseMs": 735,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 1.5,
+          "detuneLfoHz": 0.037,
+          "detuneLfoCents": 4.6,
+          "lfoPhase": 1.83,
+          "amplitudeLfoHz": 0.068,
+          "amplitudeLfoDepth": 0.111,
+          "swellHz": 0.047,
+          "swellDepth": 0.231,
+          "swellShape": 1.467
+        }
+      ]
+    },
+    {
+      "source": "Core.03",
+      "type": "additive-synth",
+      "frequencyHz": 440.49,
+      "gain": 0.048,
+      "attackMs": 176,
+      "releaseMs": 770,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -3,
+          "amplitudeLfoHz": 0.081,
+          "amplitudeLfoDepth": 0.142,
+          "lfoPhase": 3.76,
+          "detuneLfoHz": 0.036,
+          "detuneLfoCents": 7.2,
+          "swellHz": 0.064,
+          "swellDepth": 0.282,
+          "swellShape": 1.733
+        }
+      ]
+    },
+    {
+      "source": "Core.04",
+      "type": "additive-synth",
+      "frequencyHz": 590.257,
+      "gain": 0.032,
+      "attackMs": 194,
+      "releaseMs": 805,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.041,
+          "detuneLfoCents": 8.8,
+          "lfoPhase": 2.99,
+          "amplitudeLfoHz": 0.094,
+          "amplitudeLfoDepth": 0.173,
+          "swellHz": 0.081,
+          "swellDepth": 0.333,
+          "swellShape": 2
+        }
+      ]
+    },
+    {
+      "source": "Core.05",
+      "type": "additive-synth",
+      "frequencyHz": 734.15,
+      "gain": 0.024,
+      "attackMs": 212,
+      "releaseMs": 840,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.107,
+          "amplitudeLfoDepth": 0.204,
+          "lfoPhase": 6.02,
+          "detuneLfoHz": 0.043,
+          "detuneLfoCents": 10.4,
+          "swellHz": 0.098,
+          "swellDepth": 0.384,
+          "swellShape": 2.267
+        }
+      ]
+    },
+    {
+      "source": "Core.06",
+      "type": "additive-synth",
+      "frequencyHz": 1024.873,
+      "gain": 0.017,
+      "attackMs": 230,
+      "releaseMs": 875,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -2,
+          "detuneLfoHz": 0.067,
+          "detuneLfoCents": 14,
+          "lfoPhase": 5.35,
+          "amplitudeLfoHz": 0.12,
+          "amplitudeLfoDepth": 0.236,
+          "swellHz": 0.115,
+          "swellDepth": 0.436,
+          "swellShape": 2.533
+        }
+      ]
+    },
+    {
+      "source": "Core.07",
+      "type": "additive-synth",
+      "frequencyHz": 1174.64,
+      "gain": 0.014,
+      "attackMs": 248,
+      "releaseMs": 910,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 4,
+          "amplitudeLfoHz": 0.133,
+          "amplitudeLfoDepth": 0.267,
+          "lfoPhase": 2.297,
+          "detuneLfoHz": 0.052,
+          "detuneLfoCents": 13.6,
+          "swellHz": 0.132,
+          "swellDepth": 0.487,
+          "swellShape": 2.8
+        }
+      ]
+    },
+    {
+      "source": "Core.08",
+      "type": "additive-synth",
+      "frequencyHz": 1472.705,
+      "gain": 0.009,
+      "attackMs": 266,
+      "releaseMs": 945,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.066,
+          "detuneLfoCents": 19.2,
+          "lfoPhase": 1.727,
+          "amplitudeLfoHz": 0.146,
+          "amplitudeLfoDepth": 0.298,
+          "swellHz": 0.149,
+          "swellDepth": 0.538,
+          "swellShape": 3.067
+        }
+      ]
+    },
+    {
+      "source": "Core.09",
+      "type": "additive-synth",
+      "frequencyHz": 1763.428,
+      "gain": 0.0064,
+      "attackMs": 284,
+      "releaseMs": 980,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.159,
+          "amplitudeLfoDepth": 0.329,
+          "lfoPhase": 4.657,
+          "detuneLfoHz": 0.059,
+          "detuneLfoCents": 16.8,
+          "swellHz": 0.166,
+          "swellDepth": 0.589,
+          "swellShape": 3.333
+        }
+      ]
+    },
+    {
+      "source": "Core.10",
+      "type": "additive-synth",
+      "frequencyHz": 2344.875,
+      "gain": 0.0044,
+      "attackMs": 302,
+      "releaseMs": 1015,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 5,
+          "detuneLfoHz": 0.088,
+          "detuneLfoCents": 23.4,
+          "lfoPhase": 4.087,
+          "amplitudeLfoHz": 0.172,
+          "amplitudeLfoDepth": 0.36,
+          "swellHz": 0.183,
+          "swellDepth": 0.64,
+          "swellShape": 3.6
+        }
+      ]
+    },
+    {
+      "source": "Glass.01",
+      "type": "additive-synth",
+      "frequencyHz": 220,
+      "gain": 0.104,
+      "attackMs": 260,
+      "releaseMs": 900,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.071,
+          "amplitudeLfoDepth": 0.08,
+          "lfoPhase": 0.4,
+          "detuneLfoHz": 0.035,
+          "detuneLfoCents": 4,
+          "swellHz": 0.039,
+          "swellDepth": 0.18,
+          "swellShape": 1.2
+        }
+      ]
+    },
+    {
+      "source": "Glass.02",
+      "type": "additive-synth",
+      "frequencyHz": 442.2,
+      "gain": 0.0494,
+      "attackMs": 278,
+      "releaseMs": 935,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 6,
+          "detuneLfoHz": 0.053,
+          "detuneLfoCents": 8.6,
+          "lfoPhase": 2.23,
+          "amplitudeLfoHz": 0.084,
+          "amplitudeLfoDepth": 0.111,
+          "swellHz": 0.056,
+          "swellDepth": 0.231,
+          "swellShape": 1.467
+        }
+      ]
+    },
+    {
+      "source": "Glass.03",
+      "type": "additive-synth",
+      "frequencyHz": 607.2,
+      "gain": 0.0273,
+      "attackMs": 296,
+      "releaseMs": 970,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.097,
+          "amplitudeLfoDepth": 0.142,
+          "lfoPhase": 4.06,
+          "detuneLfoHz": 0.043,
+          "detuneLfoCents": 7.2,
+          "swellHz": 0.073,
+          "swellDepth": 0.282,
+          "swellShape": 1.733
+        }
+      ]
+    },
+    {
+      "source": "Glass.04",
+      "type": "additive-synth",
+      "frequencyHz": 875.6,
+      "gain": 0.0286,
+      "attackMs": 314,
+      "releaseMs": 1005,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -5,
+          "detuneLfoHz": 0.049,
+          "detuneLfoCents": 13.8,
+          "lfoPhase": 5.89,
+          "amplitudeLfoHz": 0.11,
+          "amplitudeLfoDepth": 0.173,
+          "swellHz": 0.09,
+          "swellDepth": 0.333,
+          "swellShape": 2
+        }
+      ]
+    },
+    {
+      "source": "Glass.05",
+      "type": "additive-synth",
+      "frequencyHz": 1196.8,
+      "gain": 0.0182,
+      "attackMs": 332,
+      "releaseMs": 1040,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.123,
+          "amplitudeLfoDepth": 0.204,
+          "lfoPhase": 1.037,
+          "detuneLfoHz": 0.051,
+          "detuneLfoCents": 10.4,
+          "swellHz": 0.107,
+          "swellDepth": 0.384,
+          "swellShape": 2.267
+        }
+      ]
+    },
+    {
+      "source": "Glass.06",
+      "type": "additive-synth",
+      "frequencyHz": 1551,
+      "gain": 0.0143,
+      "attackMs": 350,
+      "releaseMs": 1075,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.078,
+          "detuneLfoCents": 20,
+          "lfoPhase": 4.55,
+          "amplitudeLfoHz": 0.136,
+          "amplitudeLfoDepth": 0.236,
+          "swellHz": 0.124,
+          "swellDepth": 0.436,
+          "swellShape": 2.533
+        }
+      ]
+    },
+    {
+      "source": "Glass.07",
+      "type": "additive-synth",
+      "frequencyHz": 1960.2,
+      "gain": 0.0098,
+      "attackMs": 368,
+      "releaseMs": 1110,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.149,
+          "amplitudeLfoDepth": 0.267,
+          "lfoPhase": 0.197,
+          "detuneLfoHz": 0.059,
+          "detuneLfoCents": 13.6,
+          "swellHz": 0.141,
+          "swellDepth": 0.487,
+          "swellShape": 2.8
+        }
+      ]
+    },
+    {
+      "source": "Glass.08",
+      "type": "additive-synth",
+      "frequencyHz": 2618,
+      "gain": 0.0078,
+      "attackMs": 386,
+      "releaseMs": 1145,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.099,
+          "detuneLfoCents": 25.2,
+          "lfoPhase": 4.027,
+          "amplitudeLfoHz": 0.162,
+          "amplitudeLfoDepth": 0.298,
+          "swellHz": 0.158,
+          "swellDepth": 0.538,
+          "swellShape": 3.067
+        }
+      ]
+    },
+    {
+      "source": "Glass.09",
+      "type": "additive-synth",
+      "frequencyHz": 3124,
+      "gain": 0.0049,
+      "attackMs": 404,
+      "releaseMs": 1180,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.175,
+          "amplitudeLfoDepth": 0.329,
+          "lfoPhase": 2.857,
+          "detuneLfoHz": 0.068,
+          "detuneLfoCents": 16.8,
+          "swellHz": 0.175,
+          "swellDepth": 0.589,
+          "swellShape": 3.333
+        }
+      ]
+    },
+    {
+      "source": "Glass.10",
+      "type": "additive-synth",
+      "frequencyHz": 4070,
+      "gain": 0.0033,
+      "attackMs": 422,
+      "releaseMs": 1215,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -8,
+          "detuneLfoHz": 0.08,
+          "detuneLfoCents": 28,
+          "lfoPhase": 1.487,
+          "amplitudeLfoHz": 0.188,
+          "amplitudeLfoDepth": 0.36,
+          "swellHz": 0.192,
+          "swellDepth": 0.64,
+          "swellShape": 3.6
+        }
+      ]
+    },
+    {
+      "source": "Air.01",
+      "type": "additive-synth",
+      "frequencyHz": 329.63,
+      "gain": 0.055,
+      "attackMs": 360,
+      "releaseMs": 1100,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.083,
+          "amplitudeLfoDepth": 0.08,
+          "lfoPhase": 0.1,
+          "detuneLfoHz": 0.042,
+          "detuneLfoCents": 4,
+          "swellHz": 0.046,
+          "swellDepth": 0.18,
+          "swellShape": 1.2
+        }
+      ]
+    },
+    {
+      "source": "Air.02",
+      "type": "additive-synth",
+      "frequencyHz": 655.964,
+      "gain": 0.018,
+      "attackMs": 378,
+      "releaseMs": 1135,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.049,
+          "detuneLfoCents": 6.6,
+          "lfoPhase": 2.63,
+          "amplitudeLfoHz": 0.096,
+          "amplitudeLfoDepth": 0.111,
+          "swellHz": 0.063,
+          "swellDepth": 0.231,
+          "swellShape": 1.467
+        }
+      ]
+    },
+    {
+      "source": "Air.03",
+      "type": "additive-synth",
+      "frequencyHz": 985.594,
+      "gain": 0.028,
+      "attackMs": 396,
+      "releaseMs": 1170,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 3,
+          "amplitudeLfoHz": 0.109,
+          "amplitudeLfoDepth": 0.142,
+          "lfoPhase": 4.26,
+          "detuneLfoHz": 0.05,
+          "detuneLfoCents": 7.2,
+          "swellHz": 0.08,
+          "swellDepth": 0.282,
+          "swellShape": 1.733
+        }
+      ]
+    },
+    {
+      "source": "Air.04",
+      "type": "additive-synth",
+      "frequencyHz": 1473.446,
+      "gain": 0.017,
+      "attackMs": 414,
+      "releaseMs": 1205,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.067,
+          "detuneLfoCents": 15.8,
+          "lfoPhase": 5.79,
+          "amplitudeLfoHz": 0.122,
+          "amplitudeLfoDepth": 0.173,
+          "swellHz": 0.097,
+          "swellDepth": 0.333,
+          "swellShape": 2
+        }
+      ]
+    },
+    {
+      "source": "Air.05",
+      "type": "additive-synth",
+      "frequencyHz": 1967.891,
+      "gain": 0.016,
+      "attackMs": 432,
+      "releaseMs": 1240,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.135,
+          "amplitudeLfoDepth": 0.204,
+          "lfoPhase": 1.337,
+          "detuneLfoHz": 0.058,
+          "detuneLfoCents": 10.4,
+          "swellHz": 0.114,
+          "swellDepth": 0.384,
+          "swellShape": 2.267
+        }
+      ]
+    },
+    {
+      "source": "Air.06",
+      "type": "additive-synth",
+      "frequencyHz": 2468.929,
+      "gain": 0.011,
+      "attackMs": 450,
+      "releaseMs": 1275,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 5,
+          "detuneLfoHz": 0.089,
+          "detuneLfoCents": 21,
+          "lfoPhase": 4.25,
+          "amplitudeLfoHz": 0.148,
+          "amplitudeLfoDepth": 0.236,
+          "swellHz": 0.131,
+          "swellDepth": 0.436,
+          "swellShape": 2.533
+        }
+      ]
+    },
+    {
+      "source": "Air.07",
+      "type": "additive-synth",
+      "frequencyHz": 2983.152,
+      "gain": 0.009,
+      "attackMs": 468,
+      "releaseMs": 1310,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -7,
+          "amplitudeLfoHz": 0.161,
+          "amplitudeLfoDepth": 0.267,
+          "lfoPhase": 0.297,
+          "detuneLfoHz": 0.066,
+          "detuneLfoCents": 13.6,
+          "swellHz": 0.148,
+          "swellDepth": 0.487,
+          "swellShape": 2.8
+        }
+      ]
+    },
+    {
+      "source": "Air.08",
+      "type": "additive-synth",
+      "frequencyHz": 3734.708,
+      "gain": 0.0066,
+      "attackMs": 486,
+      "releaseMs": 1345,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.067,
+          "detuneLfoCents": 26.2,
+          "lfoPhase": 4.427,
+          "amplitudeLfoHz": 0.174,
+          "amplitudeLfoDepth": 0.298,
+          "swellHz": 0.165,
+          "swellDepth": 0.538,
+          "swellShape": 3.067
+        }
+      ]
+    },
+    {
+      "source": "Air.09",
+      "type": "additive-synth",
+      "frequencyHz": 4351.116,
+      "gain": 0.005,
+      "attackMs": 504,
+      "releaseMs": 1380,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.187,
+          "amplitudeLfoDepth": 0.329,
+          "lfoPhase": 2.957,
+          "detuneLfoHz": 0.074,
+          "detuneLfoCents": 16.8,
+          "swellHz": 0.182,
+          "swellDepth": 0.589,
+          "swellShape": 3.333
+        }
+      ]
+    },
+    {
+      "source": "Air.10",
+      "type": "additive-synth",
+      "frequencyHz": 5867.414,
+      "gain": 0.0029,
+      "attackMs": 522,
+      "releaseMs": 1415,
+      "spatialization": "stereo-pan",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 9,
+          "detuneLfoHz": 0.117,
+          "detuneLfoCents": 28,
+          "lfoPhase": 1.687,
+          "amplitudeLfoHz": 0.2,
+          "amplitudeLfoDepth": 0.36,
+          "swellHz": 0.199,
+          "swellDepth": 0.64,
+          "swellShape": 3.6
+        }
+      ]
+    },
+    {
+      "source": "Bass.01",
+      "type": "additive-synth",
+      "frequencyHz": 73.42,
+      "gain": 0.18,
+      "attackMs": 180,
+      "releaseMs": 850,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.047,
+          "amplitudeLfoDepth": 0.08,
+          "lfoPhase": 0.5,
+          "detuneLfoHz": 0.024,
+          "detuneLfoCents": 4,
+          "swellHz": 0.026,
+          "swellDepth": 0.18,
+          "swellShape": 1.2
+        }
+      ]
+    },
+    {
+      "source": "Bass.02",
+      "type": "additive-synth",
+      "frequencyHz": 110.13,
+      "gain": 0.0504,
+      "attackMs": 198,
+      "releaseMs": 885,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -2,
+          "detuneLfoHz": 0.03,
+          "detuneLfoCents": 4.6,
+          "lfoPhase": 2.83,
+          "amplitudeLfoHz": 0.06,
+          "amplitudeLfoDepth": 0.111,
+          "swellHz": 0.043,
+          "swellDepth": 0.231,
+          "swellShape": 1.467
+        }
+      ]
+    },
+    {
+      "source": "Bass.03",
+      "type": "additive-synth",
+      "frequencyHz": 146.84,
+      "gain": 0.0576,
+      "attackMs": 216,
+      "releaseMs": 920,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.073,
+          "amplitudeLfoDepth": 0.142,
+          "lfoPhase": 4.66,
+          "detuneLfoHz": 0.032,
+          "detuneLfoCents": 7.2,
+          "swellHz": 0.06,
+          "swellDepth": 0.282,
+          "swellShape": 1.733
+        }
+      ]
+    },
+    {
+      "source": "Bass.04",
+      "type": "additive-synth",
+      "frequencyHz": 183.55,
+      "gain": 0.0288,
+      "attackMs": 234,
+      "releaseMs": 955,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.043,
+          "detuneLfoCents": 8.8,
+          "lfoPhase": 0.207,
+          "amplitudeLfoHz": 0.086,
+          "amplitudeLfoDepth": 0.173,
+          "swellHz": 0.077,
+          "swellDepth": 0.333,
+          "swellShape": 2
+        }
+      ]
+    },
+    {
+      "source": "Bass.05",
+      "type": "additive-synth",
+      "frequencyHz": 220.26,
+      "gain": 0.0324,
+      "attackMs": 252,
+      "releaseMs": 990,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": 2,
+          "amplitudeLfoHz": 0.099,
+          "amplitudeLfoDepth": 0.204,
+          "lfoPhase": 2.037,
+          "detuneLfoHz": 0.04,
+          "detuneLfoCents": 10.4,
+          "swellHz": 0.094,
+          "swellDepth": 0.384,
+          "swellShape": 2.267
+        }
+      ]
+    },
+    {
+      "source": "Bass.06",
+      "type": "additive-synth",
+      "frequencyHz": 293.68,
+      "gain": 0.018,
+      "attackMs": 270,
+      "releaseMs": 1025,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.063,
+          "detuneLfoCents": 13,
+          "lfoPhase": 5.25,
+          "amplitudeLfoHz": 0.112,
+          "amplitudeLfoDepth": 0.236,
+          "swellHz": 0.111,
+          "swellDepth": 0.436,
+          "swellShape": 2.533
+        }
+      ]
+    },
+    {
+      "source": "Bass.07",
+      "type": "additive-synth",
+      "frequencyHz": 403.81,
+      "gain": 0.013,
+      "attackMs": 288,
+      "releaseMs": 1060,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.125,
+          "amplitudeLfoDepth": 0.267,
+          "lfoPhase": 0.797,
+          "detuneLfoHz": 0.048,
+          "detuneLfoCents": 13.6,
+          "swellHz": 0.128,
+          "swellDepth": 0.487,
+          "swellShape": 2.8
+        }
+      ]
+    },
+    {
+      "source": "Bass.08",
+      "type": "additive-synth",
+      "frequencyHz": 513.94,
+      "gain": 0.0094,
+      "attackMs": 306,
+      "releaseMs": 1095,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneCents": -4,
+          "detuneLfoHz": 0.085,
+          "detuneLfoCents": 18.2,
+          "lfoPhase": 2.727,
+          "amplitudeLfoHz": 0.138,
+          "amplitudeLfoDepth": 0.298,
+          "swellHz": 0.145,
+          "swellDepth": 0.538,
+          "swellShape": 3.067
+        }
+      ]
+    },
+    {
+      "source": "Bass.09",
+      "type": "additive-synth",
+      "frequencyHz": 660.78,
+      "gain": 0.0063,
+      "attackMs": 324,
+      "releaseMs": 1130,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "amplitudeLfoHz": 0.151,
+          "amplitudeLfoDepth": 0.329,
+          "lfoPhase": 0.257,
+          "detuneLfoHz": 0.056,
+          "detuneLfoCents": 16.8,
+          "swellHz": 0.162,
+          "swellDepth": 0.589,
+          "swellShape": 3.333
+        }
+      ]
+    },
+    {
+      "source": "Bass.10",
+      "type": "additive-synth",
+      "frequencyHz": 881.04,
+      "gain": 0.0036,
+      "attackMs": 342,
+      "releaseMs": 1165,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1,
+          "detuneLfoHz": 0.11,
+          "detuneLfoCents": 23.4,
+          "lfoPhase": 5.187,
+          "amplitudeLfoHz": 0.164,
+          "amplitudeLfoDepth": 0.36,
+          "swellHz": 0.179,
+          "swellDepth": 0.64,
+          "swellShape": 3.6
+        }
+      ]
+    }
+  ],
+  "sourceGeneratorMappings": [
+    {
+      "source": "Core.01",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 132,
+      "outputMax": 165,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.02",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 264,
+      "outputMax": 330,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.03",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 396,
+      "outputMax": 495,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.04",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 530.64,
+      "outputMax": 663.3,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.05",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 660,
+      "outputMax": 825,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.06",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 921.36,
+      "outputMax": 1151.7,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.07",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1056,
+      "outputMax": 1320,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.08",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1323.96,
+      "outputMax": 1654.95,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.09",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1585.32,
+      "outputMax": 1981.65,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.10",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 2108.04,
+      "outputMax": 2635.05,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.01",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 293.66,
+      "outputMax": 392,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.02",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 584.383,
+      "outputMax": 780.08,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.03",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 878.043,
+      "outputMax": 1172.08,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.04",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1312.66,
+      "outputMax": 1752.24,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.05",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 1753.15,
+      "outputMax": 2340.24,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.06",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 2199.513,
+      "outputMax": 2936.08,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.07",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 2657.623,
+      "outputMax": 3547.6,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.08",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 3327.168,
+      "outputMax": 4441.36,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.09",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 3876.312,
+      "outputMax": 5174.4,
+      "curve": "exp"
+    },
+    {
+      "source": "Air.10",
+      "feature": "angle",
+      "parameter": "frequencyHz",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 5227.148,
+      "outputMax": 6977.6,
+      "curve": "exp"
+    },
+    {
+      "source": "Core.01",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.036,
+      "outputMax": 0.35,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.02",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0162,
+      "outputMax": 0.1575,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.03",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0086,
+      "outputMax": 0.084,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.04",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0058,
+      "outputMax": 0.056,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.05",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0043,
+      "outputMax": 0.042,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.06",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0031,
+      "outputMax": 0.0298,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.07",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0025,
+      "outputMax": 0.0245,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.08",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0016,
+      "outputMax": 0.0158,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.09",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0012,
+      "outputMax": 0.0112,
+      "curve": "linear"
+    },
+    {
+      "source": "Core.10",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0077,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.01",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0187,
+      "outputMax": 0.182,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.02",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0089,
+      "outputMax": 0.0865,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.03",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0049,
+      "outputMax": 0.0478,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.04",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0051,
+      "outputMax": 0.0501,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.05",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0033,
+      "outputMax": 0.0319,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.06",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0026,
+      "outputMax": 0.025,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.07",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0018,
+      "outputMax": 0.0172,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.08",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0014,
+      "outputMax": 0.0137,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.09",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0086,
+      "curve": "linear"
+    },
+    {
+      "source": "Glass.10",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0058,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.01",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0099,
+      "outputMax": 0.0963,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.02",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0032,
+      "outputMax": 0.0315,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.03",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.005,
+      "outputMax": 0.049,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.04",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0031,
+      "outputMax": 0.0298,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.05",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0029,
+      "outputMax": 0.028,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.06",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.002,
+      "outputMax": 0.0193,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.07",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0016,
+      "outputMax": 0.0158,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.08",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0012,
+      "outputMax": 0.0116,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.09",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0088,
+      "curve": "linear"
+    },
+    {
+      "source": "Air.10",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0051,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.01",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0324,
+      "outputMax": 0.315,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.02",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0091,
+      "outputMax": 0.0882,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.03",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0104,
+      "outputMax": 0.1008,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.04",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0052,
+      "outputMax": 0.0504,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.05",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0058,
+      "outputMax": 0.0567,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.06",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0032,
+      "outputMax": 0.0315,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.07",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0023,
+      "outputMax": 0.0228,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.08",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0017,
+      "outputMax": 0.0165,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.09",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.0011,
+      "outputMax": 0.011,
+      "curve": "linear"
+    },
+    {
+      "source": "Bass.10",
+      "feature": "angle",
+      "parameter": "gain",
+      "inputMin": -3.14159,
+      "inputMax": 3.14159,
+      "outputMin": 0.001,
+      "outputMax": 0.0063,
+      "curve": "linear"
+    }
+  ],
+  "version": 1
+}

@@ -65,8 +65,14 @@ test("musicspace page loads and core controls respond", async ({ page }) => {
   await soundToggle.click();
   await expect(soundToggle).toHaveAttribute("aria-pressed", "false");
 
+  await page.locator("#ui-mode-edit").click();
+  await patchSelect.selectOption("rotating-partials");
+  await expect(page.locator("#patch-summary")).toContainText("Rotating Partials");
+  await expect(page.locator("#patch-summary")).toContainText("additive");
+  await page.locator("#ui-mode-play").click();
+
   await page.locator("#reset").click();
-  await expect(patchSelect).toHaveValue("openspace-ostinatos");
+  await expect(patchSelect).toHaveValue("rotating-partials");
 
   expect(failures).toEqual([]);
 });

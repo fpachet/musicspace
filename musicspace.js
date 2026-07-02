@@ -178,8 +178,9 @@ const TOOL_SELECT = "select";
 const SOURCE_BINDING_AUDIO_FILE = "audio-file";
 const SOURCE_OUTPUT_MIDI_FILE = "midi-file";
 const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
+const SOURCE_OUTPUT_ADDITIVE_SYNTH = "additive-synth";
 const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
-const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel"];
+const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel", "frequencyHz", "gain"];
 const SOURCE_GENERATOR_MAPPING_CURVES = ["linear", "exp"];
 const SOURCE_GENERATOR_FEATURE_SPECS = {
   x: { min: 0, max: WIDTH, step: 1, defaultMin: 0, defaultMax: WIDTH },
@@ -192,7 +193,9 @@ const SOURCE_GENERATOR_PARAMETER_SPECS = {
   periodMs: { min: 40, max: 60000, step: 10, defaultMin: 360, defaultMax: 1300 },
   durationMs: { min: 10, max: 10000, step: 10, defaultMin: 70, defaultMax: 260 },
   velocity: { min: 1, max: 127, step: 1, defaultMin: 40, defaultMax: 112 },
-  channel: { min: 1, max: 16, step: 1, defaultMin: 1, defaultMax: 16 }
+  channel: { min: 1, max: 16, step: 1, defaultMin: 1, defaultMax: 16 },
+  frequencyHz: { min: 20, max: 16000, step: 1, defaultMin: 110, defaultMax: 880 },
+  gain: { min: 0, max: 1, step: 0.01, defaultMin: 0.06, defaultMax: 0.35 }
 };
 const FRAMES_PER_SECOND = 60;
 const DOUBLE_CLICK_MS = 450;
@@ -343,6 +346,9 @@ class SoundSource extends Entity {
 
   draw(ctx, emitterCapability = sourceEmitterCapability(this)) {
     drawSourceBody(ctx, this, emitterCapability);
+    if (emitterCapability.partial) {
+      return;
+    }
     if (this.name.length <= 2) {
       ctx.fillStyle = emitterCapability.emits ? "#ffffff" : "#991b1b";
       ctx.font = "700 12px sans-serif";
@@ -359,11 +365,25 @@ class SoundSource extends Entity {
 
 function drawSourceBody(ctx, source, emitterCapability) {
   const emits = Boolean(emitterCapability?.emits);
+  const radius = sourceVisualRadius(source, emitterCapability);
+
+  if (emitterCapability?.partial) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ef4444";
+    ctx.fill();
+    ctx.strokeStyle = "#f97316";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
 
   ctx.save();
   if (emits) {
     ctx.beginPath();
-    ctx.arc(source.x, source.y, source.radius + 5, 0, Math.PI * 2);
+    ctx.arc(source.x, source.y, radius + 5, 0, Math.PI * 2);
     ctx.strokeStyle = emitterCapability.audio && emitterCapability.midi
       ? "#a855f7"
       : emitterCapability.midi
@@ -374,7 +394,7 @@ function drawSourceBody(ctx, source, emitterCapability) {
   }
 
   ctx.beginPath();
-  ctx.arc(source.x, source.y, source.radius, 0, Math.PI * 2);
+  ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
   ctx.fillStyle = emits
     ? (emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : source.color)
     : "#fff1f2";
@@ -418,6 +438,9 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
   if (!emitterCapability?.emits) {
     return;
   }
+  if (emitterCapability.partial) {
+    return;
+  }
 
   const badgeWidth = emitterCapability.audio && emitterCapability.midi ? 30 : 18;
   const badgeHeight = 16;
@@ -442,6 +465,16 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
     drawMidiEmitterIcon(ctx, iconX + 1, badgeY + 3);
   }
   ctx.restore();
+}
+
+function sourceVisualRadius(source, emitterCapability = sourceEmitterCapability(source)) {
+  if (!emitterCapability?.partial) {
+    return source.radius;
+  }
+
+  const [generator] = generatorClient.effectiveGeneratorsForSource?.(source.name) || [];
+  const gain = Number(generator?.gain);
+  return clamp(3.8 + Math.sqrt(Math.max(0, gain || 0.02)) * 8, 4.5, 8);
 }
 
 function drawAudioEmitterIcon(ctx, x, centerY) {
@@ -1144,6 +1177,18 @@ class SolidAttachmentConstraint {
   }
 
   draw(ctx) {
+    if (isPartialSource(this.attached) || isPartialSource(this.carrier)) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(3, 105, 161, 0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(this.carrier.x, this.carrier.y);
+      ctx.lineTo(this.attached.x, this.attached.y);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
     drawConnector(ctx, this.node, this.carrier, "#0369a1");
     drawConnector(ctx, this.node, this.attached, "#0369a1");
     this.node.draw(ctx);
@@ -1581,7 +1626,8 @@ function summarizePatchForInfo(patch = {}) {
     parts.push("audio files");
   }
   if ((patch.sourceGenerators || []).length > 0) {
-    parts.push("MIDI generators");
+    const hasAdditive = (patch.sourceGenerators || []).some((generator) => generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH);
+    parts.push(hasAdditive ? "synth generators" : "MIDI generators");
   }
   if (patch.midiFile) {
     parts.push("MIDI sequence");
@@ -2090,6 +2136,10 @@ function describeSourceGenerator(generator) {
     const channel = generator.channel ? ` ch ${generator.channel}` : "";
     return `${generator.source} -> ostinato pitch ${generator.pitch}, every ${generator.periodMs} ms${channel}`;
   }
+  if (generator?.type === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
+    const partialCount = Array.isArray(generator.partials) ? generator.partials.length : 0;
+    return `${generator.source} -> additive ${Math.round(generator.frequencyHz || 0)} Hz, ${partialCount} partials`;
+  }
   return `${generator?.source || "?"} -> ${generator?.type || "unknown"}`;
 }
 
@@ -2376,22 +2426,48 @@ function validateSourceGenerators(generators, names, add) {
     }
     seenSources.add(generator.source);
 
-    if (generator.type !== "midi-ostinato") {
+    if (![SOURCE_OUTPUT_MIDI_OSTINATO, SOURCE_OUTPUT_ADDITIVE_SYNTH].includes(generator.type)) {
       add("error", `Unsupported source generator type: ${generator.type || "(missing)"}.`);
       continue;
     }
-    validateMidiValue(generator.pitch, 0, 127, `sourceGenerators.pitch for ${generator.source || "generator"}`, add);
-    validateMidiValue(generator.channel, 1, 16, `sourceGenerators.channel for ${generator.source || "generator"}`, add);
-    validatePositiveNumber(generator.periodMs, `sourceGenerators.periodMs for ${generator.source || "generator"}`, add);
-    validatePositiveNumber(generator.durationMs, `sourceGenerators.durationMs for ${generator.source || "generator"}`, add);
-    validateMidiValue(generator.velocity, 1, 127, `sourceGenerators.velocity for ${generator.source || "generator"}`, add);
+
+    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO) {
+      validateMidiValue(generator.pitch, 0, 127, `sourceGenerators.pitch for ${generator.source || "generator"}`, add);
+      validateMidiValue(generator.channel, 1, 16, `sourceGenerators.channel for ${generator.source || "generator"}`, add);
+      validatePositiveNumber(generator.periodMs, `sourceGenerators.periodMs for ${generator.source || "generator"}`, add);
+      validatePositiveNumber(generator.durationMs, `sourceGenerators.durationMs for ${generator.source || "generator"}`, add);
+      validateMidiValue(generator.velocity, 1, 127, `sourceGenerators.velocity for ${generator.source || "generator"}`, add);
+    }
+
+    if (generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
+      validatePositiveNumber(generator.frequencyHz, `sourceGenerators.frequencyHz for ${generator.source || "generator"}`, add);
+      if (Number(generator.frequencyHz) < 20 || Number(generator.frequencyHz) > 16000) {
+        add("error", `sourceGenerators.frequencyHz for ${generator.source || "generator"} must be from 20 to 16000.`);
+      }
+      validateNonNegativeNumber(generator.gain, `sourceGenerators.gain for ${generator.source || "generator"}`, add);
+      if (Number(generator.gain) > 1) {
+        add("error", `sourceGenerators.gain for ${generator.source || "generator"} must be from 0 to 1.`);
+      }
+      if (generator.attackMs !== undefined) {
+        validatePositiveNumber(generator.attackMs, `sourceGenerators.attackMs for ${generator.source || "generator"}`, add);
+      }
+      if (generator.releaseMs !== undefined) {
+        validatePositiveNumber(generator.releaseMs, `sourceGenerators.releaseMs for ${generator.source || "generator"}`, add);
+      }
+      if (!Array.isArray(generator.partials) || generator.partials.length === 0) {
+        add("error", `Additive source generator for ${generator.source || "generator"} needs at least one partial.`);
+      } else {
+        generator.partials.forEach((partial, index) => validateAdditivePartial(partial, generator.source, index, add));
+      }
+    }
+
     if (generator.muted !== undefined && typeof generator.muted !== "boolean") {
       add("error", "sourceGenerators.muted must be a boolean when present.");
     }
-    if (generator.waveform && !["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)) {
+    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO && generator.waveform && !["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)) {
       add("error", `Unsupported source generator waveform: ${generator.waveform}.`);
     }
-    if (generator.outputMode && !["internal", "external"].includes(generator.outputMode)) {
+    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO && generator.outputMode && !["internal", "external"].includes(generator.outputMode)) {
       add("error", `Unsupported source generator output mode: ${generator.outputMode}.`);
     }
     if (generator.outputId !== undefined && typeof generator.outputId !== "string") {
@@ -2406,6 +2482,56 @@ function validateSourceGenerators(generators, names, add) {
   }
 }
 
+function validateAdditivePartial(partial, sourceName, index, add) {
+  const label = `sourceGenerators.partials[${index}] for ${sourceName || "generator"}`;
+  if (!partial || typeof partial !== "object") {
+    add("error", `${label} must be an object.`);
+    return;
+  }
+  if (partial.frequencyHz === undefined) {
+    validatePositiveNumber(partial.ratio ?? partial.frequencyRatio, `${label}.ratio`, add);
+  } else {
+    validatePositiveNumber(partial.frequencyHz, `${label}.frequencyHz`, add);
+  }
+  validateNonNegativeNumber(partial.amplitude, `${label}.amplitude`, add);
+  if (Number(partial.amplitude) > 1) {
+    add("error", `${label}.amplitude must be from 0 to 1.`);
+  }
+  if (partial.detuneCents !== undefined) {
+    validateNumber(partial.detuneCents, `${label}.detuneCents`, add);
+  }
+  if (partial.amplitudeLfoHz !== undefined) {
+    validateNonNegativeNumber(partial.amplitudeLfoHz, `${label}.amplitudeLfoHz`, add);
+  }
+  if (partial.amplitudeLfoDepth !== undefined) {
+    validateNonNegativeNumber(partial.amplitudeLfoDepth, `${label}.amplitudeLfoDepth`, add);
+    if (Number(partial.amplitudeLfoDepth) > 1) {
+      add("error", `${label}.amplitudeLfoDepth must be from 0 to 1.`);
+    }
+  }
+  if (partial.detuneLfoHz !== undefined) {
+    validateNonNegativeNumber(partial.detuneLfoHz, `${label}.detuneLfoHz`, add);
+  }
+  if (partial.detuneLfoCents !== undefined) {
+    validateNonNegativeNumber(partial.detuneLfoCents, `${label}.detuneLfoCents`, add);
+  }
+  if (partial.swellHz !== undefined) {
+    validateNonNegativeNumber(partial.swellHz, `${label}.swellHz`, add);
+  }
+  if (partial.swellDepth !== undefined) {
+    validateNonNegativeNumber(partial.swellDepth, `${label}.swellDepth`, add);
+    if (Number(partial.swellDepth) > 1) {
+      add("error", `${label}.swellDepth must be from 0 to 1.`);
+    }
+  }
+  if (partial.swellShape !== undefined) {
+    validatePositiveNumber(partial.swellShape, `${label}.swellShape`, add);
+  }
+  if (partial.lfoPhase !== undefined) {
+    validateNumber(partial.lfoPhase, `${label}.lfoPhase`, add);
+  }
+}
+
 function validateSourceGeneratorMappings(mappings, names, add) {
   if (!Array.isArray(mappings)) {
     add("error", "sourceGeneratorMappings must be an array.");
@@ -2413,7 +2539,7 @@ function validateSourceGeneratorMappings(mappings, names, add) {
   }
 
   const supportedFeatures = new Set(["x", "y", "angle", "distance"]);
-  const supportedParameters = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel"]);
+  const supportedParameters = new Set(SOURCE_GENERATOR_MAPPING_PARAMETERS);
 
   for (const mapping of mappings) {
     if (!mapping || typeof mapping !== "object") {
@@ -2573,8 +2699,33 @@ function sourceEmitterCapability(sourceOrName) {
     binding.type === SOURCE_BINDING_AUDIO_FILE && Boolean(binding.dataUrl || binding.url)
   ));
   const midi = Boolean(midiFileClient.hasTrackBindingForSource?.(sourceName));
-  const generatedMidi = Boolean(generatorClient.hasGeneratorForSource?.(sourceName));
-  return { audio, midi: midi || generatedMidi, generator: generatedMidi, emits: audio || midi || generatedMidi };
+  const generated = Boolean(generatorClient.hasGeneratorForSource?.(sourceName));
+  const [generator] = generatorClient.generatorsForSource?.(sourceName) || [];
+  const generatedMidi = generated && generator?.type !== SOURCE_OUTPUT_ADDITIVE_SYNTH;
+  const generatedAudio = generated && generator?.type === SOURCE_OUTPUT_ADDITIVE_SYNTH;
+  const partial = isPartialGenerator(generator);
+  return {
+    audio: audio || generatedAudio,
+    midi: midi || generatedMidi,
+    generator: generated,
+    partial,
+    emits: audio || midi || generated
+  };
+}
+
+function isPartialSource(sourceOrName) {
+  const sourceName = typeof sourceOrName === "string" ? sourceOrName : sourceOrName?.name;
+  if (!sourceName) {
+    return false;
+  }
+  const [generator] = generatorClient.generatorsForSource?.(sourceName) || [];
+  return isPartialGenerator(generator);
+}
+
+function isPartialGenerator(generator) {
+  return generator?.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+    && Array.isArray(generator.partials)
+    && generator.partials.length === 1;
 }
 
 function updateSelectionSummary() {
@@ -2665,7 +2816,12 @@ function selectedSourceSummary(source) {
     }
     if (generators.length) {
       const generator = generatorClient.effectiveGeneratorsForSource?.(name)?.[0] || generators[0];
-      lines.push(`Generator: pitch ${generator.pitch}, period ${Math.round(generator.periodMs)} ms`);
+      if (generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
+        const partialCount = Array.isArray(generator.partials) ? generator.partials.length : 0;
+        lines.push(`Generator: additive ${Math.round(generator.frequencyHz)} Hz, ${partialCount} partials`);
+      } else {
+        lines.push(`Generator: pitch ${generator.pitch}, period ${Math.round(generator.periodMs)} ms`);
+      }
     }
   } else {
     lines.push("Output: none");
@@ -2836,7 +2992,8 @@ function drawListenerGlyph(ctx, x, y) {
 
 function drawSelection(ctx, entity) {
   ctx.beginPath();
-  ctx.arc(entity.x, entity.y, entity.radius + 6, 0, Math.PI * 2);
+  const radius = entity instanceof SoundSource ? sourceVisualRadius(entity) : entity.radius;
+  ctx.arc(entity.x, entity.y, radius + 6, 0, Math.PI * 2);
   ctx.strokeStyle = "#f59e0b";
   ctx.lineWidth = 3;
   ctx.stroke();
@@ -2852,7 +3009,8 @@ function drawSourceMuteCue(ctx, source) {
   ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.arc(source.x, source.y, source.radius + 3, 0, Math.PI * 2);
+  const radius = sourceVisualRadius(source);
+  ctx.arc(source.x, source.y, radius + 3, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.beginPath();
@@ -4865,25 +5023,35 @@ function degreesToRadians(value) {
   return value * Math.PI / 180;
 }
 
+function midiToFrequency(pitch) {
+  return 440 * Math.pow(2, (pitch - 69) / 12);
+}
+
+function frequencyToMidi(frequencyHz) {
+  return 69 + 12 * Math.log2(Number(frequencyHz) / 440);
+}
+
 function updateSourceEditorVisibility() {
   const outputType = sourceOutputTypeInput.value;
   const isAudio = outputType === SOURCE_BINDING_AUDIO_FILE;
-  const isGenerator = outputType === SOURCE_OUTPUT_MIDI_OSTINATO;
+  const isMidiGenerator = outputType === SOURCE_OUTPUT_MIDI_OSTINATO;
+  const isAdditiveGenerator = outputType === SOURCE_OUTPUT_ADDITIVE_SYNTH;
+  const isGenerator = isMidiGenerator || isAdditiveGenerator;
   const isMidiFile = outputType === SOURCE_OUTPUT_MIDI_FILE;
-  const showGeneratorOutput = isGenerator && sourceGeneratorOutputModeInput.value === "external";
+  const showGeneratorOutput = isMidiGenerator && sourceGeneratorOutputModeInput.value === "external";
 
   setEditorRowAvailability(sourceAudioFileRow, isAudio, [sourceAudioFileInput]);
   setEditorRowAvailability(sourceGainRow, isAudio, [sourceGainInput]);
   setEditorRowAvailability(sourceLoopRow, isAudio, [sourceLoopInput]);
   setEditorRowAvailability(sourceSpatializationRow, isAudio || isGenerator, [sourceSpatializationInput]);
   setEditorRowAvailability(sourceGeneratorPitchRow, isGenerator, [sourceGeneratorPitchInput]);
-  setEditorRowAvailability(sourceGeneratorPeriodRow, isGenerator, [sourceGeneratorPeriodInput]);
-  setEditorRowAvailability(sourceGeneratorDurationRow, isGenerator, [sourceGeneratorDurationInput]);
+  setEditorRowAvailability(sourceGeneratorPeriodRow, isMidiGenerator, [sourceGeneratorPeriodInput]);
+  setEditorRowAvailability(sourceGeneratorDurationRow, isMidiGenerator, [sourceGeneratorDurationInput]);
   setEditorRowAvailability(sourceGeneratorVelocityRow, isGenerator, [sourceGeneratorVelocityInput]);
-  setEditorRowAvailability(sourceGeneratorWaveformRow, isGenerator, [sourceGeneratorWaveformInput]);
-  setEditorRowAvailability(sourceGeneratorOutputModeRow, isGenerator, [sourceGeneratorOutputModeInput]);
+  setEditorRowAvailability(sourceGeneratorWaveformRow, isMidiGenerator, [sourceGeneratorWaveformInput]);
+  setEditorRowAvailability(sourceGeneratorOutputModeRow, isMidiGenerator, [sourceGeneratorOutputModeInput]);
   setEditorRowAvailability(sourceGeneratorOutputRow, showGeneratorOutput, [sourceGeneratorOutputInput]);
-  setEditorRowAvailability(sourceGeneratorChannelRow, isGenerator, [sourceGeneratorChannelInput]);
+  setEditorRowAvailability(sourceGeneratorChannelRow, isMidiGenerator, [sourceGeneratorChannelInput]);
   sourceGeneratorMappingsPanel.hidden = !isGenerator;
   sourceGeneratorMappingAddButton.disabled = !isGenerator;
   for (const control of sourceGeneratorMappingList.querySelectorAll("[data-mapping-field]")) {
@@ -4951,6 +5119,8 @@ async function refreshSourceGeneratorMidiOutputs() {
 function fillSourceGeneratorEditor(generator) {
   const nextGenerator = generator || {
     pitch: 60,
+    frequencyHz: 261.63,
+    gain: 0.18,
     periodMs: 1000,
     durationMs: 160,
     velocity: 80,
@@ -4962,10 +5132,15 @@ function fillSourceGeneratorEditor(generator) {
     spatialization: "pan-distance"
   };
 
-  sourceGeneratorPitchInput.value = String(nextGenerator.pitch ?? 60);
+  const pitch = nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+    ? Math.round(frequencyToMidi(nextGenerator.frequencyHz ?? 261.63))
+    : nextGenerator.pitch ?? 60;
+  sourceGeneratorPitchInput.value = String(pitch);
   sourceGeneratorPeriodInput.value = String(nextGenerator.periodMs ?? 1000);
   sourceGeneratorDurationInput.value = String(nextGenerator.durationMs ?? 160);
-  sourceGeneratorVelocityInput.value = String(nextGenerator.velocity ?? 80);
+  sourceGeneratorVelocityInput.value = String(nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+    ? Math.round((nextGenerator.gain ?? 0.18) * 127)
+    : nextGenerator.velocity ?? 80);
   sourceGeneratorWaveformInput.value = nextGenerator.waveform || "triangle";
   sourceGeneratorOutputModeInput.value = nextGenerator.outputMode === "external" ? "external" : "internal";
   sourceGeneratorOutputInput.value = nextGenerator.outputId || "";
@@ -5263,7 +5438,7 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   row.className = "mapping-row";
   row.append(
     createMappingSelect("Source motion", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
-    createMappingSelect("Controls MIDI", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
+    createMappingSelect("Controls generator", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
     createMappingNumber("Motion min", "input-min", mapping.inputMin),
     createMappingNumber("Motion max", "input-max", mapping.inputMax),
     createMappingNumber("Parameter min", "output-min", mapping.outputMin),
@@ -5439,6 +5614,12 @@ function formatMappingValue(value, kind) {
   if (kind === "periodMs" || kind === "durationMs") {
     return `${Math.round(number)} ms`;
   }
+  if (kind === "frequencyHz") {
+    return `${roundEditorValue(number)} Hz`;
+  }
+  if (kind === "gain") {
+    return number.toFixed(2);
+  }
   if (kind === "angle") {
     return `${roundEditorValue(number)} rad`;
   }
@@ -5486,6 +5667,12 @@ function formatMappingOption(value) {
   if (value === "durationMs") {
     return "Duration";
   }
+  if (value === "frequencyHz") {
+    return "Frequency";
+  }
+  if (value === "gain") {
+    return "Gain";
+  }
   if (value === "linear") {
     return "Linear";
   }
@@ -5518,14 +5705,32 @@ function sourceGeneratorFromEditor(sourceName) {
   const [existingGenerator] = activeSourceEditorSource
     ? generatorClient.generatorsForSource(activeSourceEditorSource.name)
     : [];
+  const pitch = clampIntegerInput(sourceGeneratorPitchInput.value, 0, 127, 60);
+  const velocity = clampIntegerInput(sourceGeneratorVelocityInput.value, 1, 127, 80);
+
+  if (sourceOutputTypeInput.value === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
+    return {
+      source: sourceName,
+      type: SOURCE_OUTPUT_ADDITIVE_SYNTH,
+      frequencyHz: midiToFrequency(pitch),
+      gain: clamp(velocity / 127, 0, 1),
+      attackMs: existingGenerator?.attackMs ?? 90,
+      releaseMs: existingGenerator?.releaseMs ?? 450,
+      muted: sourceMutedInput.checked,
+      spatialization: sourceSpatializationInput.value || "pan-distance",
+      partials: Array.isArray(existingGenerator?.partials) && existingGenerator.partials.length > 0
+        ? existingGenerator.partials.map((partial) => ({ ...partial }))
+        : defaultAdditivePartials()
+    };
+  }
 
   return {
     source: sourceName,
     type: SOURCE_OUTPUT_MIDI_OSTINATO,
-    pitch: clampIntegerInput(sourceGeneratorPitchInput.value, 0, 127, 60),
+    pitch,
     periodMs: clampNumberInput(sourceGeneratorPeriodInput.value, 40, 60000, 1000),
     durationMs: clampNumberInput(sourceGeneratorDurationInput.value, 10, 10000, 160),
-    velocity: clampIntegerInput(sourceGeneratorVelocityInput.value, 1, 127, 80),
+    velocity,
     channel: clampIntegerInput(sourceGeneratorChannelInput.value, 1, 16, 1),
     muted: sourceMutedInput.checked,
     waveform: sourceGeneratorWaveformInput.value || "triangle",
@@ -5534,6 +5739,16 @@ function sourceGeneratorFromEditor(sourceName) {
     outputName: output?.name || existingGenerator?.outputName || "",
     spatialization: sourceSpatializationInput.value || "pan-distance"
   };
+}
+
+function defaultAdditivePartials() {
+  return [
+    { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.06, swellHz: 0.03, swellDepth: 0.18 },
+    { ratio: 2, amplitude: 0.42, detuneCents: 1.5, detuneLfoHz: 0.04, detuneLfoCents: 3, swellHz: 0.05, swellDepth: 0.28 },
+    { ratio: 3, amplitude: 0.24, detuneCents: -2, amplitudeLfoHz: 0.07, amplitudeLfoDepth: 0.1, swellHz: 0.07, swellDepth: 0.35 },
+    { ratio: 5, amplitude: 0.12, detuneLfoHz: 0.03, detuneLfoCents: 5, swellHz: 0.09, swellDepth: 0.46 },
+    { ratio: 8, amplitude: 0.07, detuneCents: 3, amplitudeLfoHz: 0.09, amplitudeLfoDepth: 0.16, swellHz: 0.12, swellDepth: 0.55 }
+  ];
 }
 
 function sourceMidiFileBindingFromEditor(sourceName) {
@@ -5585,8 +5800,8 @@ function openSourceEditor(source) {
   sourceNameInput.value = source.name;
   sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE
     ? SOURCE_BINDING_AUDIO_FILE
-    : generator?.type === SOURCE_OUTPUT_MIDI_OSTINATO
-    ? SOURCE_OUTPUT_MIDI_OSTINATO
+    : [SOURCE_OUTPUT_MIDI_OSTINATO, SOURCE_OUTPUT_ADDITIVE_SYNTH].includes(generator?.type)
+    ? generator.type
     : midiBinding
     ? SOURCE_OUTPUT_MIDI_FILE
     : "none";
@@ -5609,7 +5824,9 @@ function openSourceEditor(source) {
   sourceAudioFileName.textContent = midiBinding
     ? `MIDI file track: ${midiBinding.track || "track"} · ch ${midiBinding.channel || 1}`
     : generator
-    ? "MIDI ostinato generator assigned."
+    ? generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+      ? "Additive synth generator assigned."
+      : "MIDI ostinato generator assigned."
     : binding?.name
     ? `Selected: ${binding.name}`
     : "No audio file assigned.";
@@ -5681,19 +5898,20 @@ function applySourceEditor() {
     return;
   }
 
-  if (outputType === SOURCE_OUTPUT_MIDI_OSTINATO) {
+  if (outputType === SOURCE_OUTPUT_MIDI_OSTINATO || outputType === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
     sourceAudioClient.removeBinding(sourceName);
     midiFileClient.removeTrackBinding(sourceName);
     const generator = generatorClient.upsertGenerator(sourceGeneratorFromEditor(sourceName));
     generatorClient.setMappingsForSource(sourceName, sourceGeneratorMappingsFromEditor());
     pendingSourceAudioFile = null;
     sourceAudioFileInput.value = "";
+    const generatorLabel = outputType === SOURCE_OUTPUT_ADDITIVE_SYNTH ? "additive synth" : "MIDI ostinato";
     sourceAudioFileName.textContent = generator
-      ? "MIDI ostinato generator assigned."
-      : "Could not create MIDI ostinato generator.";
+      ? `${capitalize(generatorLabel)} generator assigned.`
+      : `Could not create ${generatorLabel} generator.`;
     setConstraintStatus(generator
-      ? `${sourceName} MIDI ostinato updated.`
-      : `${sourceName} MIDI ostinato could not be updated.`);
+      ? `${sourceName} ${generatorLabel} updated.`
+      : `${sourceName} ${generatorLabel} could not be updated.`);
     updatePatchInspector();
     drawAll();
     return;
@@ -6717,6 +6935,8 @@ sourceOutputTypeInput.addEventListener("change", () => {
   refreshSourceGeneratorMidiOutputs();
   if (sourceOutputTypeInput.value === SOURCE_OUTPUT_MIDI_OSTINATO) {
     sourceAudioFileName.textContent = "MIDI ostinato generator assigned.";
+  } else if (sourceOutputTypeInput.value === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
+    sourceAudioFileName.textContent = "Additive synth generator assigned.";
   } else if (sourceOutputTypeInput.value === SOURCE_OUTPUT_MIDI_FILE) {
     sourceAudioFileName.textContent = "MIDI file track assigned.";
   } else if (sourceOutputTypeInput.value === "none") {
