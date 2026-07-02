@@ -59,7 +59,7 @@ Only `type` and `createRuntime` are mandatory, but useful backends should provid
 
 The Web Audio examples expose Faust-style parameter paths, but they are not compiled from Faust patches. `faust-wasm` is the bridge for actual Faust artifacts.
 
-`Play Sound` does not start a backend merely because a `target` exists or because the default `subtractive` backend is available. It enables parameter targets only when the patch has `parameterMappings`, and it enables source audio only when the patch has `sourceBindings`.
+`Play Sound` does not start a backend merely because a `target` exists or because the default `subtractive` backend is available. It enables parameter targets only when the patch has `parameterMappings`, direct source audio when the patch has `sourceBindings`, generated note sources when the patch has `sourceGenerators`, and sequence playback when the patch has `midiFile`.
 
 ## Patch-Level Faust Binding
 
@@ -114,6 +114,8 @@ MIDI/MusicXML client
 
 This keeps sequence-file time and note playback separate from the constraint system, while preserving the same MusicSpace idea: spatial source motion controls musical output.
 
+For sources bound through `midiFile.trackBindings`, the Source Inspector edits the track's external MIDI channel, program, and drum flag. The internal browser synth is track-based, so those values are primarily output hints there; External MIDI playback retargets note events to the edited channel. Selecting another source output mode in the inspector removes that source's MIDI-file track binding.
+
 When external Web MIDI playback stops, the client sends sustain-off, all-sound-off, all-notes-off, and explicit note-off messages on the active channels. It repeats that panic shortly after stop because browser-scheduled Web MIDI note-ons cannot be cancelled once queued.
 
 ## Source Audio Bindings
@@ -138,7 +140,7 @@ Sources can also be direct audio emitters through patch-level `sourceBindings`. 
 }
 ```
 
-`Play Sound` starts and stops source audio bindings together with mapped parameter target backends. Patches without `sourceBindings` or `parameterMappings` remain silent. `muted` silences one source binding without changing its stored gain or spatial position; pressing `m` toggles the selected source. `pan-distance` maps left/right position around the listener to stereo pan, listener distance to gain attenuation, and distance to a shared reverb send. `stereo-pan` keeps gain constant and only pans.
+`Play Sound` starts and stops source audio bindings together with generated sources, MIDI-file playback, and mapped parameter target backends. Patches without `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings` remain silent. `muted` silences one source binding without changing its stored gain or spatial position; pressing `m` toggles the selected source. `pan-distance` maps left/right position around the listener to stereo pan, listener distance to gain attenuation, and distance to a shared reverb send. `stereo-pan` keeps gain constant and only pans.
 
 ## Faust Direction
 

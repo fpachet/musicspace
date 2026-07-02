@@ -17,6 +17,8 @@ Use **JSON** in the inspector to open an editable snapshot of the active patch. 
 
 Validation checks MusicSpace-level semantics that JSON Schema cannot fully express: object references used by constraints, constraint parameter ranges, source audio bindings, source generators, backend type declarations, Faust adapter/artifact references, parameter mapping targets, and MIDI track bindings.
 
+The Source Inspector edits one active output mode for a source at a time: no explicit output, `audio-file`, `midi-ostinato`, or `midi-file` when the source is bound to an imported sequence track. The inspector hides controls that do not apply to the current output mode. Changing the output mode and applying the inspector removes the previous source audio binding, generator, or MIDI track binding for that source.
+
 ## Minimal Patch
 
 ```json
@@ -171,6 +173,8 @@ For MIDI/MusicXML patches, use `target.type: "midi-file"` and keep the sequence-
 ```
 
 The `target` block answers which backend family the patch uses. The `midiFile` block answers which sequence file to load and how its tracks bind to MusicSpace sources.
+
+MIDI-file track bindings are editable from the Source Inspector for sources already bound to a sequence track. `channel`, `program`, and `isDrums` describe the retargeted output used by External MIDI; the internal browser synth remains track-based and uses those settings mainly as instrument hints. Choosing another source output mode in the inspector removes the corresponding `trackBindings` entry for that source.
 
 For `faust-wasm`, the patch names the actual Faust artifact and adapter:
 

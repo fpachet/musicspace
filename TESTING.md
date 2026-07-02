@@ -40,7 +40,7 @@ Current coverage:
 - XPBD repeated-trajectory stability checks over built-in trajectory patches.
 - XPBD iteration sweep and release-refinement regression tests.
 - Patch validation for object references, backend declarations, source bindings, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
-- Source Inspector and source-audio coverage for source binding serialization, source renaming across patch references, per-source mute state, keyboard mute/playback shortcuts, and the no-default-sound rule when a patch has no `sourceBindings` or `parameterMappings`.
+- Source Inspector and source-audio coverage for output-mode-specific fields, source binding serialization, MIDI-file track binding edits/removal, source renaming across patch references, per-source mute state, keyboard mute/playback shortcuts, and the no-default-sound rule when a patch has no `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`.
 - UI interaction regression coverage for canvas focus without page scrolling, the passive undo indicator, solver selector state, toolbar-independent keyboard workflows, and a real-browser smoke test for page loading and core controls.
 
 Optional diagnostic output:
