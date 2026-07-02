@@ -8,7 +8,13 @@ MusicSpace now includes two interactive solver modes: the default bounded propag
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
-![MusicSpace Cycloid Percussion demo](assets/screenshots/musicspace-cycloid-percussion.png?v=readme-closeup)
+## Demo Snapshots
+
+| Cycloid Percussion | OpenSpace Ostinatos |
+| --- | --- |
+| ![MusicSpace Cycloid Percussion audio demo](assets/screenshots/musicspace-cycloid-percussion.png?v=demo-gallery) | ![MusicSpace OpenSpace Ostinatos MIDI generator demo](assets/screenshots/musicspace-openspace-ostinatos.png?v=demo-gallery) |
+| Jazz Trio MIDI Spatializer | Granular Cloud Study |
+| ![MusicSpace Jazz Trio MIDI spatialization demo](assets/screenshots/musicspace-jazz-trio-midi.png?v=demo-gallery) | ![MusicSpace Granular Cloud parameter mapping demo](assets/screenshots/musicspace-granular-cloud-study.png?v=demo-gallery) |
 
 ## Running
 
@@ -43,6 +49,12 @@ Run the browser smoke test with:
 ```sh
 npx playwright install chromium
 npm run smoke
+```
+
+Refresh the README screenshots with:
+
+```sh
+npm run capture:screenshot
 ```
 
 ## Controls

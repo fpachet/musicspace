@@ -4,13 +4,30 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "..");
-const outputPath = path.join(root, "assets", "screenshots", "musicspace-cycloid-percussion.png");
-const readmeCanvasCrop = {
-  x: 115,
-  y: 155,
-  width: 675,
-  height: 375
-};
+const screenshotDir = path.join(root, "assets", "screenshots");
+const authoredCanvasSize = { width: 800, height: 600 };
+const demoScreenshots = [
+  {
+    patchKey: "cycloid-percussion",
+    outputName: "musicspace-cycloid-percussion.png",
+    crop: { x: 115, y: 155, width: 675, height: 375 }
+  },
+  {
+    patchKey: "openspace-ostinatos",
+    outputName: "musicspace-openspace-ostinatos.png",
+    crop: { x: 0, y: 0, width: 800, height: 600 }
+  },
+  {
+    patchKey: "jazz-trio-midi",
+    outputName: "musicspace-jazz-trio-midi.png",
+    crop: { x: 0, y: 0, width: 800, height: 600 }
+  },
+  {
+    patchKey: "granular-cloud-study",
+    outputName: "musicspace-granular-cloud-study.png",
+    crop: { x: 0, y: 0, width: 800, height: 600 }
+  }
+];
 
 const contentTypes = {
   ".css": "text/css",
@@ -48,6 +65,29 @@ function serveFile(request, response) {
       return;
     }
 
+    const isPatchJson =
+      target.startsWith(path.join(root, "patches")) &&
+      path.extname(target) === ".json" &&
+      path.basename(target) !== "index.json";
+
+    if (isPatchJson) {
+      try {
+        const patch = JSON.parse(fs.readFileSync(target, "utf8"));
+        for (const mover of patch.movingObjects || []) {
+          if (mover.trajectory) {
+            mover.trajectory.running = false;
+          }
+        }
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify(patch));
+        return;
+      } catch (error) {
+        response.writeHead(500);
+        response.end(`Unable to prepare screenshot patch: ${error.message}`);
+        return;
+      }
+    }
+
     response.writeHead(200, {
       "Content-Type": contentTypes[path.extname(target)] || "application/octet-stream"
     });
@@ -55,8 +95,19 @@ function serveFile(request, response) {
   });
 }
 
+async function stopMoversIfRunning(page) {
+  const animationToggle = page.locator("#animation-toggle");
+  if (!(await animationToggle.isVisible())) {
+    return;
+  }
+  if ((await animationToggle.getAttribute("aria-pressed")) === "true") {
+    await animationToggle.click();
+    await page.waitForFunction(() => document.querySelector("#animation-toggle")?.getAttribute("aria-pressed") === "false");
+  }
+}
+
 async function main() {
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.mkdirSync(screenshotDir, { recursive: true });
 
   const server = http.createServer(serveFile);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -76,27 +127,32 @@ async function main() {
   try {
     await page.goto(`${baseUrl}/musicspace.html`, { waitUntil: "networkidle" });
     await page.waitForFunction(() => document.querySelectorAll("#patch-select option").length > 0);
-    await page.selectOption("#patch-select", "cycloid-percussion");
-    await page.waitForFunction(() => document.querySelector("#patch-summary")?.textContent.includes("Cycloid Percussion"));
-    const stageBox = await page.locator("#stage").boundingBox();
-    const canvasSize = await page.locator("#canvas").evaluate((canvas) => ({
-      width: canvas.width,
-      height: canvas.height
-    }));
-    if (!stageBox) {
-      throw new Error("Unable to locate stage for README screenshot");
-    }
-    const scaleX = stageBox.width / canvasSize.width;
-    const scaleY = stageBox.height / canvasSize.height;
-    await page.screenshot({
-      path: outputPath,
-      clip: {
-        x: stageBox.x + readmeCanvasCrop.x * scaleX,
-        y: stageBox.y + readmeCanvasCrop.y * scaleY,
-        width: readmeCanvasCrop.width * scaleX,
-        height: readmeCanvasCrop.height * scaleY
+
+    for (const demo of demoScreenshots) {
+      await page.selectOption("#patch-select", demo.patchKey);
+      await page.waitForFunction(
+        (patchKey) => document.querySelector("#patch-select")?.value === patchKey,
+        demo.patchKey
+      );
+      await stopMoversIfRunning(page);
+      await page.waitForTimeout(150);
+
+      const stageBox = await page.locator("#stage").boundingBox();
+      if (!stageBox) {
+        throw new Error(`Unable to locate stage for ${demo.patchKey} screenshot`);
       }
-    });
+      const scaleX = stageBox.width / authoredCanvasSize.width;
+      const scaleY = stageBox.height / authoredCanvasSize.height;
+      await page.screenshot({
+        path: path.join(screenshotDir, demo.outputName),
+        clip: {
+          x: stageBox.x + demo.crop.x * scaleX,
+          y: stageBox.y + demo.crop.y * scaleY,
+          width: demo.crop.width * scaleX,
+          height: demo.crop.height * scaleY
+        }
+      });
+    }
 
     if (failures.length > 0) {
       throw new Error(`Browser errors while capturing screenshot:\n${failures.join("\n")}`);
