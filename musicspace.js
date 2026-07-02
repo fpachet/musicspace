@@ -4864,25 +4864,44 @@ function updateSourceEditorVisibility() {
   const isAudio = outputType === SOURCE_BINDING_AUDIO_FILE;
   const isGenerator = outputType === SOURCE_OUTPUT_MIDI_OSTINATO;
   const isMidiFile = outputType === SOURCE_OUTPUT_MIDI_FILE;
+  const showGeneratorOutput = isGenerator && sourceGeneratorOutputModeInput.value === "external";
 
-  sourceAudioFileRow.hidden = !isAudio;
-  sourceGainRow.hidden = !isAudio;
-  sourceLoopRow.hidden = !isAudio;
-  sourceSpatializationRow.hidden = !(isAudio || isGenerator);
-  sourceGeneratorPitchRow.hidden = !isGenerator;
-  sourceGeneratorPeriodRow.hidden = !isGenerator;
-  sourceGeneratorDurationRow.hidden = !isGenerator;
-  sourceGeneratorVelocityRow.hidden = !isGenerator;
-  sourceGeneratorWaveformRow.hidden = !isGenerator;
-  sourceGeneratorOutputModeRow.hidden = !isGenerator;
-  sourceGeneratorOutputRow.hidden = !isGenerator || sourceGeneratorOutputModeInput.value !== "external";
-  sourceGeneratorChannelRow.hidden = !isGenerator;
+  setEditorRowAvailability(sourceAudioFileRow, isAudio, [sourceAudioFileInput]);
+  setEditorRowAvailability(sourceGainRow, isAudio, [sourceGainInput]);
+  setEditorRowAvailability(sourceLoopRow, isAudio, [sourceLoopInput]);
+  setEditorRowAvailability(sourceSpatializationRow, isAudio || isGenerator, [sourceSpatializationInput]);
+  setEditorRowAvailability(sourceGeneratorPitchRow, isGenerator, [sourceGeneratorPitchInput]);
+  setEditorRowAvailability(sourceGeneratorPeriodRow, isGenerator, [sourceGeneratorPeriodInput]);
+  setEditorRowAvailability(sourceGeneratorDurationRow, isGenerator, [sourceGeneratorDurationInput]);
+  setEditorRowAvailability(sourceGeneratorVelocityRow, isGenerator, [sourceGeneratorVelocityInput]);
+  setEditorRowAvailability(sourceGeneratorWaveformRow, isGenerator, [sourceGeneratorWaveformInput]);
+  setEditorRowAvailability(sourceGeneratorOutputModeRow, isGenerator, [sourceGeneratorOutputModeInput]);
+  setEditorRowAvailability(sourceGeneratorOutputRow, showGeneratorOutput, [sourceGeneratorOutputInput]);
+  setEditorRowAvailability(sourceGeneratorChannelRow, isGenerator, [sourceGeneratorChannelInput]);
   sourceGeneratorMappingsPanel.hidden = !isGenerator;
-  sourceMidiTrackRow.hidden = !isMidiFile;
-  sourceMidiChannelRow.hidden = !isMidiFile;
-  sourceMidiProgramRow.hidden = !isMidiFile;
-  sourceMidiDrumsRow.hidden = !isMidiFile;
-  sourceMutedRow.hidden = !(isAudio || isGenerator);
+  sourceGeneratorMappingAddButton.disabled = !isGenerator;
+  for (const control of sourceGeneratorMappingList.querySelectorAll("[data-mapping-field]")) {
+    control.disabled = !isGenerator;
+  }
+  for (const button of sourceGeneratorMappingList.querySelectorAll(".mapping-remove")) {
+    button.disabled = !isGenerator;
+  }
+  setEditorRowAvailability(sourceMidiTrackRow, isMidiFile, [sourceMidiTrackInput]);
+  setEditorRowAvailability(sourceMidiChannelRow, isMidiFile, [sourceMidiChannelInput]);
+  setEditorRowAvailability(sourceMidiProgramRow, isMidiFile, [sourceMidiProgramInput]);
+  setEditorRowAvailability(sourceMidiDrumsRow, isMidiFile, [sourceMidiDrumsInput]);
+  setEditorRowAvailability(sourceMutedRow, isAudio || isGenerator, [sourceMutedInput]);
+  sourceToggleMuteButton.disabled = !(isAudio || isGenerator);
+  sourceRemoveBindingButton.disabled = !(isAudio || isGenerator);
+  sourceToggleMuteButton.hidden = !(isAudio || isGenerator);
+  sourceRemoveBindingButton.hidden = !(isAudio || isGenerator);
+}
+
+function setEditorRowAvailability(row, visible, controls = []) {
+  row.hidden = !visible;
+  for (const control of controls) {
+    control.disabled = !visible;
+  }
 }
 
 async function refreshSourceGeneratorMidiOutputs() {

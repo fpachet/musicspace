@@ -744,9 +744,14 @@ globalThis.__musicspaceTestApi = {
         hidden: document.getElementById("source-editor").hidden,
         name: document.getElementById("source-name").value,
         outputType: document.getElementById("source-output-type").value,
+        outputTypeDisabled: Boolean(document.getElementById("source-output-type").disabled),
         loop: Boolean(document.getElementById("source-loop").checked),
+        loopDisabled: Boolean(document.getElementById("source-loop").disabled),
         muted: Boolean(document.getElementById("source-muted").checked),
+        mutedHidden: Boolean(document.getElementById("source-muted-row").hidden),
+        mutedDisabled: Boolean(document.getElementById("source-muted").disabled),
         generatorPitch: document.getElementById("source-generator-pitch").value,
+        generatorPitchDisabled: Boolean(document.getElementById("source-generator-pitch").disabled),
         generatorPeriod: document.getElementById("source-generator-period").value,
         generatorDuration: document.getElementById("source-generator-duration").value,
         generatorVelocity: document.getElementById("source-generator-velocity").value,
@@ -754,10 +759,14 @@ globalThis.__musicspaceTestApi = {
         generatorOutputMode: document.getElementById("source-generator-output-mode").value,
         generatorOutputId: document.getElementById("source-generator-output").value,
         generatorChannel: document.getElementById("source-generator-channel").value,
+        generatorChannelDisabled: Boolean(document.getElementById("source-generator-channel").disabled),
         midiTrack: document.getElementById("source-midi-track").value,
         midiChannel: document.getElementById("source-midi-channel").value,
+        midiChannelDisabled: Boolean(document.getElementById("source-midi-channel").disabled),
         midiProgram: document.getElementById("source-midi-program").value,
         midiDrums: Boolean(document.getElementById("source-midi-drums").checked),
+        removeHidden: Boolean(document.getElementById("source-remove-binding").hidden),
+        removeDisabled: Boolean(document.getElementById("source-remove-binding").disabled),
         generatorMappingCount: document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-row").length,
         generatorMappingReadouts: Array.from(
           document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-readout")
@@ -1576,6 +1585,10 @@ test("source inspector edits MIDI ostinato generator parameters", () => {
   assert.equal(engine.openSourceInspector("Pulse"), true);
   const state = engine.sourceInspectorState();
   assert.equal(state.outputType, "midi-ostinato");
+  assert.equal(state.generatorChannelDisabled, false);
+  assert.equal(state.midiChannelDisabled, true);
+  assert.equal(state.mutedHidden, false);
+  assert.equal(state.removeDisabled, false);
   assert.equal(state.generatorPitch, "60");
   assert.equal(state.generatorPeriod, "1200");
 
@@ -1725,7 +1738,13 @@ test("source inspector edits the audio loop parameter", () => {
   });
 
   assert.equal(engine.openSourceInspector("A"), true);
-  assert.equal(engine.sourceInspectorState().loop, true);
+  let state = engine.sourceInspectorState();
+  assert.equal(state.loop, true);
+  assert.equal(state.loopDisabled, false);
+  assert.equal(state.generatorPitchDisabled, true);
+  assert.equal(state.midiChannelDisabled, true);
+  assert.equal(state.mutedHidden, false);
+  assert.equal(state.removeDisabled, false);
 
   const patch = engine.setOpenSourceLoop(false);
   assert.equal(patch.sourceBindings[0].loop, false);
@@ -1752,9 +1771,15 @@ test("source inspector edits MIDI file track channel bindings", () => {
   assert.equal(engine.openSourceInspector("Bass"), true);
   const inspector = engine.sourceInspectorState();
   assert.equal(inspector.outputType, "midi-file");
+  assert.equal(inspector.outputTypeDisabled, true);
   assert.equal(inspector.midiTrack, "Bass");
   assert.equal(inspector.midiChannel, "2");
+  assert.equal(inspector.midiChannelDisabled, false);
   assert.equal(inspector.midiProgram, "33");
+  assert.equal(inspector.loopDisabled, true);
+  assert.equal(inspector.generatorPitchDisabled, true);
+  assert.equal(inspector.mutedHidden, true);
+  assert.equal(inspector.removeHidden, true);
 
   const patch = engine.setOpenSourceMidiTrack({ channel: 5, program: 34, isDrums: true });
   assert.equal(patch.midiFile.trackBindings[0].channel, 5);
@@ -2317,6 +2342,11 @@ test("double-clicking a source opens the source inspector", () => {
   assert.equal(inspector.hidden, false);
   assert.equal(inspector.name, "A");
   assert.equal(inspector.outputType, "none");
+  assert.equal(inspector.loopDisabled, true);
+  assert.equal(inspector.generatorPitchDisabled, true);
+  assert.equal(inspector.midiChannelDisabled, true);
+  assert.equal(inspector.mutedHidden, true);
+  assert.equal(inspector.removeDisabled, true);
   assert.equal(inspector.fileLabel, "No audio file assigned.");
 });
 
