@@ -163,6 +163,7 @@ npm run export:linkedin
 - `schemas/musicspace-patch-index.schema.json` documents the patch manifest format.
 - `PATCH_FORMAT.md` explains how to author and register patch JSON files.
 - `CONSTRAINT_SEMANTICS.md` documents current constraint invariants and propagation behavior.
+- `MIDI_CONTROL_PLAN.md` describes the planned live MIDI input/output routing layer, distinct from MIDI/MusicXML sequence playback.
 - `OPTIMAL_SOLVER_PLAN.md` documents the implemented XPBD prototype and the remaining real-time XPBD/least-squares solver roadmap.
 - `TARGET_BACKENDS.md` describes Web Audio, Faust WebAssembly, MIDI, OSC, and other parameterized clients.
 - `Midifiles/triojazz.mid` is the included three-track jazz trio MIDI example.

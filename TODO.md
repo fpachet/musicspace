@@ -36,6 +36,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 ## Audio and MIDI
 
 - Add a server-backed audio stem-splitting import flow. The first trial used `audio-separator` with the Demucs `htdemucs` model to produce vocals, drums, bass, and other stems; MusicSpace can then create one source binding per stem.
+- Implement the live MIDI control plan in `MIDI_CONTROL_PLAN.md`: first outbound CC mappings from scene features, then inbound CC mappings to target parameters, then MIDI-driven scene and trajectory movement.
 - Replace or complement the current Web Audio Faust-style demo with a real compiled Faust DSP backend.
 - Expand `sourceGenerators` beyond the first editable `midi-ostinato` prototype with pattern generators and mappings from spatial features to pitch, period, velocity, or density.
 - Explore OpenSpace-style musical constraints over generated source parameters without folding generator scheduling into the geometric constraint engine.
