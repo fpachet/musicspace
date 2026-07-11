@@ -26,15 +26,17 @@ Short WebM captures. Cycloid Percussion, Faust Control Study, and Granular Cloud
 
 ## Running
 
-Serve the directory locally:
+Serve the repository root locally:
 
 ```sh
-python3 -m http.server 8000
+npm run serve
 ```
 
 Then open <http://localhost:8000/musicspace.html>.
 
-The built-in patch library is loaded from JSON files, so the page needs HTTP. Browsers usually block `fetch()` for local `file://` assets.
+`npm run serve` is a convenience wrapper around `python3 -m http.server 8000`; no npm package installation or build step is required. Keep that terminal running while using MusicSpace.
+
+The built-in patch library is loaded from JSON files, so the page must be opened through HTTP. Opening `musicspace.html` directly from Finder or as a `file://` URL causes the message `Could not load built-in patch JSON: Failed to fetch`. If that appears, start the server from the repository root and reload <http://localhost:8000/musicspace.html>.
 
 The current propagation solver remains the default. Use the Solver segmented control above the canvas to switch between Propagation and the experimental XPBD solver. You can also open <http://localhost:8000/musicspace.html?solver=xpbd> directly.
 

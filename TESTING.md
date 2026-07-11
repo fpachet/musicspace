@@ -1,5 +1,13 @@
 # MusicSpace Testing
 
+For a manual browser check, start the local server from the repository root and keep it running:
+
+```sh
+npm run serve
+```
+
+Then open <http://localhost:8000/musicspace.html>. Do not open the HTML file through a `file://` URL: browsers block the JSON fetches used to populate the built-in patch menu.
+
 Run the constraint-engine regression battery with:
 
 ```sh
