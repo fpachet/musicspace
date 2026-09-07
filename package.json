@@ -4,15 +4,27 @@
   "private": true,
   "description": "A static JavaScript prototype of the MusicSpace constraint-based spatialization interface.",
   "scripts": {
-    "check": "node --check musicspace-audio-capture.js && node --check musicspace-mapping.js && node --check musicspace-targets.js && node --check musicspace-parameter-client.js && node --check musicspace-source-audio-client.js && node --check musicspace-midi-file-client.js && node --check musicspace-generator-client.js && node --check musicspace.js && node --check targets/faust/faust-control-study-adapter.js && node --check targets/faust/fm-space-adapter.js && node --check scripts/capture-demo-videos.js && node --check scripts/export-linkedin-videos.js",
-    "test": "node --test tests/constraint-engine.test.js",
+    "check": "eslint .",
+    "test": "node --test tests/*.test.js",
     "smoke": "playwright test",
     "capture:screenshot": "node scripts/capture-readme-screenshot.js",
     "capture:video": "node scripts/capture-demo-videos.js",
     "export:linkedin": "node scripts/export-linkedin-videos.js",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "benchmark": "node scripts/benchmark.js",
+    "format:check": "prettier --check \"*.js\" \"*.cjs\" \"tests/**/*.js\" \"scripts/*.js\" \"targets/faust/*-adapter.js\" \"examples/*.js\"",
+    "format": "prettier --write \"*.js\" \"*.cjs\" \"tests/**/*.js\" \"scripts/*.js\" \"targets/faust/*-adapter.js\" \"examples/*.js\"",
+    "benchmark:browser": "node scripts/browser-benchmark.js",
+    "example": "node examples/headless.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

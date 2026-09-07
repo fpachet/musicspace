@@ -311,3 +311,14 @@ Each serialized constraint may also include a `node` object with display positio
 ```
 
 The app loads `patches/index.json` over HTTP, then fetches each listed patch file.
+
+
+## Loading and snapshot guarantees
+
+Patch loading validates structure, numeric coordinates, trajectories and references before replacing the scene. Rejected JSON preserves the scene and undo history. Version 1 is supported; unknown versions are rejected explicitly. Saved snapshots deep-copy nested trajectories and output data.
+
+Angle, Sum and Product constraints may include optional `angle` (radians), `totalDistance`, and `product` target values, respectively. Saved patches include these values to preserve invariants even when the scene currently has residuals. Older patches that omit them still derive targets from their initial geometry.
+
+Version 1 trajectory velocities, orbital `angularSpeed`, and shuttle `speed` are per 1/60-second simulation step. `periodSeconds` is a real duration; display refresh rate does not change it. See `ARCHITECTURE.md` for pause and catch-up behavior.
+
+MIDI track `program` is 1–128, matching the Source Inspector and renderer; conversion to MIDI's 0–127 byte representation happens at the output boundary.

@@ -26,42 +26,46 @@ const clips = [
 ];
 
 function runFfmpeg(inputPath, outputPath) {
-  const result = spawnSync("ffmpeg", [
-    "-y",
-    "-loglevel",
-    "error",
-    "-i",
-    inputPath,
-    "-map",
-    "0:v:0",
-    "-map",
-    "0:a:0?",
-    "-vf",
-    "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-    "-c:v",
-    "libx264",
-    "-profile:v",
-    "high",
-    "-pix_fmt",
-    "yuv420p",
-    "-crf",
-    "20",
-    "-preset",
-    "medium",
-    "-c:a",
-    "aac",
-    "-b:a",
-    "192k",
-    "-ar",
-    "48000",
-    "-ac",
-    "2",
-    "-movflags",
-    "+faststart",
-    outputPath
-  ], {
-    encoding: "utf8"
-  });
+  const result = spawnSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-loglevel",
+      "error",
+      "-i",
+      inputPath,
+      "-map",
+      "0:v:0",
+      "-map",
+      "0:a:0?",
+      "-vf",
+      "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+      "-c:v",
+      "libx264",
+      "-profile:v",
+      "high",
+      "-pix_fmt",
+      "yuv420p",
+      "-crf",
+      "20",
+      "-preset",
+      "medium",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-ar",
+      "48000",
+      "-ac",
+      "2",
+      "-movflags",
+      "+faststart",
+      outputPath
+    ],
+    {
+      encoding: "utf8"
+    }
+  );
 
   if (result.error || result.status !== 0) {
     throw new Error(result.error?.message || result.stderr || `ffmpeg failed for ${inputPath}`);

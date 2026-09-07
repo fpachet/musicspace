@@ -114,91 +114,94 @@ async function setPressed(page, selector, pressed) {
 }
 
 async function recordCanvasClip(page, durationMs, includeAudio = true) {
-  return page.evaluate(async ({ recordingMs, withAudio }) => {
-    const canvas = document.querySelector("#canvas");
-    if (!canvas?.captureStream) {
-      throw new Error("Canvas captureStream() is not available in this browser.");
-    }
-    if (!globalThis.MediaRecorder) {
-      throw new Error("MediaRecorder is not available in this browser.");
-    }
+  return page.evaluate(
+    async ({ recordingMs, withAudio }) => {
+      const canvas = document.querySelector("#canvas");
+      if (!canvas?.captureStream) {
+        throw new Error("Canvas captureStream() is not available in this browser.");
+      }
+      if (!globalThis.MediaRecorder) {
+        throw new Error("MediaRecorder is not available in this browser.");
+      }
 
-    function supportedMime(candidates) {
-      return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
-    }
+      function supportedMime(candidates) {
+        return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
+      }
 
-    function makeRecorder(stream, mimeCandidates, options = {}) {
-      const mimeType = supportedMime(mimeCandidates);
-      const chunks = [];
-      const recorder = new MediaRecorder(stream, { ...options, mimeType });
-      const stopped = new Promise((resolve, reject) => {
-        recorder.addEventListener("dataavailable", (event) => {
-          if (event.data.size > 0) {
-            chunks.push(event.data);
-          }
+      function makeRecorder(stream, mimeCandidates, options = {}) {
+        const mimeType = supportedMime(mimeCandidates);
+        const chunks = [];
+        const recorder = new MediaRecorder(stream, { ...options, mimeType });
+        const stopped = new Promise((resolve, reject) => {
+          recorder.addEventListener("dataavailable", (event) => {
+            if (event.data.size > 0) {
+              chunks.push(event.data);
+            }
+          });
+          recorder.addEventListener("stop", resolve, { once: true });
+          recorder.addEventListener("error", () => reject(recorder.error), { once: true });
         });
-        recorder.addEventListener("stop", resolve, { once: true });
-        recorder.addEventListener("error", () => reject(recorder.error), { once: true });
-      });
-      return { chunks, mimeType, recorder, stopped };
-    }
+        return { chunks, mimeType, recorder, stopped };
+      }
 
-    async function blobToDataUrl(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.addEventListener("load", () => resolve(reader.result), { once: true });
-        reader.addEventListener("error", reject, { once: true });
-        reader.readAsDataURL(blob);
-      });
-    }
+      async function blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.addEventListener("load", () => resolve(reader.result), { once: true });
+          reader.addEventListener("error", reject, { once: true });
+          reader.readAsDataURL(blob);
+        });
+      }
 
-    const canvasStream = canvas.captureStream(30);
-    const videoStream = new MediaStream(canvasStream.getVideoTracks());
-    const audioStream = withAudio ? await globalThis.MusicSpaceAudioCapture?.stream?.() : null;
-    const audioTracks = audioStream?.getAudioTracks?.() || [];
-    const videoRecorder = makeRecorder(
-      videoStream,
-      ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"],
-      { videoBitsPerSecond: 1_800_000 }
-    );
-    const audioRecorder = audioStream
-      ? makeRecorder(audioStream, ["audio/webm;codecs=opus", "audio/webm"], { audioBitsPerSecond: 128_000 })
-      : null;
+      const canvasStream = canvas.captureStream(30);
+      const videoStream = new MediaStream(canvasStream.getVideoTracks());
+      const audioStream = withAudio ? await globalThis.MusicSpaceAudioCapture?.stream?.() : null;
+      const audioTracks = audioStream?.getAudioTracks?.() || [];
+      const videoRecorder = makeRecorder(
+        videoStream,
+        ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"],
+        { videoBitsPerSecond: 1_800_000 }
+      );
+      const audioRecorder = audioStream
+        ? makeRecorder(audioStream, ["audio/webm;codecs=opus", "audio/webm"], { audioBitsPerSecond: 128_000 })
+        : null;
 
-    let activeAudioRecorder = audioRecorder;
-    let audioRecorderError = "";
-    videoRecorder.recorder.start(250);
-    try {
-      activeAudioRecorder?.recorder.start(250);
-    } catch (error) {
-      audioRecorderError = error.message || "Audio MediaRecorder could not start.";
-      activeAudioRecorder = null;
-    }
-    await new Promise((resolve) => setTimeout(resolve, recordingMs));
-    videoRecorder.recorder.stop();
-    activeAudioRecorder?.recorder.stop();
-    await Promise.all([videoRecorder.stopped, activeAudioRecorder?.stopped].filter(Boolean));
+      let activeAudioRecorder = audioRecorder;
+      let audioRecorderError = "";
+      videoRecorder.recorder.start(250);
+      try {
+        activeAudioRecorder?.recorder.start(250);
+      } catch (error) {
+        audioRecorderError = error.message || "Audio MediaRecorder could not start.";
+        activeAudioRecorder = null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, recordingMs));
+      videoRecorder.recorder.stop();
+      activeAudioRecorder?.recorder.stop();
+      await Promise.all([videoRecorder.stopped, activeAudioRecorder?.stopped].filter(Boolean));
 
-    for (const track of videoStream.getTracks()) {
-      track.stop();
-    }
+      for (const track of videoStream.getTracks()) {
+        track.stop();
+      }
 
-    const videoBlob = new Blob(videoRecorder.chunks, { type: videoRecorder.mimeType || "video/webm" });
-    const audioBlob = activeAudioRecorder
-      ? new Blob(activeAudioRecorder.chunks, { type: activeAudioRecorder.mimeType || "audio/webm" })
-      : null;
+      const videoBlob = new Blob(videoRecorder.chunks, { type: videoRecorder.mimeType || "video/webm" });
+      const audioBlob = activeAudioRecorder
+        ? new Blob(activeAudioRecorder.chunks, { type: activeAudioRecorder.mimeType || "audio/webm" })
+        : null;
 
-    return {
-      videoDataUrl: await blobToDataUrl(videoBlob),
-      audioDataUrl: audioBlob && audioBlob.size > 0 ? await blobToDataUrl(audioBlob) : null,
-      audioTrackCount: audioTracks.length,
-      videoMimeType: videoBlob.type,
-      audioMimeType: audioBlob?.type || "",
-      videoSize: videoBlob.size,
-      audioSize: audioBlob?.size || 0,
-      audioRecorderError
-    };
-  }, { recordingMs: durationMs, withAudio: includeAudio });
+      return {
+        videoDataUrl: await blobToDataUrl(videoBlob),
+        audioDataUrl: audioBlob && audioBlob.size > 0 ? await blobToDataUrl(audioBlob) : null,
+        audioTrackCount: audioTracks.length,
+        videoMimeType: videoBlob.type,
+        audioMimeType: audioBlob?.type || "",
+        videoSize: videoBlob.size,
+        audioSize: audioBlob?.size || 0,
+        audioRecorderError
+      };
+    },
+    { recordingMs: durationMs, withAudio: includeAudio }
+  );
 }
 
 function writeRecording(outputPath, recording) {
@@ -213,21 +216,25 @@ function writeRecording(outputPath, recording) {
   fs.writeFileSync(tempVideoPath, videoBuffer);
   fs.writeFileSync(tempAudioPath, decodeDataUrl(recording.audioDataUrl));
 
-  const result = spawnSync("ffmpeg", [
-    "-y",
-    "-loglevel",
-    "error",
-    "-i",
-    tempVideoPath,
-    "-i",
-    tempAudioPath,
-    "-c",
-    "copy",
-    "-shortest",
-    outputPath
-  ], {
-    encoding: "utf8"
-  });
+  const result = spawnSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-loglevel",
+      "error",
+      "-i",
+      tempVideoPath,
+      "-i",
+      tempAudioPath,
+      "-c",
+      "copy",
+      "-shortest",
+      outputPath
+    ],
+    {
+      encoding: "utf8"
+    }
+  );
 
   fs.unlinkSync(tempVideoPath);
   fs.unlinkSync(tempAudioPath);

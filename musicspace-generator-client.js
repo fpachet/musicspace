@@ -10,7 +10,15 @@
   const SCHEDULER_INTERVAL_MS = 30;
   const SPATIAL_INTERVAL_MS = 60;
   const MAX_SPATIAL_DISTANCE = 360;
-  const GENERATOR_PARAMETERS = new Set(["pitch", "periodMs", "durationMs", "velocity", "channel", "frequencyHz", "gain"]);
+  const GENERATOR_PARAMETERS = new Set([
+    "pitch",
+    "periodMs",
+    "durationMs",
+    "velocity",
+    "channel",
+    "frequencyHz",
+    "gain"
+  ]);
   const MAPPING_FEATURES = new Set(["x", "y", "distance", "angle"]);
   const DEFAULT_ADDITIVE_PARTIALS = [
     { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.06 },
@@ -28,6 +36,7 @@
     let generators = [];
     let generatorMappings = [];
     let enabled = false;
+    let generation = 0;
     let context = null;
     let midiAccess = null;
     let midiOutputs = [];
@@ -44,14 +53,18 @@
       serialize() {
         return {
           ...(generators.length > 0 ? { sourceGenerators: generators.map(serializeGenerator) } : {}),
-          ...(generatorMappings.length > 0 ? { sourceGeneratorMappings: generatorMappings.map(serializeGeneratorMapping) } : {})
+          ...(generatorMappings.length > 0
+            ? { sourceGeneratorMappings: generatorMappings.map(serializeGeneratorMapping) }
+            : {})
         };
       },
       generatorsForSource(sourceName) {
         return generators.filter((generator) => generator.source === sourceName).map(serializeGenerator);
       },
       mappingsForSource(sourceName) {
-        return generatorMappings.filter((mapping) => mapping.source === sourceName).map(serializeGeneratorMapping);
+        return generatorMappings
+          .filter((mapping) => mapping.source === sourceName)
+          .map(serializeGeneratorMapping);
       },
       effectiveGeneratorsForSource(sourceName) {
         return generators
@@ -82,9 +95,7 @@
       },
       setMappingsForSource(sourceName, mappings) {
         const normalizedMappings = normalizeGeneratorMappings(
-          Array.isArray(mappings)
-            ? mappings.map((mapping) => ({ ...mapping, source: sourceName }))
-            : []
+          Array.isArray(mappings) ? mappings.map((mapping) => ({ ...mapping, source: sourceName })) : []
         );
         generatorMappings = [
           ...generatorMappings.filter((mapping) => mapping.source !== sourceName),
@@ -101,58 +112,83 @@
           updated = { ...generator, muted: !generator.muted };
           return updated;
         });
+        if (updated && enabled) {
+          if (updated.muted) stopSourceVoices(sourceName);
+          else if (updated.type === ADDITIVE_SYNTH_TYPE && context)
+            startAdditiveVoice(generatorWithMappings(updated), clockSeconds() + 0.02);
+        }
         return updated ? serializeGenerator(updated) : null;
       },
       renameSource(oldName, newName) {
-        generators = generators.map((generator) => (
+        for (const voice of activeVoices) if (voice.source === oldName) voice.source = newName;
+        generators = generators.map((generator) =>
           generator.source === oldName ? { ...generator, source: newName } : generator
-        ));
-        generatorMappings = generatorMappings.map((mapping) => (
+        );
+        generatorMappings = generatorMappings.map((mapping) =>
           mapping.source === oldName ? { ...mapping, source: newName } : mapping
-        ));
+        );
       },
       removeGenerator(sourceName) {
+        stopSourceVoices(sourceName);
         generators = generators.filter((generator) => generator.source !== sourceName);
         generatorMappings = generatorMappings.filter((mapping) => mapping.source !== sourceName);
       },
       removeGeneratorsForMissingSources(sourceNames) {
         const validNames = new Set(sourceNames);
+        for (const generator of generators)
+          if (!validNames.has(generator.source)) stopSourceVoices(generator.source);
         generators = generators.filter((generator) => validNames.has(generator.source));
         generatorMappings = generatorMappings.filter((mapping) => validNames.has(mapping.source));
       },
       async setEnabled(nextEnabled) {
-        if (enabled) {
-          stop();
-        }
+        stop();
+        const ticket = generation;
         enabled = Boolean(nextEnabled) && generators.length > 0;
         if (!enabled) {
           stop();
           return false;
         }
 
-        const canPlay = await ensureOutputsForGenerators();
-        if (!canPlay) {
-          enabled = false;
+        try {
+          const canPlay = await ensureOutputsForGenerators();
+          if (ticket !== generation) return false;
+          if (!canPlay) {
+            enabled = false;
+            return false;
+          }
+
+          if (context?.resume) {
+            await context.resume();
+          }
+          if (ticket !== generation) return false;
+          const startAt = clockSeconds() + 0.04;
+          generators = generators.map((generator, index) => ({
+            ...generator,
+            nextAt: startAt + index * 0.035
+          }));
+          startSustainedGenerators(startAt);
+          if (generators.some((generator) => generator.type === MIDI_OSTINATO_TYPE)) {
+            schedulerTimer = global.setInterval(scheduleDueNotes, SCHEDULER_INTERVAL_MS);
+          }
+          spatialTimer = global.setInterval(updateSpatial, SPATIAL_INTERVAL_MS);
+          scheduleDueNotes();
+          updateSpatial();
+          onStatus("Source generators playing.");
+          return true;
+        } catch (error) {
+          if (ticket === generation) {
+            stop();
+            onStatus("Could not start source generators.");
+          }
           return false;
         }
-
-        if (context?.resume) {
-          await context.resume();
-        }
-        const startAt = clockSeconds() + 0.04;
-        generators = generators.map((generator, index) => ({
-          ...generator,
-          nextAt: startAt + index * 0.035
-        }));
-        startSustainedGenerators(startAt);
-        if (generators.some((generator) => generator.type === MIDI_OSTINATO_TYPE && !generator.muted)) {
-          schedulerTimer = global.setInterval(scheduleDueNotes, SCHEDULER_INTERVAL_MS);
-        }
-        spatialTimer = global.setInterval(updateSpatial, SPATIAL_INTERVAL_MS);
-        scheduleDueNotes();
-        updateSpatial();
-        onStatus("Source generators playing.");
-        return true;
+      },
+      stop,
+      dispose() {
+        stop();
+        global.MusicSpaceAudioCapture?.unregisterContext?.(context);
+        context?.close?.();
+        context = null;
       },
       async availableMidiOutputs() {
         await refreshMidiOutputs();
@@ -162,6 +198,7 @@
     };
 
     function stop() {
+      generation += 1;
       if (schedulerTimer) {
         global.clearInterval(schedulerTimer);
         schedulerTimer = null;
@@ -175,6 +212,7 @@
       }
       activeVoices = [];
       enabled = false;
+      return false;
     }
 
     function normalizeGenerators(nextGenerators) {
@@ -203,7 +241,9 @@
           velocity: clampInteger(generator.velocity, 1, 127, 80),
           channel: clampInteger(generator.channel, 1, 16, 1),
           muted: Boolean(generator.muted),
-          waveform: ["sine", "triangle", "sawtooth", "square"].includes(generator.waveform) ? generator.waveform : "triangle",
+          waveform: ["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)
+            ? generator.waveform
+            : "triangle",
           outputMode: generator.outputMode === "external" ? "external" : "internal",
           outputId: typeof generator.outputId === "string" ? generator.outputId : "",
           outputName: typeof generator.outputName === "string" ? generator.outputName : "",
@@ -239,10 +279,11 @@
     }
 
     function normalizePartials(partials) {
-      const normalized = Array.isArray(partials)
-        ? partials.map(normalizePartial).filter(Boolean)
-        : [];
-      return (normalized.length > 0 ? normalized : DEFAULT_ADDITIVE_PARTIALS).slice(0, 32).map(normalizePartial).filter(Boolean);
+      const normalized = Array.isArray(partials) ? partials.map(normalizePartial).filter(Boolean) : [];
+      return (normalized.length > 0 ? normalized : DEFAULT_ADDITIVE_PARTIALS)
+        .slice(0, 32)
+        .map(normalizePartial)
+        .filter(Boolean);
     }
 
     function normalizePartial(partial, index = 0) {
@@ -250,9 +291,8 @@
         return null;
       }
       const ratio = clampNumber(partial.ratio ?? partial.frequencyRatio, 0.01, 64, index + 1);
-      const frequencyHz = partial.frequencyHz === undefined
-        ? null
-        : clampNumber(partial.frequencyHz, 20, 16000, null);
+      const frequencyHz =
+        partial.frequencyHz === undefined ? null : clampNumber(partial.frequencyHz, 20, 16000, null);
       return {
         ratio,
         ...(frequencyHz ? { frequencyHz } : {}),
@@ -341,12 +381,12 @@
 
     async function ensureOutputsForGenerators() {
       const activeGenerators = generators.filter((generator) => !generator.muted);
-      const needsInternal = activeGenerators.some((generator) => (
-        generator.type === ADDITIVE_SYNTH_TYPE || generator.outputMode !== "external"
-      ));
-      const needsExternal = activeGenerators.some((generator) => (
-        generator.type === MIDI_OSTINATO_TYPE && generator.outputMode === "external"
-      ));
+      const needsInternal = activeGenerators.some(
+        (generator) => generator.type === ADDITIVE_SYNTH_TYPE || generator.outputMode !== "external"
+      );
+      const needsExternal = activeGenerators.some(
+        (generator) => generator.type === MIDI_OSTINATO_TYPE && generator.outputMode === "external"
+      );
 
       if (needsInternal) {
         await ensureContext();
@@ -387,7 +427,7 @@
       }
 
       try {
-        midiAccess = midiAccess || await global.navigator.requestMIDIAccess();
+        midiAccess = midiAccess || (await global.navigator.requestMIDIAccess());
         midiOutputs = Array.from(midiAccess.outputs.values());
       } catch (error) {
         midiOutputs = [];
@@ -408,7 +448,7 @@
           return generator;
         }
         const effectiveGenerator = generatorWithMappings(generator);
-        let nextAt = generator.nextAt || now;
+        let nextAt = Math.max(generator.nextAt || now, now);
         while (nextAt <= horizon) {
           if (!effectiveGenerator.muted && getSource(effectiveGenerator.source)) {
             scheduleNote(effectiveGenerator, nextAt);
@@ -436,7 +476,11 @@
           return nextGenerator;
         }
         const mappedValue = mappedGeneratorValue(mapping, featureValue);
-        const normalizedValue = normalizeGeneratorParameter(mapping.parameter, mappedValue, nextGenerator[mapping.parameter]);
+        const normalizedValue = normalizeGeneratorParameter(
+          mapping.parameter,
+          mappedValue,
+          nextGenerator[mapping.parameter]
+        );
         if (mapping.parameter === "pitch" && nextGenerator.type === ADDITIVE_SYNTH_TYPE) {
           return {
             ...nextGenerator,
@@ -473,43 +517,7 @@
     }
 
     function mappedGeneratorValue(mapping, value) {
-      if (mapping.inputMin === mapping.inputMax) {
-        return snappedMappingValue(mapping, mapping.outputMin);
-      }
-      const low = Math.min(mapping.inputMin, mapping.inputMax);
-      const high = Math.max(mapping.inputMin, mapping.inputMax);
-      const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
-      const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
-
-      let mappedValue;
-      if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
-        const logMin = Math.log(mapping.outputMin);
-        const logMax = Math.log(mapping.outputMax);
-        mappedValue = Math.exp(logMin + (logMax - logMin) * t);
-      } else {
-        mappedValue = mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
-      }
-
-      return snappedMappingValue(mapping, mappedValue);
-    }
-
-    function snappedMappingValue(mapping, value) {
-      const outputLow = Math.min(mapping.outputMin, mapping.outputMax);
-      const outputHigh = Math.max(mapping.outputMin, mapping.outputMax);
-
-      if (Array.isArray(mapping.values) && mapping.values.length > 0) {
-        const nearest = mapping.values.reduce((best, candidate) => (
-          Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
-        ), mapping.values[0]);
-        return clamp(nearest, outputLow, outputHigh);
-      }
-
-      if (finitePositive(mapping.quantize)) {
-        const step = Number(mapping.quantize);
-        return clamp(Math.round(value / step) * step, outputLow, outputHigh);
-      }
-
-      return value;
+      return global.MusicSpaceMapping.valueFromMapping(mapping, value);
     }
 
     function normalizeGeneratorParameter(parameter, value, fallback) {
@@ -541,9 +549,9 @@
       for (const generator of generators) {
         const effectiveGenerator = generatorWithMappings(generator);
         if (
-          effectiveGenerator.type === ADDITIVE_SYNTH_TYPE
-          && !effectiveGenerator.muted
-          && getSource(effectiveGenerator.source)
+          effectiveGenerator.type === ADDITIVE_SYNTH_TYPE &&
+          !effectiveGenerator.muted &&
+          getSource(effectiveGenerator.source)
         ) {
           startAdditiveVoice(effectiveGenerator, startAt);
         }
@@ -563,7 +571,10 @@
       const partialNodes = [];
 
       outputGain.gain.setValueAtTime(0.0001, startTime);
-      outputGain.gain.linearRampToValueAtTime(Math.max(0.0001, targetGain), startTime + generator.attackMs / 1000);
+      outputGain.gain.linearRampToValueAtTime(
+        Math.max(0.0001, targetGain),
+        startTime + generator.attackMs / 1000
+      );
       if (panNode) {
         panNode.pan.setValueAtTime(spatial.pan, startTime);
       }
@@ -635,9 +646,10 @@
       oscillator.start(startTime);
       oscillator.stop(startTime + durationSeconds + 0.02);
 
-      const voice = { source: generator.source, envelope, panNode, stopped: false };
+      const voice = { source: generator.source, oscillator, envelope, panNode, stopped: false };
       activeVoices.push(voice);
       oscillator.addEventListener?.("ended", () => {
+        disconnectVoice(voice);
         activeVoices = activeVoices.filter((candidate) => candidate !== voice);
       });
     }
@@ -715,11 +727,29 @@
         const gainParam = voice.outputGain?.gain || voice.envelope?.gain;
         gainParam?.cancelScheduledValues?.(now);
         gainParam?.setTargetAtTime?.(0.0001, now, 0.01);
+        voice.oscillator?.stop?.(now);
         for (const partialNode of voice.partialNodes || []) {
           partialNode.oscillator?.stop?.(now + 0.12);
         }
       } catch (error) {
         // Best-effort cleanup for browser audio nodes.
+      }
+      disconnectVoice(voice);
+    }
+
+    function stopSourceVoices(sourceName) {
+      for (const voice of activeVoices) if (voice.source === sourceName) stopVoice(voice);
+      activeVoices = activeVoices.filter((voice) => voice.source !== sourceName);
+    }
+
+    function disconnectVoice(voice) {
+      voice.oscillator?.disconnect?.();
+      voice.envelope?.disconnect?.();
+      voice.outputGain?.disconnect?.();
+      voice.panNode?.disconnect?.();
+      for (const partial of voice.partialNodes || []) {
+        partial.oscillator?.disconnect?.();
+        partial.gain?.disconnect?.();
       }
     }
 
@@ -756,7 +786,11 @@
           partialNode.gain?.gain?.setTargetAtTime?.(0.0001, now, 0.04);
           continue;
         }
-        partialNode.oscillator?.frequency?.setTargetAtTime?.(partialFrequency(generator, partial, now), now, 0.08);
+        partialNode.oscillator?.frequency?.setTargetAtTime?.(
+          partialFrequency(generator, partial, now),
+          now,
+          0.08
+        );
         partialNode.gain?.gain?.setTargetAtTime?.(partialAmplitude(partial, now), now, 0.08);
       }
     }
@@ -769,13 +803,20 @@
       const baseFrequency = Number.isFinite(partial.frequencyHz)
         ? partial.frequencyHz
         : generator.frequencyHz * partial.ratio;
-      const detune = partial.detuneCents + lfoValue(time, partial.detuneLfoHz, partial.detuneLfoCents, partial.lfoPhase);
+      const detune =
+        partial.detuneCents + lfoValue(time, partial.detuneLfoHz, partial.detuneLfoCents, partial.lfoPhase);
       return clamp(baseFrequency * Math.pow(2, detune / 1200), 20, 20000);
     }
 
     function partialAmplitude(partial, time = 0) {
       const movement = lfoValue(time, partial.amplitudeLfoHz, partial.amplitudeLfoDepth, partial.lfoPhase);
-      const swell = swellValue(time, partial.swellHz, partial.swellDepth, partial.swellShape, partial.lfoPhase);
+      const swell = swellValue(
+        time,
+        partial.swellHz,
+        partial.swellDepth,
+        partial.swellShape,
+        partial.lfoPhase
+      );
       return clamp(partial.amplitude * (1 + movement) * swell, 0.0001, 1);
     }
 
@@ -806,9 +847,10 @@
       const distance = Math.hypot(dx, dy);
       const normalizedDistance = clamp(distance / MAX_SPATIAL_DISTANCE, 0, 1);
       const pan = clamp(dx / (MAX_SPATIAL_DISTANCE * 0.85), -1, 1);
-      const gain = spatialization === "stereo-pan"
-        ? 0.85
-        : clamp(1 - normalizedDistance * 0.72 - Math.max(0, dy) / 600 * 0.12, 0.16, 1);
+      const gain =
+        spatialization === "stereo-pan"
+          ? 0.85
+          : clamp(1 - normalizedDistance * 0.72 - (Math.max(0, dy) / 600) * 0.12, 0.16, 1);
 
       return { pan, gain };
     }
@@ -817,9 +859,11 @@
       if (midiOutputs.length === 0) {
         return null;
       }
-      return midiOutputs.find((output) => output.id === generator.outputId)
-        || midiOutputs.find((output) => output.name === generator.outputName)
-        || midiOutputs[0];
+      return (
+        midiOutputs.find((output) => output.id === generator.outputId) ||
+        midiOutputs.find((output) => output.name === generator.outputName) ||
+        midiOutputs[0]
+      );
     }
 
     function serializeMidiOutput(output) {
@@ -857,20 +901,18 @@
     return clamp(number, min, max);
   }
 
-    function finiteNumber(value, fallback) {
-      const number = Number(value);
-      return Number.isFinite(number) ? number : fallback;
-    }
+  function finiteNumber(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
 
-    function finitePositive(value) {
-      return Number.isFinite(Number(value)) && Number(value) > 0;
-    }
+  function finitePositive(value) {
+    return Number.isFinite(Number(value)) && Number(value) > 0;
+  }
 
-    function finiteValues(values) {
-      return Array.isArray(values)
-        ? values.map(Number).filter((value) => Number.isFinite(value))
-        : [];
-    }
+  function finiteValues(values) {
+    return Array.isArray(values) ? values.map(Number).filter((value) => Number.isFinite(value)) : [];
+  }
 
   function clampInteger(value, min, max, fallback) {
     const number = Number(value);

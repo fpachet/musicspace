@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -33,8 +34,11 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run syntax check
+      - name: Run syntax and lint checks
         run: npm run check
+
+      - name: Check formatting
+        run: npm run format:check
 
       - name: Run regression tests
         run: npm test
@@ -42,7 +46,19 @@ jobs:
       - name: Run browser smoke test
         run: npm run smoke
 
+      - name: Collect diagnostic benchmarks
+        if: github.event_name == 'workflow_dispatch'
+        run: node scripts/browser-benchmark.js > benchmark-results.json
+
+      - name: Upload diagnostic benchmarks
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-benchmark
+          path: benchmark-results.json
+
   deploy:
+    if: github.event_name != 'pull_request'
     needs: test
     environment:
       name: github-pages

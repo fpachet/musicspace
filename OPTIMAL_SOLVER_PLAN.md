@@ -8,9 +8,9 @@ Implemented:
 
 - XPBD mode selected with `musicspace.html?solver=xpbd`.
 - Visible solver badge.
-- Affected-component builder with entity/constraint guardrails.
+- Affected-component builder with entity/constraint guardrails and topology-indexed adjacency.
 - XPBD projections for `pin`, `radialLimit`, `angleSector`, `fixedDistance`, `solid`, `separation`, `sum`, `product`, `distanceRatio`, and `angle`.
-- Deterministic phase ordering: hard, structural, aggregate, then a final hard pass.
+- Deterministic phase ordering computed once per solve: hard, structural, aggregate, then a final hard pass.
 - Rotator-aware solid-link handling and trajectory-frame preservation during animation ticks.
 - Drag/animation budget of 10 XPBD iterations.
 - Mouse-release refinement budget of 40 XPBD iterations after unpaused drags.
@@ -432,3 +432,5 @@ For performance, add a synthetic large component test with a fixed iteration bud
 - Solving all disconnected components.
 - Replacing the patch format.
 - Introducing external runtime dependencies before the in-house XPBD prototype is evaluated.
+
+The implementation now lives in `musicspace-solvers.js` and `musicspace-model.js`. Headless regression tests are in `tests/model.test.js`; browser and Node benchmark commands are documented in `TESTING.md`.

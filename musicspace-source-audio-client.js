@@ -20,12 +20,17 @@
     let bindings = [];
     let players = new Map();
     let enabled = false;
+    let generation = 0;
+    const decodedBuffers = new Map();
 
     return {
       loadPatch(patch = {}) {
-        stopPlayers();
-        enabled = false;
+        stop();
         bindings = normalizeBindings(patch.sourceBindings || []);
+        const urls = new Set(bindings.map((binding) => binding.dataUrl || binding.url));
+        for (const key of decodedBuffers.keys()) {
+          if (!urls.has(key)) decodedBuffers.delete(key);
+        }
       },
       serialize() {
         return {
@@ -72,17 +77,19 @@
         const player = players.get(sourceName);
         stopPlayer(player);
         players.delete(sourceName);
+        if (enabled) void restartEnabledPlayback();
       },
       renameSource(oldName, newName) {
-        bindings = bindings.map((binding) => (
+        bindings = bindings.map((binding) =>
           binding.source === oldName ? { ...binding, source: newName } : binding
-        ));
+        );
         const player = players.get(oldName);
         if (player) {
           players.delete(oldName);
           player.binding.source = newName;
           players.set(newName, player);
         }
+        if (enabled) void restartEnabledPlayback();
       },
       removeBindingsForMissingSources(sourceNames) {
         const validNames = new Set(sourceNames);
@@ -98,26 +105,48 @@
       isEnabled() {
         return enabled;
       },
-      async setEnabled(nextEnabled) {
-        enabled = Boolean(nextEnabled) && bindings.length > 0;
-        if (!enabled) {
-          stopPlayers();
-          return false;
-        }
-
-        await ensureContext();
-        if (!context) {
-          enabled = false;
-          return false;
-        }
-
-        await context.resume();
-        await startPlayers();
-        updateSpatial();
-        return enabled;
+      setEnabled,
+      stop,
+      dispose() {
+        stop();
+        decodedBuffers.clear();
+        global.MusicSpaceAudioCapture?.unregisterContext?.(context);
+        context?.close?.();
+        context = null;
+        reverbBus = null;
       },
       updateSpatial
     };
+
+    function stop() {
+      generation += 1;
+      enabled = false;
+      stopPlayers();
+      return false;
+    }
+
+    async function setEnabled(nextEnabled) {
+      stop();
+      if (!nextEnabled || bindings.length === 0) return false;
+      const ticket = generation;
+      enabled = true;
+      try {
+        await ensureContext();
+        if (!context || ticket !== generation) return false;
+        await context.resume();
+        if (ticket !== generation) return false;
+        await startPlayers(ticket);
+        if (ticket !== generation) return false;
+        enabled = players.size > 0;
+        return enabled;
+      } catch (error) {
+        if (ticket === generation) {
+          stop();
+          onStatus("Could not start source audio.");
+        }
+        return false;
+      }
+    }
 
     function normalizeBindings(nextBindings) {
       if (!Array.isArray(nextBindings)) {
@@ -183,34 +212,36 @@
       return context;
     }
 
-    async function startPlayers() {
+    async function startPlayers(ticket) {
+      const pendingBindings = bindings.filter((binding) => getSource(binding.source));
+      const decoded = await Promise.allSettled(pendingBindings.map(decodeBindingAudio));
+      if (ticket !== generation || !enabled) return;
+
       const nextPlayers = new Map();
-      for (const binding of bindings) {
-        const sourceEntity = getSource(binding.source);
-        if (!sourceEntity) {
-          continue;
-        }
-
-        try {
-          const player = await createPlayer(binding);
-          if (player) {
-            nextPlayers.set(binding.source, player);
+      try {
+        for (let index = 0; index < decoded.length; index += 1) {
+          const result = decoded[index];
+          const binding = pendingBindings[index];
+          if (result.status === "rejected") {
+            onStatus(`Could not play ${binding.name}.`);
+            continue;
           }
-        } catch (error) {
-          onStatus(`Could not play ${binding.name}.`);
+          stopPlayer(nextPlayers.get(binding.source));
+          nextPlayers.set(binding.source, createPlayer(binding, result.value));
         }
+        players = nextPlayers;
+        // Set gain, mute and pan before scheduling any source, avoiding a loud onset.
+        updateSpatial(true);
+        const startAt = context.currentTime + 0.02;
+        for (const player of players.values()) player.sourceNode.start(startAt);
+      } catch (error) {
+        for (const player of nextPlayers.values()) stopPlayer(player);
+        players = new Map();
+        throw error;
       }
-
-      stopPlayers();
-      players = nextPlayers;
     }
 
-    async function createPlayer(binding) {
-      if (!context || (!binding.dataUrl && !binding.url)) {
-        return null;
-      }
-
-      const buffer = await decodeBindingAudio(binding);
+    function createPlayer(binding, buffer) {
       const sourceNode = context.createBufferSource();
       const sourceGainNode = context.createGain();
       const directGainNode = context.createGain();
@@ -234,16 +265,27 @@
       if (reverbBus) {
         reverbSendNode.connect(reverbBus.input);
       }
-      sourceNode.start();
 
       return { binding, sourceNode, sourceGainNode, directGainNode, reverbSendNode, panNode };
     }
 
     async function decodeBindingAudio(binding) {
-      const arrayBuffer = binding.dataUrl
-        ? dataUrlToArrayBuffer(binding.dataUrl)
-        : await fetchArrayBuffer(binding.url);
-      return context.decodeAudioData(arrayBuffer.slice(0));
+      const key = binding.dataUrl || binding.url;
+      if (!key) throw new Error("Missing audio URL.");
+      if (!decodedBuffers.has(key)) {
+        const audioContext = context;
+        const pending = (async () => {
+          const arrayBuffer = binding.dataUrl
+            ? dataUrlToArrayBuffer(binding.dataUrl)
+            : await fetchArrayBuffer(binding.url);
+          return audioContext.decodeAudioData(arrayBuffer);
+        })();
+        decodedBuffers.set(key, pending);
+        pending.catch(() => {
+          if (decodedBuffers.get(key) === pending) decodedBuffers.delete(key);
+        });
+      }
+      return decodedBuffers.get(key);
     }
 
     async function fetchArrayBuffer(url) {
@@ -254,7 +296,7 @@
       return response.arrayBuffer();
     }
 
-    function updateSpatial() {
+    function updateSpatial(immediate = false) {
       if (!enabled || !context) {
         return;
       }
@@ -276,19 +318,19 @@
         const distance = Math.hypot(dx, dy);
         const normalizedDistance = clamp(distance / MAX_DISTANCE, 0, 1);
         const pan = clamp(dx / 300, -1, 1);
-        const attenuation = player.binding.spatialization === "stereo-pan"
-          ? 1
-          : clamp(1 - normalizedDistance, 0.05, 1);
+        const attenuation =
+          player.binding.spatialization === "stereo-pan" ? 1 : clamp(1 - normalizedDistance, 0.05, 1);
         const sourceGain = player.binding.muted ? 0 : clamp(player.binding.gain, 0, 2);
-        const reverbSend = player.binding.muted || player.binding.spatialization === "stereo-pan"
-          ? 0
-          : Math.pow(normalizedDistance, 0.7) * MAX_REVERB_SEND;
+        const reverbSend =
+          player.binding.muted || player.binding.spatialization === "stereo-pan"
+            ? 0
+            : Math.pow(normalizedDistance, 0.7) * MAX_REVERB_SEND;
 
-        setParam(player.sourceGainNode.gain, sourceGain, time);
-        setParam(player.directGainNode.gain, attenuation, time);
-        setParam(player.reverbSendNode.gain, reverbSend, time);
+        setParam(player.sourceGainNode.gain, sourceGain, time, immediate);
+        setParam(player.directGainNode.gain, attenuation, time, immediate);
+        setParam(player.reverbSendNode.gain, reverbSend, time, immediate);
         if (player.panNode) {
-          setParam(player.panNode.pan, pan, time);
+          setParam(player.panNode.pan, pan, time, immediate);
         }
       }
     }
@@ -321,17 +363,12 @@
       if (!enabled) {
         return;
       }
-      stopPlayers();
-      await startPlayers();
-      updateSpatial();
+      await setEnabled(true);
     }
   }
 
   function createReverbBus(context) {
-    if (
-      typeof context.createGain !== "function" ||
-      typeof context.createDelay !== "function"
-    ) {
+    if (typeof context.createGain !== "function" || typeof context.createDelay !== "function") {
       return null;
     }
 
@@ -339,9 +376,7 @@
     const delay = context.createDelay(1.2);
     const feedback = context.createGain();
     const output = context.createGain();
-    const tone = typeof context.createBiquadFilter === "function"
-      ? context.createBiquadFilter()
-      : null;
+    const tone = typeof context.createBiquadFilter === "function" ? context.createBiquadFilter() : null;
 
     input.gain.value = 1;
     delay.delayTime.value = 0.135;
@@ -379,8 +414,10 @@
     return bytes.buffer;
   }
 
-  function setParam(param, value, time) {
-    if (typeof param.setTargetAtTime === "function") {
+  function setParam(param, value, time, immediate = false) {
+    if (immediate) {
+      param.value = value;
+    } else if (typeof param.setTargetAtTime === "function") {
       param.setTargetAtTime(value, time, 0.025);
     } else {
       param.value = value;

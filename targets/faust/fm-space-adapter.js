@@ -59,24 +59,28 @@ export async function createFaustNode(context, target) {
     output: destination,
     setParamValue(path, value) {
       values[path] = Number(value);
-      applyValues(context, {
-        carrier,
-        modA,
-        modB,
-        vibrato,
-        tremolo,
-        modAGain,
-        modBGain,
-        vibratoGain,
-        tremoloGain,
-        drive,
-        filter,
-        delay,
-        feedback,
-        feedbackMix,
-        output,
-        pan
-      }, values);
+      applyValues(
+        context,
+        {
+          carrier,
+          modA,
+          modB,
+          vibrato,
+          tremolo,
+          modAGain,
+          modBGain,
+          vibratoGain,
+          tremoloGain,
+          drive,
+          filter,
+          delay,
+          feedback,
+          feedbackMix,
+          output,
+          pan
+        },
+        values
+      );
     },
     destroy() {
       for (const oscillator of [carrier, modA, modB, vibrato, tremolo]) {
@@ -109,24 +113,29 @@ export async function createFaustNode(context, target) {
     }
   };
 
-  applyValues(context, {
-    carrier,
-    modA,
-    modB,
-    vibrato,
-    tremolo,
-    modAGain,
-    modBGain,
-    vibratoGain,
-    tremoloGain,
-    drive,
-    filter,
-    delay,
-    feedback,
-    feedbackMix,
-    output,
-    pan
-  }, values, true);
+  applyValues(
+    context,
+    {
+      carrier,
+      modA,
+      modB,
+      vibrato,
+      tremolo,
+      modAGain,
+      modBGain,
+      vibratoGain,
+      tremoloGain,
+      drive,
+      filter,
+      delay,
+      feedback,
+      feedbackMix,
+      output,
+      pan
+    },
+    values,
+    true
+  );
   return controller;
 }
 
@@ -170,10 +179,12 @@ function applyValues(context, nodes, values, immediate = false) {
 }
 
 function defaultsFromTarget(target) {
-  return Object.fromEntries(Object.entries(target.parameters || {}).map(([path, config]) => [
-    path,
-    Number(config.default ?? config.init ?? config.value ?? 0)
-  ]));
+  return Object.fromEntries(
+    Object.entries(target.parameters || {}).map(([path, config]) => [
+      path,
+      Number(config.default ?? config.init ?? config.value ?? 0)
+    ])
+  );
 }
 
 function setAudioParam(param, value, time, rampTime) {
@@ -186,7 +197,7 @@ function driveCurve(amount) {
   const curve = new Float32Array(samples);
   const drive = 1 + amount * 24;
   for (let index = 0; index < samples; index += 1) {
-    const x = index / (samples - 1) * 2 - 1;
+    const x = (index / (samples - 1)) * 2 - 1;
     curve[index] = Math.tanh(x * drive) / Math.tanh(drive);
   }
   return curve;

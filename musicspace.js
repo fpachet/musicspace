@@ -1,193 +1,354 @@
-// MusicSpace prototype: draggable sources and constraint nodes on a 2D canvas.
-
 const WIDTH = 800;
+
 const HEIGHT = 600;
 
 const traceCanvas = document.getElementById("trace");
+
 const traceCtx = traceCanvas.getContext("2d");
+
 const canvas = document.getElementById("canvas");
+
 const ctx = canvas.getContext("2d");
+
 const stage = document.getElementById("stage");
 
 const uiModePlayButton = document.getElementById("ui-mode-play");
+
 const uiModeEditButton = document.getElementById("ui-mode-edit");
+
 const animationToggle = document.getElementById("animation-toggle");
+
 const undoStatus = document.getElementById("undo-status");
+
 const traceSelectedButton = document.getElementById("trace-selected");
+
 const traceNoneButton = document.getElementById("trace-none");
+
 const patchSelect = document.getElementById("patch-select");
+
 const savePatchButton = document.getElementById("save-patch");
+
 const loadPatchButton = document.getElementById("load-patch");
+
 const patchFileInput = document.getElementById("patch-file");
+
 const clearTraceButton = document.getElementById("clear-trace");
+
 const resetButton = document.getElementById("reset");
+
 const fullscreenToggleButton = document.getElementById("fullscreen-toggle");
+
 const saveTraceButton = document.getElementById("save-trace");
+
 const patchInfo = document.getElementById("patch-info");
+
 const transportToolbarGroup = document.getElementById("transport-toolbar-group");
+
 const targetToggleButton = document.getElementById("target-toggle");
+
 const targetPanel = document.getElementById("target-panel");
+
 const targetGrid = document.getElementById("target-grid");
+
 const midiLoadSequenceButton = document.getElementById("midi-load-sequence");
+
 const midiSequenceFileInput = document.getElementById("midi-sequence-file");
+
 const midiToolbarGroup = document.getElementById("midi-toolbar-group");
+
 const midiModeSelect = document.getElementById("midi-mode");
+
 const midiOutputSelect = document.getElementById("midi-output");
+
 const midiPanel = document.getElementById("midi-panel");
+
 const midiTrackList = document.getElementById("midi-track-list");
+
 const midiStatus = document.getElementById("midi-status");
+
 const selectionSummary = document.getElementById("selection-summary");
+
 const patchSummary = document.getElementById("patch-summary");
+
 const patchValidation = document.getElementById("patch-validation");
+
 const patchInspector = document.getElementById("patch-inspector");
+
 const patchInspectorToggle = document.getElementById("patch-inspector-toggle");
+
 const patchInspectorInlineToggle = document.getElementById("patch-inspector-inline-toggle");
+
 const patchInspectorClose = document.getElementById("patch-inspector-close");
+
 const patchMappingEditor = document.getElementById("patch-mapping-editor");
+
 const patchMappingList = document.getElementById("patch-mapping-list");
+
 const patchMappingAddButton = document.getElementById("patch-mapping-add");
+
 const patchMappingApplyButton = document.getElementById("patch-mapping-apply");
+
 const patchJsonToggle = document.getElementById("patch-json-toggle");
+
 const patchJsonInlineToggle = document.getElementById("patch-json-inline-toggle");
+
 const patchJsonEditor = document.getElementById("patch-json-editor");
+
 const patchJsonTextarea = document.getElementById("patch-json");
+
 const patchJsonApplyButton = document.getElementById("patch-json-apply");
+
 const patchValidateButton = document.getElementById("patch-validate");
+
 const constraintStatus = document.getElementById("constraint-status");
+
 const solverModePropagationButton = document.getElementById("solver-mode-propagation");
+
 const solverModeXpbdButton = document.getElementById("solver-mode-xpbd");
+
 const listenerModeRetargetButton = document.getElementById("listener-mode-retarget");
+
 const listenerModePreserveButton = document.getElementById("listener-mode-preserve");
+
 const toolButtons = Array.from(document.querySelectorAll("[data-tool]"));
+
 const rotationEditor = document.getElementById("rotation-editor");
+
 const rotationRunningInput = document.getElementById("rotation-running");
+
 const rotationDisplacementInput = document.getElementById("rotation-displacement");
+
 const rotationPeriodInput = document.getElementById("rotation-period");
+
 const rotationDirectionInput = document.getElementById("rotation-direction");
+
 const rotationPrevButton = document.getElementById("rotation-prev");
+
 const rotationNextButton = document.getElementById("rotation-next");
+
 const rotationApplyButton = document.getElementById("rotation-apply");
+
 const rotationCloseButton = document.getElementById("rotation-close");
+
 const shuttleEditor = document.getElementById("shuttle-editor");
+
 const shuttleStartRefInput = document.getElementById("shuttle-start-ref");
+
 const shuttleEndRefInput = document.getElementById("shuttle-end-ref");
+
 const shuttleStartXInput = document.getElementById("shuttle-start-x");
+
 const shuttleStartYInput = document.getElementById("shuttle-start-y");
+
 const shuttleEndXInput = document.getElementById("shuttle-end-x");
+
 const shuttleEndYInput = document.getElementById("shuttle-end-y");
+
 const shuttleSpeedInput = document.getElementById("shuttle-speed");
+
 const shuttleShowPathInput = document.getElementById("shuttle-show-path");
+
 const shuttlePrevButton = document.getElementById("shuttle-prev");
+
 const shuttleNextButton = document.getElementById("shuttle-next");
+
 const shuttleApplyButton = document.getElementById("shuttle-apply");
+
 const shuttleCloseButton = document.getElementById("shuttle-close");
+
 const constraintEditor = document.getElementById("constraint-editor");
+
 const constraintEditorSummary = document.getElementById("constraint-editor-summary");
+
 const constraintNodeManualInput = document.getElementById("constraint-node-manual");
+
 const constraintNodeXRow = document.getElementById("constraint-node-x-row");
+
 const constraintNodeXInput = document.getElementById("constraint-node-x");
+
 const constraintNodeYRow = document.getElementById("constraint-node-y-row");
+
 const constraintNodeYInput = document.getElementById("constraint-node-y");
+
 const constraintValueARow = document.getElementById("constraint-value-a-row");
+
 const constraintValueALabel = document.getElementById("constraint-value-a-label");
+
 const constraintValueAInput = document.getElementById("constraint-value-a");
+
 const constraintValueBRow = document.getElementById("constraint-value-b-row");
+
 const constraintValueBLabel = document.getElementById("constraint-value-b-label");
+
 const constraintValueBInput = document.getElementById("constraint-value-b");
+
 const constraintPrevButton = document.getElementById("constraint-prev");
+
 const constraintNextButton = document.getElementById("constraint-next");
+
 const constraintRecaptureButton = document.getElementById("constraint-recapture");
+
 const constraintApplyButton = document.getElementById("constraint-apply");
+
 const constraintCloseButton = document.getElementById("constraint-close");
+
 const sourceEditor = document.getElementById("source-editor");
+
 const sourceNameInput = document.getElementById("source-name");
+
 const sourceOutputTypeInput = document.getElementById("source-output-type");
+
 const sourceAudioFileInput = document.getElementById("source-audio-file");
+
 const sourceAudioFileRow = document.getElementById("source-audio-file-row");
+
 const sourceSpatializationRow = document.getElementById("source-spatialization-row");
+
 const sourceSpatializationInput = document.getElementById("source-spatialization");
+
 const sourceGainRow = document.getElementById("source-gain-row");
+
 const sourceGainInput = document.getElementById("source-gain");
+
 const sourceLoopRow = document.getElementById("source-loop-row");
+
 const sourceLoopInput = document.getElementById("source-loop");
+
 const sourceGeneratorPitchRow = document.getElementById("source-generator-pitch-row");
+
 const sourceGeneratorPitchInput = document.getElementById("source-generator-pitch");
+
 const sourceGeneratorPeriodRow = document.getElementById("source-generator-period-row");
+
 const sourceGeneratorPeriodInput = document.getElementById("source-generator-period");
+
 const sourceGeneratorDurationRow = document.getElementById("source-generator-duration-row");
+
 const sourceGeneratorDurationInput = document.getElementById("source-generator-duration");
+
 const sourceGeneratorVelocityRow = document.getElementById("source-generator-velocity-row");
+
 const sourceGeneratorVelocityInput = document.getElementById("source-generator-velocity");
+
 const sourceGeneratorWaveformRow = document.getElementById("source-generator-waveform-row");
+
 const sourceGeneratorWaveformInput = document.getElementById("source-generator-waveform");
+
 const sourceGeneratorOutputModeRow = document.getElementById("source-generator-output-mode-row");
+
 const sourceGeneratorOutputModeInput = document.getElementById("source-generator-output-mode");
+
 const sourceGeneratorOutputRow = document.getElementById("source-generator-output-row");
+
 const sourceGeneratorOutputInput = document.getElementById("source-generator-output");
+
 const sourceGeneratorChannelRow = document.getElementById("source-generator-channel-row");
+
 const sourceGeneratorChannelInput = document.getElementById("source-generator-channel");
+
 const sourceMidiTrackRow = document.getElementById("source-midi-track-row");
+
 const sourceMidiTrackInput = document.getElementById("source-midi-track");
+
 const sourceMidiChannelRow = document.getElementById("source-midi-channel-row");
+
 const sourceMidiChannelInput = document.getElementById("source-midi-channel");
+
 const sourceMidiProgramRow = document.getElementById("source-midi-program-row");
+
 const sourceMidiProgramInput = document.getElementById("source-midi-program");
+
 const sourceMidiDrumsRow = document.getElementById("source-midi-drums-row");
+
 const sourceMidiDrumsInput = document.getElementById("source-midi-drums");
+
 const sourceMutedRow = document.getElementById("source-muted-row");
+
 const sourceGeneratorMappingsPanel = document.getElementById("source-generator-mappings");
+
 const sourceGeneratorMappingList = document.getElementById("source-generator-mapping-list");
+
 const sourceGeneratorMappingAddButton = document.getElementById("source-generator-mapping-add");
+
 const sourceMutedInput = document.getElementById("source-muted");
+
 const sourceAudioFileName = document.getElementById("source-audio-file-name");
+
 const sourcePrevButton = document.getElementById("source-prev");
+
 const sourceNextButton = document.getElementById("source-next");
+
 const sourceApplyButton = document.getElementById("source-apply");
+
 const sourceToggleMuteButton = document.getElementById("source-toggle-mute");
+
 const sourceRemoveBindingButton = document.getElementById("source-remove-binding");
+
 const sourceCloseButton = document.getElementById("source-close");
+
 const listenerEditor = document.getElementById("listener-editor");
+
 const listenerXInput = document.getElementById("listener-x");
+
 const listenerYInput = document.getElementById("listener-y");
+
 const listenerDrawTraceInput = document.getElementById("listener-draw-trace");
+
 const listenerPrevButton = document.getElementById("listener-prev");
+
 const listenerNextButton = document.getElementById("listener-next");
+
 const listenerApplyButton = document.getElementById("listener-apply");
+
 const listenerCloseButton = document.getElementById("listener-close");
 
 const LISTENER_MODE_RETARGET = "retarget";
+
 const LISTENER_MODE_PRESERVE = "preserve";
+
 const MIN_DISTANCE = 2;
-const CONSTRAINT_EPSILON = 0.5;
-const PRODUCT_EPSILON = 0.01;
-const MAX_PROPAGATION_STEPS = 96;
-const MAX_ENTITY_PROPAGATION_COUNT = 8;
+
 const SOLVER_MODE_PROPAGATION = "propagation";
+
 const SOLVER_MODE_XPBD = "xpbd";
+
 const DEFAULT_SOLVER_MODE = SOLVER_MODE_PROPAGATION;
+
 const UI_MODE_PLAY = "play";
+
 const UI_MODE_EDIT = "edit";
-const XPBD_ITERATIONS_DRAG = 10;
-const XPBD_ITERATIONS_RELEASE = 40;
-const MAX_XPBD_COMPONENT_ENTITIES = 48;
-const MAX_XPBD_COMPONENT_CONSTRAINTS = 96;
-const ANGLE_EPSILON = 0.01;
-const RATIO_EPSILON = 0.01;
-const RELATIVE_PRODUCT_EPSILON = 0.001;
+
 const TOOL_SELECT = "select";
+
 const SOURCE_BINDING_AUDIO_FILE = "audio-file";
+
 const SOURCE_OUTPUT_MIDI_FILE = "midi-file";
+
 const SOURCE_OUTPUT_MIDI_OSTINATO = "midi-ostinato";
+
 const SOURCE_OUTPUT_ADDITIVE_SYNTH = "additive-synth";
+
 const SOURCE_GENERATOR_MAPPING_FEATURES = ["x", "y", "distance", "angle"];
-const SOURCE_GENERATOR_MAPPING_PARAMETERS = ["pitch", "periodMs", "durationMs", "velocity", "channel", "frequencyHz", "gain"];
+
+const SOURCE_GENERATOR_MAPPING_PARAMETERS = [
+  "pitch",
+  "periodMs",
+  "durationMs",
+  "velocity",
+  "channel",
+  "frequencyHz",
+  "gain"
+];
+
 const SOURCE_GENERATOR_MAPPING_CURVES = ["linear", "exp"];
+
 const SOURCE_GENERATOR_FEATURE_SPECS = {
   x: { min: 0, max: WIDTH, step: 1, defaultMin: 0, defaultMax: WIDTH },
   y: { min: 0, max: HEIGHT, step: 1, defaultMin: 0, defaultMax: HEIGHT },
   distance: { min: 0, max: WIDTH, step: 1, defaultMin: 0, defaultMax: 400 },
   angle: { min: -Math.PI, max: Math.PI, step: 0.01, defaultMin: -Math.PI, defaultMax: Math.PI }
 };
+
 const SOURCE_GENERATOR_PARAMETER_SPECS = {
   pitch: { min: 0, max: 127, step: 1, defaultMin: 48, defaultMax: 72 },
   periodMs: { min: 40, max: 60000, step: 10, defaultMin: 360, defaultMax: 1300 },
@@ -197,20 +358,16 @@ const SOURCE_GENERATOR_PARAMETER_SPECS = {
   frequencyHz: { min: 20, max: 16000, step: 1, defaultMin: 110, defaultMax: 880 },
   gain: { min: 0, max: 1, step: 0.01, defaultMin: 0.06, defaultMax: 0.35 }
 };
-const FRAMES_PER_SECOND = 60;
+
 const DOUBLE_CLICK_MS = 450;
+
 const DOUBLE_CLICK_DISTANCE = 12;
 
 const PATCH_INDEX_URL = "patches/index.json";
+
 let builtInPatches = [];
+
 let isCanvasFullscreen = false;
-let canvasResolution = {
-  width: 0,
-  height: 0,
-  pixelRatio: 1,
-  scaleX: 1,
-  scaleY: 1
-};
 
 function configureCanvasResolution() {
   const rect = canvas.getBoundingClientRect();
@@ -232,13 +389,6 @@ function configureCanvasResolution() {
   const scaleY = backingHeight / HEIGHT;
   ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
   traceCtx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-  canvasResolution = {
-    width: backingWidth,
-    height: backingHeight,
-    pixelRatio,
-    scaleX,
-    scaleY
-  };
   return didResize;
 }
 
@@ -298,71 +448,6 @@ function handleDocumentFullscreenChange() {
   }
 }
 
-class Entity {
-  constructor(x, y, color = "#2563eb") {
-    this.x = x;
-    this.y = y;
-    this.radius = 13;
-    this.color = color;
-    this.prevX = x;
-    this.prevY = y;
-    this.drawTrace = false;
-  }
-
-  draw(ctx) {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  isInside(px, py) {
-    return (px - this.x) ** 2 + (py - this.y) ** 2 <= this.radius ** 2;
-  }
-}
-
-class Listener extends Entity {
-  constructor(x, y) {
-    super(x, y, "#111827");
-    this.name = "Listener";
-  }
-
-  draw(ctx) {
-    super.draw(ctx);
-    drawListenerGlyph(ctx, this.x, this.y);
-  }
-}
-
-class SoundSource extends Entity {
-  constructor(x, y, name) {
-    super(x, y, "#dc2626");
-    this.name = name;
-    this.prevX = x;
-    this.prevY = y;
-  }
-
-  draw(ctx, emitterCapability = sourceEmitterCapability(this)) {
-    drawSourceBody(ctx, this, emitterCapability);
-    if (emitterCapability.partial) {
-      return;
-    }
-    if (this.name.length <= 2) {
-      ctx.fillStyle = emitterCapability.emits ? "#ffffff" : "#991b1b";
-      ctx.font = "700 12px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(this.name, this.x, this.y);
-    } else {
-      drawSourceExternalLabel(ctx, this, emitterCapability);
-    }
-
-    drawSourceEmitterBadge(ctx, this, emitterCapability);
-  }
-}
-
 function drawSourceBody(ctx, source, emitterCapability) {
   const emits = Boolean(emitterCapability?.emits);
   const radius = sourceVisualRadius(source, emitterCapability);
@@ -384,11 +469,12 @@ function drawSourceBody(ctx, source, emitterCapability) {
   if (emits) {
     ctx.beginPath();
     ctx.arc(source.x, source.y, radius + 5, 0, Math.PI * 2);
-    ctx.strokeStyle = emitterCapability.audio && emitterCapability.midi
-      ? "#a855f7"
-      : emitterCapability.midi
-        ? "#7c3aed"
-        : "#f97316";
+    ctx.strokeStyle =
+      emitterCapability.audio && emitterCapability.midi
+        ? "#a855f7"
+        : emitterCapability.midi
+          ? "#7c3aed"
+          : "#f97316";
     ctx.lineWidth = 4;
     ctx.stroke();
   }
@@ -396,7 +482,9 @@ function drawSourceBody(ctx, source, emitterCapability) {
   ctx.beginPath();
   ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
   ctx.fillStyle = emits
-    ? (emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : source.color)
+    ? emitterCapability.midi && !emitterCapability.audio
+      ? "#7c3aed"
+      : source.color
     : "#fff1f2";
   ctx.fill();
   ctx.strokeStyle = emits ? "#ffffff" : "#dc2626";
@@ -414,9 +502,7 @@ function drawSourceExternalLabel(ctx, source, emitterCapability = { emits: false
   const labelWidth = clamp(source.name.length * 7 + paddingX * 2, 30, 116);
   const labelX = clamp(source.x - labelWidth / 2, 4, WIDTH - labelWidth - 4);
   const belowY = source.y + source.radius + 6;
-  const labelY = belowY + labelHeight <= HEIGHT - 4
-    ? belowY
-    : source.y - source.radius - labelHeight - 6;
+  const labelY = belowY + labelHeight <= HEIGHT - 4 ? belowY : source.y - source.radius - labelHeight - 6;
 
   ctx.save();
   ctx.beginPath();
@@ -505,861 +591,247 @@ function drawMidiEmitterIcon(ctx, x, y) {
   ctx.fill();
 }
 
-class MovingObject extends Entity {
-  constructor(x, y, name, trajectory = { type: "free" }) {
-    super(x, y, "#0891b2");
-    this.name = name;
-    this.radius = 11;
-    this.prevX = x;
-    this.prevY = y;
-    this.trajectory = normalizeTrajectory(trajectory, x, y);
+const scene = MusicSpaceModel.createSceneModel({
+  targetApi: globalThis.MusicSpaceTargets,
+  onStatus: setConstraintStatus
+});
+const state = scene.state;
+const {
+  Entity,
+  Listener,
+  SoundSource,
+  MovingObject,
+  ConstraintNode,
+  AngleConstraint,
+  SumConstraint,
+  ProductConstraint,
+  RadialLimitConstraint,
+  FixedDistanceConstraint,
+  DistanceRatioConstraint,
+  PinConstraint,
+  SolidAttachmentConstraint,
+  MinimumSeparationConstraint,
+  AngleSectorConstraint
+} = scene.classes;
+const {
+  constraintReferencesEntity,
+  distanceBetween,
+  resolveTrajectoryEndpoint,
+  getObjectByName,
+  entityLabel,
+  normalizeTrajectory,
+  parameterFeatureValue,
+  refreshConstraints,
+  clamp,
+  enforceConstraints,
+  refineXpbdAfterDrag,
+  measureConstraintResiduals,
+  validatePatch
+} = scene;
+Entity.prototype.draw = function (ctx) {
+  ctx.beginPath();
+  ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+  ctx.fillStyle = this.color;
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+};
+
+Listener.prototype.draw = function (ctx) {
+  Entity.prototype.draw.call(this, ctx);
+  drawListenerGlyph(ctx, this.x, this.y);
+};
+
+SoundSource.prototype.draw = function (ctx, emitterCapability = sourceEmitterCapability(this)) {
+  drawSourceBody(ctx, this, emitterCapability);
+  if (emitterCapability.partial) {
+    return;
   }
-
-  draw(ctx) {
-    if (this.trajectory?.type === "rotator") {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
-      ctx.fillStyle = "#f97316";
-      ctx.fill();
-      ctx.strokeStyle = "#fed7aa";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-    } else {
-      ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.rotate(Math.PI / 4);
-      ctx.beginPath();
-      ctx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 10px sans-serif";
+  if (this.name.length <= 2) {
+    ctx.fillStyle = emitterCapability.emits ? "#ffffff" : "#991b1b";
+    ctx.font = "700 12px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.trajectory?.type === "rotator" ? "R" : "M", this.x, this.y);
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "12px sans-serif";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(this.name, this.x, this.y - 18);
-  }
-
-  tick() {
-    const trajectory = this.trajectory || { type: "free" };
-    trajectory.rotationDelta = 0;
-
-    if (trajectory.type === "translation") {
-      this.x += trajectory.vx;
-      this.y += trajectory.vy;
-      if (trajectory.bounce) {
-        this.reflectWithinBounds(trajectory);
-      }
-      return true;
-    }
-
-    if (trajectory.type === "rotation") {
-      trajectory.phase += trajectory.angularSpeed;
-      this.x = trajectory.centerX + trajectory.radius * Math.cos(trajectory.phase);
-      this.y = trajectory.centerY + trajectory.radius * Math.sin(trajectory.phase);
-      return true;
-    }
-
-    if (trajectory.type === "shuttle") {
-      trajectory.phase += trajectory.speed * trajectory.direction;
-      if (trajectory.phase > 1 || trajectory.phase < 0) {
-        trajectory.phase = clamp(trajectory.phase, 0, 1);
-        trajectory.direction *= -1;
-      }
-      const start = resolveTrajectoryEndpoint(trajectory.start, trajectory.ax, trajectory.ay);
-      const end = resolveTrajectoryEndpoint(trajectory.end, trajectory.bx, trajectory.by);
-      this.x = start.x + (end.x - start.x) * trajectory.phase;
-      this.y = start.y + (end.y - start.y) * trajectory.phase;
-      return true;
-    }
-
-    if (trajectory.type === "bounce") {
-      this.x += trajectory.vx;
-      this.y += trajectory.vy;
-      this.reflectWithinBounds(trajectory);
-      return true;
-    }
-
-    if (trajectory.type === "rotator") {
-      if (!trajectory.running) {
-        return false;
-      }
-
-      trajectory.rotationDelta = rotatorFrameDelta(trajectory);
-      trajectory.phase += trajectory.rotationDelta;
-      return Math.abs(trajectory.rotationDelta) > 0;
-    }
-
-    return false;
-  }
-
-  reflectWithinBounds(trajectory) {
-    if (this.x < this.radius || this.x > WIDTH - this.radius) {
-      trajectory.vx *= -1;
-      this.x = clamp(this.x, this.radius, WIDTH - this.radius);
-    }
-
-    if (this.y < this.radius || this.y > HEIGHT - this.radius) {
-      trajectory.vy *= -1;
-      this.y = clamp(this.y, this.radius, HEIGHT - this.radius);
-    }
-  }
-}
-
-class ConstraintNode extends Entity {
-  constructor(x, y, label, color = "#d97706", glyph = label[0]) {
-    super(x, y, color);
-    this.label = label;
-    this.glyph = glyph;
-    this.isManual = false;
-  }
-
-  draw(ctx) {
-    super.draw(ctx);
-    ctx.fillStyle = "#111827";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(this.label, this.x, this.y - 18);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "700 11px sans-serif";
-    ctx.textBaseline = "middle";
-    ctx.fillText(this.glyph, this.x, this.y);
-  }
-}
-
-class AngleConstraint {
-  constructor(listener, a, b) {
-    this.listener = listener;
-    this.a = a;
-    this.b = b;
-    this.angle = this.computeAngle();
-    this.node = new ConstraintNode((a.x + b.x) / 2, (a.y + b.y) / 2, "Angle", "#2563eb");
-  }
-
-  computeAngle() {
-    return Math.atan2(this.b.y - this.listener.y, this.b.x - this.listener.x) -
-      Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
-  }
-
-  affectedEntities() {
-    return [this.listener, this.a, this.b];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.abs(normalizeAngle(this.computeAngle() - this.angle)),
-      tolerance: ANGLE_EPSILON,
-      unit: "rad"
-    };
-  }
-
-  refresh() {
-    this.angle = this.computeAngle();
-    this.updateNode();
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.a.x + this.b.x) / 2;
-      this.node.y = (this.a.y + this.b.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.a && moved !== this.b && moved !== this.listener) {
-      return;
-    }
-
-    if (moved === this.b) {
-      const baseAngle = Math.atan2(this.b.y - this.listener.y, this.b.x - this.listener.x);
-      const newAngle = baseAngle - this.angle;
-      const dist = Math.hypot(this.a.x - this.listener.x, this.a.y - this.listener.y);
-
-      const nextX = this.listener.x + dist * Math.cos(newAngle);
-      const nextY = this.listener.y + dist * Math.sin(newAngle);
-      translateEntity(this.a, nextX - this.a.x, nextY - this.a.y);
-      this.updateNode();
-      return { satisfied: true, movedEntity: this.a };
-    } else {
-      const baseAngle = Math.atan2(this.a.y - this.listener.y, this.a.x - this.listener.x);
-      const newAngle = baseAngle + this.angle;
-      const dist = Math.hypot(this.b.x - this.listener.x, this.b.y - this.listener.y);
-
-      const nextX = this.listener.x + dist * Math.cos(newAngle);
-      const nextY = this.listener.y + dist * Math.sin(newAngle);
-      translateEntity(this.b, nextX - this.b.x, nextY - this.b.y);
-      this.updateNode();
-      return { satisfied: true, movedEntity: this.b };
-    }
-  }
-
-  draw(ctx) {
-    drawConnector(ctx, this.node, this.a, "#2563eb");
-    drawConnector(ctx, this.node, this.b, "#2563eb");
-    drawConnector(ctx, this.node, this.listener, "#2563eb");
-    this.node.draw(ctx);
-  }
-}
-
-class SumConstraint {
-  constructor(listener, sources) {
-    this.listener = listener;
-    this.sources = sources;
-    this.totalDistance = this.computeTotalDistance();
-    this.node = new ConstraintNode(listener.x + 90, listener.y, "Sum", "#059669");
-  }
-
-  computeTotalDistance() {
-    return this.sources.reduce((sum, source) => sum + this.distanceToListener(source), 0);
-  }
-
-  distanceToListener(source) {
-    return Math.hypot(source.x - this.listener.x, source.y - this.listener.y);
-  }
-
-  affectedEntities() {
-    return [this.listener, ...this.sources];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.abs(this.computeTotalDistance() - this.totalDistance),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  refresh() {
-    this.totalDistance = this.computeTotalDistance();
-  }
-
-  enforce(moved) {
-    if (moved !== this.listener && !this.sources.includes(moved)) {
-      return;
-    }
-
-    const adjustableSources = moved === this.listener
-      ? [...this.sources]
-      : this.sources.filter((source) => source !== moved);
-    const currentTotal = this.computeTotalDistance();
-    const delta = this.totalDistance - currentTotal;
-    const result = distributeDistanceDelta(adjustableSources, delta, this.listener);
-
-    if (!result.satisfied && moved !== this.listener && this.sources.includes(moved)) {
-      const movedDistance = this.distanceToListener(moved);
-      setSourceDistance(moved, this.listener, Math.max(MIN_DISTANCE, movedDistance + result.remainingDelta));
-    }
-
-    const remainingError = this.totalDistance - this.computeTotalDistance();
-    if (Math.abs(remainingError) > CONSTRAINT_EPSILON) {
-      return {
-        satisfied: false,
-        movedEntities: result.movedEntities,
-        message: "Sum constraint reached its limit; source motion was backed off."
-      };
-    }
-
-    if (!result.satisfied) {
-      return {
-        satisfied: true,
-        movedEntities: result.movedEntities,
-        message: "Sum constraint used backoff to keep distances non-negative."
-      };
-    }
-
-    return { satisfied: true, movedEntities: result.movedEntities };
-  }
-
-  draw(ctx) {
-    for (const source of this.sources) {
-      drawConnector(ctx, this.node, source, "#059669");
-    }
-    drawConnector(ctx, this.node, this.listener, "#059669");
-    this.node.draw(ctx);
-  }
-}
-
-class ProductConstraint {
-  constructor(listener, sources) {
-    this.listener = listener;
-    this.sources = sources;
-    this.product = this.computeProduct();
-    this.node = new ConstraintNode(listener.x - 90, listener.y, "Product", "#7c3aed", "π");
-  }
-
-  computeProduct() {
-    return this.sources.reduce((product, source) => product * this.distanceToListener(source), 1);
-  }
-
-  distanceToListener(source) {
-    return Math.max(MIN_DISTANCE, Math.hypot(source.x - this.listener.x, source.y - this.listener.y));
-  }
-
-  affectedEntities() {
-    return [this.listener, ...this.sources];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.abs(this.computeProduct() - this.product) / Math.max(1, Math.abs(this.product)),
-      tolerance: RELATIVE_PRODUCT_EPSILON,
-      unit: "relative"
-    };
-  }
-
-  refresh() {
-    this.product = this.computeProduct();
-  }
-
-  enforce(moved) {
-    if (moved !== this.listener && !this.sources.includes(moved)) {
-      return;
-    }
-
-    const adjustableSources = moved === this.listener
-      ? [...this.sources]
-      : this.sources.filter((source) => source !== moved);
-    const result = distributeProduct(adjustableSources, this.product, this.sources, this.listener);
-    const error = Math.abs(this.computeProduct() - this.product);
-
-    if (error > PRODUCT_EPSILON) {
-      return {
-        satisfied: false,
-        movedEntities: result.movedEntities,
-        message: "Product constraint has no solution within the active limits."
-      };
-    }
-
-    if (result.usedBackoff) {
-      return {
-        satisfied: true,
-        movedEntities: result.movedEntities,
-        message: "Product constraint skipped a limited source and propagated to the remaining sources."
-      };
-    }
-
-    return { satisfied: true, movedEntities: result.movedEntities };
-  }
-
-  draw(ctx) {
-    for (const source of this.sources) {
-      drawConnector(ctx, this.node, source, "#7c3aed");
-    }
-    drawConnector(ctx, this.node, this.listener, "#7c3aed");
-    this.node.draw(ctx);
-  }
-}
-
-class RadialLimitConstraint {
-  constructor(listener, source, minDistance, maxDistance) {
-    this.listener = listener;
-    this.source = source;
-    this.minDistance = minDistance;
-    this.maxDistance = maxDistance;
-    this.node = new ConstraintNode(source.x, source.y - 56, "Limit", "#ea580c");
-  }
-
-  refresh() {
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.listener, this.source];
-  }
-
-  measureError() {
-    const distance = distanceBetween(this.source, this.listener);
-    return {
-      label: this.node.label,
-      error: Math.max(0, this.minDistance - distance, distance - this.maxDistance),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.listener.x + this.source.x) / 2;
-      this.node.y = (this.listener.y + this.source.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.source && moved !== this.listener) {
-      return;
-    }
-
-    const distance = Math.hypot(this.source.x - this.listener.x, this.source.y - this.listener.y);
-    const clampedDistance = clamp(distance, this.minDistance, this.maxDistance);
-
-    if (Math.abs(distance - clampedDistance) > CONSTRAINT_EPSILON) {
-      setSourceDistance(this.source, this.listener, clampedDistance);
-      this.updateNode();
-      return {
-        satisfied: true,
-        movedEntity: this.source,
-        message: `${this.source.name} reached its radial limit.`
-      };
-    }
-
-    this.updateNode();
-    return { satisfied: true };
-  }
-
-  draw(ctx) {
-    drawRadialLimit(ctx, this.listener, this.minDistance, this.maxDistance, "#ea580c");
-    drawConnector(ctx, this.node, this.source, "#ea580c");
-    drawConnector(ctx, this.node, this.listener, "#ea580c");
-    this.node.draw(ctx);
-  }
-}
-
-class FixedDistanceConstraint {
-  constructor(anchor, target, distance = distanceBetween(anchor, target)) {
-    this.anchor = anchor;
-    this.target = target;
-    this.distance = distance;
-    this.node = new ConstraintNode((anchor.x + target.x) / 2, (anchor.y + target.y) / 2, "Distance", "#0f766e");
-  }
-
-  refresh() {
-    this.distance = distanceBetween(this.anchor, this.target);
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.anchor, this.target];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.abs(distanceBetween(this.anchor, this.target) - this.distance),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.anchor.x + this.target.x) / 2;
-      this.node.y = (this.anchor.y + this.target.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.anchor && moved !== this.target) {
-      return;
-    }
-
-    if (moved === this.anchor) {
-      setEntityDistance(this.target, this.anchor, this.distance);
-    } else {
-      setEntityDistance(this.target, this.anchor, this.distance);
-    }
-
-    this.updateNode();
-    return {
-      satisfied: true,
-      movedEntity: this.target
-    };
-  }
-
-  draw(ctx) {
-    drawConnector(ctx, this.node, this.anchor, "#0f766e");
-    drawConnector(ctx, this.node, this.target, "#0f766e");
-    this.node.draw(ctx);
-  }
-}
-
-class DistanceRatioConstraint {
-  constructor(listener, a, b, ratio = distanceBetween(a, listener) / distanceBetween(b, listener)) {
-    this.listener = listener;
-    this.a = a;
-    this.b = b;
-    this.ratio = ratio;
-    this.node = new ConstraintNode((a.x + b.x) / 2, (a.y + b.y) / 2, "Ratio", "#9333ea");
-  }
-
-  refresh() {
-    this.ratio = distanceBetween(this.a, this.listener) / distanceBetween(this.b, this.listener);
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.listener, this.a, this.b];
-  }
-
-  measureError() {
-    const currentRatio = distanceBetween(this.a, this.listener) / Math.max(MIN_DISTANCE, distanceBetween(this.b, this.listener));
-    return {
-      label: this.node.label,
-      error: Math.abs(currentRatio - this.ratio),
-      tolerance: RATIO_EPSILON,
-      unit: "ratio"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.a.x + this.b.x) / 2;
-      this.node.y = (this.a.y + this.b.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.listener && moved !== this.a && moved !== this.b) {
-      return;
-    }
-
-    let movedEntity;
-    if (moved === this.b) {
-      setEntityDistance(this.a, this.listener, distanceBetween(this.b, this.listener) * this.ratio);
-      movedEntity = this.a;
-    } else {
-      setEntityDistance(this.b, this.listener, distanceBetween(this.a, this.listener) / this.ratio);
-      movedEntity = this.b;
-    }
-
-    this.updateNode();
-    return { satisfied: true, movedEntity };
-  }
-
-  draw(ctx) {
-    drawConnector(ctx, this.node, this.a, "#9333ea");
-    drawConnector(ctx, this.node, this.b, "#9333ea");
-    drawConnector(ctx, this.node, this.listener, "#9333ea");
-    this.node.draw(ctx);
-  }
-}
-
-class PinConstraint {
-  constructor(target, x = target.x, y = target.y) {
-    this.target = target;
-    this.fixedX = x;
-    this.fixedY = y;
-    this.node = new ConstraintNode(target.x + 34, target.y - 34, "Pin", "#475569");
-  }
-
-  refresh() {
-    this.fixedX = this.target.x;
-    this.fixedY = this.target.y;
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.target];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.hypot(this.target.x - this.fixedX, this.target.y - this.fixedY),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = this.target.x + 34;
-      this.node.y = this.target.y - 34;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.target) {
-      return;
-    }
-
-    translateEntity(this.target, this.fixedX - this.target.x, this.fixedY - this.target.y);
-    this.updateNode();
-    return {
-      satisfied: true,
-      movedEntity: this.target,
-      message: `${entityLabel(this.target)} is pinned.`
-    };
-  }
-
-  draw(ctx) {
-    drawConnector(ctx, this.node, this.target, "#475569");
-    this.node.draw(ctx);
-  }
-}
-
-class SolidAttachmentConstraint {
-  constructor(carrier, attached, offsetX = attached.x - carrier.x, offsetY = attached.y - carrier.y) {
-    this.carrier = carrier;
-    this.attached = attached;
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
-    this.node = new ConstraintNode((carrier.x + attached.x) / 2, (carrier.y + attached.y) / 2, "Link", "#0369a1");
-  }
-
-  refresh() {
-    this.offsetX = this.attached.x - this.carrier.x;
-    this.offsetY = this.attached.y - this.carrier.y;
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.carrier, this.attached];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.hypot(
-        this.attached.x - this.carrier.x - this.offsetX,
-        this.attached.y - this.carrier.y - this.offsetY
-      ),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.carrier.x + this.attached.x) / 2;
-      this.node.y = (this.carrier.y + this.attached.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved === this.carrier) {
-      this.applyCarrierRotation();
-      const nextX = this.carrier.x + this.offsetX;
-      const nextY = this.carrier.y + this.offsetY;
-      translateEntity(this.attached, nextX - this.attached.x, nextY - this.attached.y);
-      this.updateNode();
-      return { satisfied: true, movedEntity: this.attached };
-    }
-
-    if (moved === this.attached) {
-      const nextX = this.attached.x - this.offsetX;
-      const nextY = this.attached.y - this.offsetY;
-      translateEntity(this.carrier, nextX - this.carrier.x, nextY - this.carrier.y);
-      this.updateNode();
-      return { satisfied: true, movedEntity: this.carrier };
-    }
-
-    return undefined;
-  }
-
-  applyCarrierRotation() {
-    if (!(this.carrier instanceof MovingObject) || this.carrier.trajectory?.type !== "rotator") {
-      return;
-    }
-
-    const delta = this.carrier.trajectory.rotationDelta || 0;
-    if (Math.abs(delta) < 0.000001) {
-      return;
-    }
-
-    const rotated = rotateVector(this.offsetX, this.offsetY, delta);
-    this.offsetX = rotated.x;
-    this.offsetY = rotated.y;
-  }
-
-  draw(ctx) {
-    if (isPartialSource(this.attached) || isPartialSource(this.carrier)) {
-      ctx.save();
-      ctx.strokeStyle = "rgba(3, 105, 161, 0.28)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(this.carrier.x, this.carrier.y);
-      ctx.lineTo(this.attached.x, this.attached.y);
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    drawConnector(ctx, this.node, this.carrier, "#0369a1");
-    drawConnector(ctx, this.node, this.attached, "#0369a1");
-    this.node.draw(ctx);
-  }
-}
-
-class MinimumSeparationConstraint {
-  constructor(a, b, minDistance = 80) {
-    this.a = a;
-    this.b = b;
-    this.minDistance = minDistance;
-    this.node = new ConstraintNode((a.x + b.x) / 2, (a.y + b.y) / 2, "Separate", "#be123c");
-  }
-
-  refresh() {
-    this.minDistance = Math.max(this.minDistance, distanceBetween(this.a, this.b));
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.a, this.b];
-  }
-
-  measureError() {
-    return {
-      label: this.node.label,
-      error: Math.max(0, this.minDistance - distanceBetween(this.a, this.b)),
-      tolerance: CONSTRAINT_EPSILON,
-      unit: "px"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.a.x + this.b.x) / 2;
-      this.node.y = (this.a.y + this.b.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.a && moved !== this.b) {
-      return;
-    }
-
-    const distance = Math.hypot(this.b.x - this.a.x, this.b.y - this.a.y);
-    if (distance >= this.minDistance) {
-      this.updateNode();
-      return { satisfied: true };
-    }
-
-    const pushed = moved === this.a ? this.b : this.a;
-    const anchor = moved === this.a ? this.a : this.b;
-    const angle = distance === 0 ? 0 : Math.atan2(pushed.y - anchor.y, pushed.x - anchor.x);
-    const nextX = anchor.x + this.minDistance * Math.cos(angle);
-    const nextY = anchor.y + this.minDistance * Math.sin(angle);
-    translateEntity(pushed, nextX - pushed.x, nextY - pushed.y);
-    this.updateNode();
-    return {
-      satisfied: true,
-      movedEntity: pushed,
-      message: "Minimum separation pushed the paired object away."
-    };
-  }
-
-  draw(ctx) {
-    drawConnector(ctx, this.node, this.a, "#be123c");
-    drawConnector(ctx, this.node, this.b, "#be123c");
-    this.node.draw(ctx);
-  }
-}
-
-class AngleSectorConstraint {
-  constructor(listener, source, centerAngle = Math.atan2(source.y - listener.y, source.x - listener.x), width = Math.PI / 2) {
-    this.listener = listener;
-    this.source = source;
-    this.centerAngle = centerAngle;
-    this.width = width;
-    this.node = new ConstraintNode(source.x, source.y - 52, "Sector", "#c2410c");
-  }
-
-  refresh() {
-    this.centerAngle = Math.atan2(this.source.y - this.listener.y, this.source.x - this.listener.x);
-    this.updateNode();
-  }
-
-  affectedEntities() {
-    return [this.listener, this.source];
-  }
-
-  measureError() {
-    const angle = Math.atan2(this.source.y - this.listener.y, this.source.x - this.listener.x);
-    const delta = normalizeAngle(angle - this.centerAngle);
-    return {
-      label: this.node.label,
-      error: Math.max(0, Math.abs(delta) - this.width / 2),
-      tolerance: ANGLE_EPSILON,
-      unit: "rad"
-    };
-  }
-
-  updateNode() {
-    if (!this.node.isManual) {
-      this.node.x = (this.listener.x + this.source.x) / 2;
-      this.node.y = (this.listener.y + this.source.y) / 2;
-    }
-  }
-
-  enforce(moved) {
-    if (moved !== this.source && moved !== this.listener) {
-      return;
-    }
-
-    const distance = distanceBetween(this.source, this.listener);
-    const angle = Math.atan2(this.source.y - this.listener.y, this.source.x - this.listener.x);
-    const delta = normalizeAngle(angle - this.centerAngle);
-    const halfWidth = this.width / 2;
-
-    if (Math.abs(delta) > halfWidth) {
-      const clampedAngle = this.centerAngle + clamp(delta, -halfWidth, halfWidth);
-      const nextX = this.listener.x + distance * Math.cos(clampedAngle);
-      const nextY = this.listener.y + distance * Math.sin(clampedAngle);
-      translateEntity(this.source, nextX - this.source.x, nextY - this.source.y);
-      this.updateNode();
-      return {
-        satisfied: true,
-        movedEntity: this.source,
-        message: `${entityLabel(this.source)} reached its angle sector.`
-      };
-    }
-
-    this.updateNode();
-    return { satisfied: true };
-  }
-
-  draw(ctx) {
-    drawAngleSector(ctx, this.listener, this.centerAngle, this.width, "#c2410c");
-    drawConnector(ctx, this.node, this.source, "#c2410c");
-    drawConnector(ctx, this.node, this.listener, "#c2410c");
-    this.node.draw(ctx);
-  }
-}
-
-let listener;
-let sources;
-let movingObjects;
-let constraints;
+    ctx.fillText(this.name, this.x, this.y);
+  } else {
+    drawSourceExternalLabel(ctx, this, emitterCapability);
+  }
+
+  drawSourceEmitterBadge(ctx, this, emitterCapability);
+};
+
+MovingObject.prototype.draw = function (ctx) {
+  if (this.trajectory?.type === "rotator") {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#f97316";
+    ctx.fill();
+    ctx.strokeStyle = "#fed7aa";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  } else {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.beginPath();
+    ctx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(this.trajectory?.type === "rotator" ? "R" : "M", this.x, this.y);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "12px sans-serif";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(this.name, this.x, this.y - 18);
+};
+
+ConstraintNode.prototype.draw = function (ctx) {
+  Entity.prototype.draw.call(this, ctx);
+  ctx.fillStyle = "#111827";
+  ctx.font = "12px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(this.label, this.x, this.y - 18);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 11px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.fillText(this.glyph, this.x, this.y);
+};
+
+AngleConstraint.prototype.draw = function (ctx) {
+  drawConnector(ctx, this.node, this.a, "#2563eb");
+  drawConnector(ctx, this.node, this.b, "#2563eb");
+  drawConnector(ctx, this.node, this.listener, "#2563eb");
+  this.node.draw(ctx);
+};
+
+SumConstraint.prototype.draw = function (ctx) {
+  for (const source of this.sources) {
+    drawConnector(ctx, this.node, source, "#059669");
+  }
+  drawConnector(ctx, this.node, this.listener, "#059669");
+  this.node.draw(ctx);
+};
+
+ProductConstraint.prototype.draw = function (ctx) {
+  for (const source of this.sources) {
+    drawConnector(ctx, this.node, source, "#7c3aed");
+  }
+  drawConnector(ctx, this.node, this.listener, "#7c3aed");
+  this.node.draw(ctx);
+};
+
+RadialLimitConstraint.prototype.draw = function (ctx) {
+  drawRadialLimit(ctx, this.listener, this.minDistance, this.maxDistance, "#ea580c");
+  drawConnector(ctx, this.node, this.source, "#ea580c");
+  drawConnector(ctx, this.node, this.listener, "#ea580c");
+  this.node.draw(ctx);
+};
+
+FixedDistanceConstraint.prototype.draw = function (ctx) {
+  drawConnector(ctx, this.node, this.anchor, "#0f766e");
+  drawConnector(ctx, this.node, this.target, "#0f766e");
+  this.node.draw(ctx);
+};
+
+DistanceRatioConstraint.prototype.draw = function (ctx) {
+  drawConnector(ctx, this.node, this.a, "#9333ea");
+  drawConnector(ctx, this.node, this.b, "#9333ea");
+  drawConnector(ctx, this.node, this.listener, "#9333ea");
+  this.node.draw(ctx);
+};
+
+PinConstraint.prototype.draw = function (ctx) {
+  drawConnector(ctx, this.node, this.target, "#475569");
+  this.node.draw(ctx);
+};
+
+SolidAttachmentConstraint.prototype.draw = function (ctx) {
+  if (isPartialSource(this.attached) || isPartialSource(this.carrier)) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(3, 105, 161, 0.28)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this.carrier.x, this.carrier.y);
+    ctx.lineTo(this.attached.x, this.attached.y);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  drawConnector(ctx, this.node, this.carrier, "#0369a1");
+  drawConnector(ctx, this.node, this.attached, "#0369a1");
+  this.node.draw(ctx);
+};
+
+MinimumSeparationConstraint.prototype.draw = function (ctx) {
+  drawConnector(ctx, this.node, this.a, "#be123c");
+  drawConnector(ctx, this.node, this.b, "#be123c");
+  this.node.draw(ctx);
+};
+
+AngleSectorConstraint.prototype.draw = function (ctx) {
+  drawAngleSector(ctx, this.listener, this.centerAngle, this.width, "#c2410c");
+  drawConnector(ctx, this.node, this.source, "#c2410c");
+  drawConnector(ctx, this.node, this.listener, "#c2410c");
+  this.node.draw(ctx);
+};
 let dragged = null;
+
 let selectedEntity = null;
+let selectionSummaryKey = null;
+
 let hoveredEntity = null;
+
 let activeTool = TOOL_SELECT;
+
 let pendingToolEntities = [];
+
 let lastCanvasClick = null;
+
 let activeRotationMover = null;
+
 let activeShuttleMover = null;
+
 let activeConstraintEditorConstraint = null;
+
 let activeSourceEditorSource = null;
+
 let activeSourceEditorInitialOutputType = "none";
+
 let pendingSourceAudioFile = null;
+
 let cachedSourceGeneratorMidiOutputs = [];
+
 let undoStack = [];
-let listenerMode = LISTENER_MODE_RETARGET;
+
 let isAnimating = false;
+
 let soundOutputEnabled = false;
+let soundGeneration = 0;
+
 let animationFrame = null;
-let velocity = { x: 0, y: 0 };
+
+const simulationClock = MusicSpaceClock.createClock();
+
 let activePatch = null;
-let lastPropagationReport = null;
-let propagationPaused = false;
-let solverMode = getInitialSolverMode();
+
 let uiMode = UI_MODE_PLAY;
+
 const loadedSequencePatches = new Map();
+
 const parameterClient = MusicSpaceParameterClient.createParameterClient({
   panel: targetPanel,
   grid: targetGrid,
@@ -1367,25 +839,29 @@ const parameterClient = MusicSpaceParameterClient.createParameterClient({
   getEntity: getObjectByName,
   getFeature: parameterFeatureValue
 });
+
 const sourceAudioClient = MusicSpaceSourceAudioClient.createSourceAudioClient({
   onStatus: setConstraintStatus,
   getSource: getObjectByName,
-  getListener: () => listener
+  getListener: () => state.listener
 });
+
 const midiFileClient = MusicSpaceMidiFileClient.createMidiFileClient({
   modeSelect: midiModeSelect,
   outputSelect: midiOutputSelect,
   panel: midiPanel,
   trackList: midiTrackList,
   status: midiStatus,
+  onStateChange: synchronizeSoundOutput,
   onStatus: setConstraintStatus,
   getSource: getObjectByName,
-  getListener: () => listener
+  getListener: () => state.listener
 });
+
 const generatorClient = MusicSpaceGeneratorClient.createGeneratorClient({
   onStatus: setConstraintStatus,
   getSource: getObjectByName,
-  getListener: () => listener
+  getListener: () => state.listener
 });
 
 function resetScene() {
@@ -1419,19 +895,21 @@ async function loadBuiltInPatchLibrary() {
   const entries = Array.isArray(index.patches) ? index.patches : [];
   const baseUrl = new URL(PATCH_INDEX_URL, window.location.href);
 
-  builtInPatches = await Promise.all(entries.map(async (entry) => {
-    const file = entry.file || `${entry.key}.json`;
-    const patchUrl = new URL(file, baseUrl);
-    const patch = await fetchJson(patchUrl.href);
-    return {
-      ...patch,
-      version: patch.version || index.version || 1,
-      key: patch.key || entry.key,
-      name: patch.name || entry.name || entry.key,
-      description: entry.description || patch.description || "",
-      tags: Array.isArray(entry.tags) ? entry.tags.slice() : patchTags(patch)
-    };
-  }));
+  builtInPatches = await Promise.all(
+    entries.map(async (entry) => {
+      const file = entry.file || `${entry.key}.json`;
+      const patchUrl = new URL(file, baseUrl);
+      const patch = await fetchJson(patchUrl.href);
+      return {
+        ...patch,
+        version: patch.version || index.version || 1,
+        key: patch.key || entry.key,
+        name: patch.name || entry.name || entry.key,
+        description: entry.description || patch.description || "",
+        tags: Array.isArray(entry.tags) ? entry.tags.slice() : patchTags(patch)
+      };
+    })
+  );
 
   if (builtInPatches.length === 0) {
     throw new Error("Patch index did not list any patches.");
@@ -1474,7 +952,8 @@ function selectPatchOptionForPatch(patch) {
 }
 
 function loadMenuPatch(key, options = {}) {
-  const patch = loadedSequencePatches.get(key) ||
+  const patch =
+    loadedSequencePatches.get(key) ||
     builtInPatches.find((candidate) => candidate.key === key) ||
     builtInPatches[0];
 
@@ -1487,50 +966,36 @@ function loadMenuPatch(key, options = {}) {
 }
 
 function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
-  if (!patch || !patch.listener || !Array.isArray(patch.sources)) {
-    setConstraintStatus("Patch file is missing listener or sources.");
-    return;
+  if (!scene.loadPatch(patch)) {
+    const findings = scene.validation();
+    renderPatchValidation(findings);
+    setConstraintStatus(
+      findings
+        .filter((finding) => finding.level === "error")
+        .map((finding) => finding.message)
+        .join(" ")
+    );
+    return false;
   }
-
-  if (preserveAsActive) {
-    activePatch = clonePatch(patch);
-  }
-
+  if (preserveAsActive) activePatch = clonePatch(patch);
   if (clearUndo) {
     undoStack = [];
     updateUndoStatus();
   }
-
-  listener = new Listener(patch.listener.x, patch.listener.y);
-  listener.drawTrace = Boolean(patch.listener.drawTrace);
-  sources = patch.sources.map((source) => {
-    const nextSource = new SoundSource(source.x, source.y, source.name);
-    nextSource.drawTrace = Boolean(source.drawTrace);
-    return nextSource;
-  });
-  movingObjects = (patch.movingObjects || [])
-    .map((mover) => {
-      const nextMover = new MovingObject(mover.x, mover.y, mover.name, mover.trajectory);
-      nextMover.drawTrace = Boolean(mover.drawTrace);
-      return nextMover;
-    });
-  const objectByName = createObjectMap();
-  constraints = (patch.constraints || [])
-    .map((constraint) => createConstraintFromSpec(constraint, objectByName))
-    .filter(Boolean);
   parameterClient.loadPatch(patch);
   sourceAudioClient.loadPatch(patch);
   midiFileClient.loadPatch(patch);
   generatorClient.loadPatch(patch);
+  soundGeneration += 1;
   soundOutputEnabled = false;
   updateSoundToggleButton();
   updateMidiToolbarVisibility();
   updateToolbarAvailability();
   dragged = null;
-  selectedEntity = listener;
+  selectedEntity = state.listener;
   hoveredEntity = null;
-  lastPropagationReport = null;
-  propagationPaused = false;
+  state.lastPropagationReport = null;
+  state.propagationPaused = false;
   pendingToolEntities = [];
   activeRotationMover = null;
   activeShuttleMover = null;
@@ -1543,12 +1008,13 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   constraintEditor.hidden = true;
   sourceEditor.hidden = true;
   listenerEditor.hidden = true;
-  velocity = { x: 0, y: 0 };
+
   setConstraintStatus("");
   clearTrace();
   updatePatchInfo(patch);
   drawAll();
   updatePatchInspector();
+  return true;
 }
 
 function patchTags(patch = {}) {
@@ -1626,7 +1092,9 @@ function summarizePatchForInfo(patch = {}) {
     parts.push("audio files");
   }
   if ((patch.sourceGenerators || []).length > 0) {
-    const hasAdditive = (patch.sourceGenerators || []).some((generator) => generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH);
+    const hasAdditive = (patch.sourceGenerators || []).some(
+      (generator) => generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+    );
     parts.push(hasAdditive ? "synth generators" : "MIDI generators");
   }
   if (patch.midiFile) {
@@ -1636,13 +1104,13 @@ function summarizePatchForInfo(patch = {}) {
 }
 
 function pushUndoSnapshot(reason = "edit") {
-  if (!listener || !sources || !movingObjects || !constraints) {
+  if (!state.listener || !state.sources || !state.movingObjects || !state.constraints) {
     return;
   }
 
   undoStack.push({
     reason,
-    patch: serializePatch()
+    patch: clonePatch(serializePatch())
   });
 
   if (undoStack.length > 60) {
@@ -1676,293 +1144,32 @@ function updateUndoStatus() {
   undoStatus.title = nextUndo ? "Press Cmd/Ctrl+Z to undo." : "";
 }
 
-function createObjectMap() {
-  const objectByName = new Map([[listener.name, listener]]);
-  for (const source of sources) {
-    objectByName.set(source.name, source);
-  }
-  for (const mover of movingObjects) {
-    objectByName.set(mover.name, mover);
-  }
-  return objectByName;
-}
-
-function createConstraintFromSpec(spec, objectByName) {
-  let constraint = null;
-
-  if (spec.type === "angle") {
-    constraint = new AngleConstraint(listener, objectByName.get(spec.sources[0]), objectByName.get(spec.sources[1]));
-  } else if (spec.type === "sum") {
-    constraint = new SumConstraint(listener, spec.sources.map((name) => objectByName.get(name)));
-  } else if (spec.type === "product") {
-    constraint = new ProductConstraint(listener, spec.sources.map((name) => objectByName.get(name)));
-  } else if (spec.type === "radialLimit") {
-    constraint = new RadialLimitConstraint(
-      listener,
-      objectByName.get(spec.source),
-      spec.minDistance,
-      spec.maxDistance
-    );
-  } else if (spec.type === "fixedDistance") {
-    constraint = new FixedDistanceConstraint(
-      objectByName.get(spec.anchor),
-      objectByName.get(spec.target),
-      spec.distance
-    );
-  } else if (spec.type === "distanceRatio") {
-    constraint = new DistanceRatioConstraint(
-      listener,
-      objectByName.get(spec.sources[0]),
-      objectByName.get(spec.sources[1]),
-      spec.ratio
-    );
-  } else if (spec.type === "pin") {
-    constraint = new PinConstraint(objectByName.get(spec.target), spec.x, spec.y);
-  } else if (spec.type === "solid") {
-    constraint = new SolidAttachmentConstraint(
-      objectByName.get(spec.carrier),
-      objectByName.get(spec.attached),
-      spec.offsetX,
-      spec.offsetY
-    );
-  } else if (spec.type === "separation") {
-    constraint = new MinimumSeparationConstraint(
-      objectByName.get(spec.sources[0]),
-      objectByName.get(spec.sources[1]),
-      spec.minDistance
-    );
-  } else if (spec.type === "angleSector") {
-    constraint = new AngleSectorConstraint(
-      listener,
-      objectByName.get(spec.source),
-      spec.centerAngle,
-      spec.width
-    );
-  }
-
-  if (!constraint || hasMissingConstraintSources(constraint)) {
-    return null;
-  }
-
-  if (spec.node) {
-    constraint.node.x = spec.node.x;
-    constraint.node.y = spec.node.y;
-    constraint.node.isManual = Boolean(spec.node.isManual);
-    constraint.node.drawTrace = Boolean(spec.node.drawTrace);
-  }
-
-  return constraint;
-}
-
-function hasMissingConstraintSources(constraint) {
-  if (constraint instanceof AngleConstraint) {
-    return !constraint.a || !constraint.b;
-  }
-
-  if (constraint instanceof SumConstraint || constraint instanceof ProductConstraint) {
-    return constraint.sources.some((source) => !source);
-  }
-
-  if (constraint instanceof RadialLimitConstraint) {
-    return !constraint.source;
-  }
-
-  if (constraint instanceof FixedDistanceConstraint) {
-    return !constraint.anchor || !constraint.target;
-  }
-
-  if (constraint instanceof DistanceRatioConstraint) {
-    return !constraint.a || !constraint.b;
-  }
-
-  if (constraint instanceof PinConstraint) {
-    return !constraint.target;
-  }
-
-  if (constraint instanceof SolidAttachmentConstraint) {
-    return !constraint.carrier || !constraint.attached;
-  }
-
-  if (constraint instanceof MinimumSeparationConstraint) {
-    return !constraint.a || !constraint.b;
-  }
-
-  if (constraint instanceof AngleSectorConstraint) {
-    return !constraint.source;
-  }
-
-  return true;
-}
-
-function constraintReferencesEntity(constraint, entity) {
-  if (constraint.node === entity) {
-    return true;
-  }
-
-  if (constraint instanceof AngleConstraint) {
-    return constraint.a === entity || constraint.b === entity || constraint.listener === entity;
-  }
-
-  if (constraint instanceof SumConstraint || constraint instanceof ProductConstraint) {
-    return constraint.listener === entity || constraint.sources.includes(entity);
-  }
-
-  if (constraint instanceof RadialLimitConstraint) {
-    return constraint.listener === entity || constraint.source === entity;
-  }
-
-  if (constraint instanceof FixedDistanceConstraint) {
-    return constraint.anchor === entity || constraint.target === entity;
-  }
-
-  if (constraint instanceof DistanceRatioConstraint) {
-    return constraint.listener === entity || constraint.a === entity || constraint.b === entity;
-  }
-
-  if (constraint instanceof PinConstraint) {
-    return constraint.target === entity;
-  }
-
-  if (constraint instanceof SolidAttachmentConstraint) {
-    return constraint.carrier === entity || constraint.attached === entity;
-  }
-
-  if (constraint instanceof MinimumSeparationConstraint) {
-    return constraint.a === entity || constraint.b === entity;
-  }
-
-  if (constraint instanceof AngleSectorConstraint) {
-    return constraint.listener === entity || constraint.source === entity;
-  }
-
-  return false;
-}
-
 function serializePatch() {
-  const parameterState = parameterClient.serialize();
-  const sourceAudioState = sourceAudioClient.serialize();
-  const midiState = midiFileClient.serialize();
-  const generatorState = generatorClient.serialize();
-
+  const patch = scene.serializePatch();
+  // Optional output blocks are owned by clients; removed bindings must not survive in the authored snapshot.
+  for (const key of [
+    "target",
+    "audioSynth",
+    "parameterMappings",
+    "audioMappings",
+    "sourceBindings",
+    "sourceGenerators",
+    "sourceGeneratorMappings",
+    "midiFile"
+  ])
+    delete patch[key];
   return {
-    version: 1,
+    ...patch,
     name: activePatch.name || "MusicSpace Patch",
-    listener: { x: listener.x, y: listener.y, drawTrace: listener.drawTrace },
-    sources: sources.map((source) => ({
-      name: source.name,
-      x: source.x,
-      y: source.y,
-      drawTrace: source.drawTrace
-    })),
-    movingObjects: movingObjects.map((mover) => ({
-      name: mover.name,
-      x: mover.x,
-      y: mover.y,
-      drawTrace: mover.drawTrace,
-      trajectory: mover.trajectory
-    })),
-    constraints: constraints.map(serializeConstraint).filter(Boolean),
-    ...parameterState,
-    ...sourceAudioState,
-    ...midiState,
-    ...generatorState
+    ...parameterClient.serialize(),
+    ...sourceAudioClient.serialize(),
+    ...midiFileClient.serialize(),
+    ...generatorClient.serialize()
   };
-}
-
-function serializeConstraint(constraint) {
-  const node = {
-    x: constraint.node.x,
-    y: constraint.node.y,
-    isManual: constraint.node.isManual,
-    drawTrace: constraint.node.drawTrace
-  };
-
-  if (constraint instanceof AngleConstraint) {
-    return { type: "angle", sources: [entityLabel(constraint.a), entityLabel(constraint.b)], node };
-  }
-
-  if (constraint instanceof SumConstraint) {
-    return { type: "sum", sources: constraint.sources.map(entityLabel), node };
-  }
-
-  if (constraint instanceof ProductConstraint) {
-    return { type: "product", sources: constraint.sources.map(entityLabel), node };
-  }
-
-  if (constraint instanceof RadialLimitConstraint) {
-    return {
-      type: "radialLimit",
-      source: entityLabel(constraint.source),
-      minDistance: constraint.minDistance,
-      maxDistance: constraint.maxDistance,
-      node
-    };
-  }
-
-  if (constraint instanceof FixedDistanceConstraint) {
-    return {
-      type: "fixedDistance",
-      anchor: entityLabel(constraint.anchor),
-      target: entityLabel(constraint.target),
-      distance: constraint.distance,
-      node
-    };
-  }
-
-  if (constraint instanceof DistanceRatioConstraint) {
-    return {
-      type: "distanceRatio",
-      sources: [entityLabel(constraint.a), entityLabel(constraint.b)],
-      ratio: constraint.ratio,
-      node
-    };
-  }
-
-  if (constraint instanceof PinConstraint) {
-    return {
-      type: "pin",
-      target: entityLabel(constraint.target),
-      x: constraint.fixedX,
-      y: constraint.fixedY,
-      node
-    };
-  }
-
-  if (constraint instanceof SolidAttachmentConstraint) {
-    return {
-      type: "solid",
-      carrier: entityLabel(constraint.carrier),
-      attached: entityLabel(constraint.attached),
-      offsetX: constraint.offsetX,
-      offsetY: constraint.offsetY,
-      node
-    };
-  }
-
-  if (constraint instanceof MinimumSeparationConstraint) {
-    return {
-      type: "separation",
-      sources: [entityLabel(constraint.a), entityLabel(constraint.b)],
-      minDistance: constraint.minDistance,
-      node
-    };
-  }
-
-  if (constraint instanceof AngleSectorConstraint) {
-    return {
-      type: "angleSector",
-      source: entityLabel(constraint.source),
-      centerAngle: constraint.centerAngle,
-      width: constraint.width,
-      node
-    };
-  }
-
-  return null;
 }
 
 function currentPatchSnapshot() {
-  if (!listener || !sources || !movingObjects || !constraints) {
+  if (!state.listener || !state.sources || !state.movingObjects || !state.constraints) {
     return activePatch ? clonePatch(activePatch) : null;
   }
 
@@ -2028,7 +1235,10 @@ function renderPatchSummary(patch) {
     createInspectorSection("Constraints", constraintLines.length ? constraintLines : ["None"]),
     createInspectorSection("Source Audio", sourceAudioLines.length ? sourceAudioLines : ["None"]),
     createInspectorSection("Generators", generatorLines.length ? generatorLines : ["None"]),
-    createInspectorSection("Generator Mappings", generatorMappingLines.length ? generatorMappingLines : ["None"]),
+    createInspectorSection(
+      "Generator Mappings",
+      generatorMappingLines.length ? generatorMappingLines : ["None"]
+    ),
     createInspectorSection("Mappings", mappingLines.length ? mappingLines : ["None"]),
     createInspectorSection("MIDI", midiLines.length ? midiLines : ["None"])
   );
@@ -2158,528 +1368,8 @@ function renderPatchValidation(findings) {
   }
 }
 
-function validatePatch(patch) {
-  const findings = [];
-  const add = (level, message) => findings.push({ level, message });
-
-  if (!patch || typeof patch !== "object") {
-    add("error", "Patch is not a JSON object.");
-    return findings;
-  }
-
-  if (!patch.listener || !isFinitePoint(patch.listener)) {
-    add("error", "Patch needs a listener with finite x/y coordinates.");
-  }
-
-  const scene = validateSceneObjects(patch, add);
-  validateConstraintSpecs(patch.constraints || [], scene.names, add);
-  validateBackendSpec(patch, add);
-  validateSourceBindings(patch.sourceBindings || [], scene.names, add);
-  validateSourceGenerators(patch.sourceGenerators || [], scene.names, add);
-  validateSourceGeneratorMappings(patch.sourceGeneratorMappings || [], scene.names, add);
-  validateParameterMappings(patch.parameterMappings || patch.audioMappings || [], scene.names, patch.target || patch.audioSynth, add);
-  validateMidiSpec(patch.midiFile, scene.names, patch.target || patch.audioSynth, add);
-
-  if (!findings.some((finding) => finding.level === "error" || finding.level === "warning")) {
-    add("ok", "Patch structure, references, constraints, source bindings, generators, mappings, and backend declaration look coherent.");
-  }
-
-  return findings;
-}
-
-function validateSceneObjects(patch, add) {
-  const names = new Set(["Listener"]);
-  const seen = new Set();
-
-  validateObjectArray(patch.sources, "source", names, seen, add);
-  validateObjectArray(patch.movingObjects || [], "moving object", names, seen, add);
-
-  if (!Array.isArray(patch.sources) || patch.sources.length === 0) {
-    add("error", "Patch needs at least one source.");
-  }
-
-  return { names };
-}
-
-function validateObjectArray(objects, label, names, seen, add) {
-  if (!Array.isArray(objects)) {
-    add("error", `Patch ${label}s must be an array.`);
-    return;
-  }
-
-  for (const object of objects) {
-    if (!object || typeof object.name !== "string" || object.name.trim() === "") {
-      add("error", `Every ${label} needs a non-empty name.`);
-      continue;
-    }
-    if (seen.has(object.name)) {
-      add("error", `Duplicate scene object name: ${object.name}.`);
-    }
-    if (!isFinitePoint(object)) {
-      add("error", `${capitalize(label)} ${object.name} needs finite x/y coordinates.`);
-    }
-    seen.add(object.name);
-    names.add(object.name);
-  }
-}
-
-function validateConstraintSpecs(constraints, names, add) {
-  if (!Array.isArray(constraints)) {
-    add("error", "Patch constraints must be an array.");
-    return;
-  }
-
-  for (const spec of constraints) {
-    if (!spec || typeof spec.type !== "string") {
-      add("error", "Every constraint needs a type.");
-      continue;
-    }
-
-    if (spec.type === "angle") {
-      validateNamedList(spec.sources, 2, spec.type, names, add);
-    } else if (spec.type === "sum" || spec.type === "product") {
-      validateNamedList(spec.sources, 2, spec.type, names, add);
-    } else if (spec.type === "radialLimit") {
-      validateReference(spec.source, "radialLimit.source", names, add);
-      validateMinMax(spec.minDistance, spec.maxDistance, "radialLimit distance", add);
-    } else if (spec.type === "fixedDistance") {
-      validateReference(spec.anchor, "fixedDistance.anchor", names, add);
-      validateReference(spec.target, "fixedDistance.target", names, add);
-      validateNonNegativeNumber(spec.distance, "fixedDistance.distance", add);
-    } else if (spec.type === "distanceRatio") {
-      validateNamedList(spec.sources, 2, spec.type, names, add);
-      validatePositiveNumber(spec.ratio, "distanceRatio.ratio", add);
-    } else if (spec.type === "pin") {
-      validateReference(spec.target, "pin.target", names, add);
-      if (!Number.isFinite(Number(spec.x)) || !Number.isFinite(Number(spec.y))) {
-        add("error", "pin needs finite x/y coordinates.");
-      }
-    } else if (spec.type === "solid") {
-      validateReference(spec.carrier, "solid.carrier", names, add);
-      validateReference(spec.attached, "solid.attached", names, add);
-    } else if (spec.type === "separation") {
-      validateNamedList(spec.sources, 2, spec.type, names, add);
-      validateNonNegativeNumber(spec.minDistance, "separation.minDistance", add);
-    } else if (spec.type === "angleSector") {
-      validateReference(spec.source, "angleSector.source", names, add);
-      validateNumber(spec.centerAngle, "angleSector.centerAngle", add);
-      validatePositiveNumber(spec.width, "angleSector.width", add);
-    } else {
-      add("error", `Unknown constraint type: ${spec.type}.`);
-    }
-  }
-}
-
-function validateBackendSpec(patch, add) {
-  const target = patch.target || patch.audioSynth || null;
-  const targetApi = globalThis.MusicSpaceTargets;
-  const knownBackends = new Set((targetApi?.listTargetBackends?.() || []).map((backend) => backend.type));
-
-  if (target?.type && knownBackends.size > 0 && !knownBackends.has(target.type)) {
-    add("error", `Unknown target backend: ${target.type}.`);
-  }
-
-  if (patch.midiFile && target?.type !== "midi-file") {
-    add("warning", "Patch has midiFile data but target.type is not midi-file.");
-  }
-  if (target?.type === "midi-file" && !patch.midiFile) {
-    add("error", "midi-file target needs a midiFile block.");
-  }
-  if (target?.type === "faust-wasm") {
-    if (!target.module) {
-      add("error", "faust-wasm target needs an adapter module.");
-    }
-    if (!target.dsp && !target.wasm && !target.json && !target.metadata) {
-      add("warning", "faust-wasm target has no DSP, WASM, or metadata artifact reference.");
-    }
-  }
-  if ((patch.parameterMappings || patch.audioMappings || []).length > 0 && !target) {
-    add("warning", "Parameter mappings use the default subtractive backend because target is omitted.");
-  }
-}
-
-function validateParameterMappings(mappings, names, target, add) {
-  if (!Array.isArray(mappings)) {
-    add("error", "parameterMappings must be an array.");
-    return;
-  }
-
-  const supportedParameters = targetParameterNames(target);
-  const supportedFeatures = new Set(["x", "y", "angle", "distance"]);
-
-  for (const mapping of mappings) {
-    if (!mapping || typeof mapping !== "object") {
-      add("error", "Every parameter mapping must be an object.");
-      continue;
-    }
-
-    validateReference(mapping.source, "mapping.source", names, add);
-    if (!supportedFeatures.has(mapping.feature)) {
-      add("error", `Unsupported mapping feature: ${mapping.feature || "(missing)"}.`);
-    }
-    if (!mapping.target) {
-      add("error", "Every parameter mapping needs a target.");
-    } else if (supportedParameters.size > 0 && !supportedParameters.has(mapping.target)) {
-      add("error", `Mapping target ${mapping.target} is not declared by backend ${target?.type || "subtractive"}.`);
-    }
-
-    validateNumber(mapping.inputMin, "mapping.inputMin", add);
-    validateNumber(mapping.inputMax, "mapping.inputMax", add);
-    validateNumber(mapping.outputMin, "mapping.outputMin", add);
-    validateNumber(mapping.outputMax, "mapping.outputMax", add);
-    validateMappingSnap(mapping, "mapping", add);
-    if (mapping.inputMin === mapping.inputMax) {
-      add("warning", `Mapping ${mapping.target || ""} has identical inputMin/inputMax.`);
-    }
-    if (mapping.curve === "exp" && (Number(mapping.outputMin) <= 0 || Number(mapping.outputMax) <= 0)) {
-      add("error", `Exponential mapping ${mapping.target || ""} needs positive outputMin/outputMax.`);
-    }
-  }
-}
-
-function validateMidiSpec(midiFile, names, target, add) {
-  if (!midiFile) {
-    return;
-  }
-
-  if (!midiFile.url && !midiFile.sequenceData) {
-    add("error", "midiFile needs either a url or embedded sequenceData.");
-  }
-  if (target?.type && target.type !== "midi-file") {
-    add("warning", "MIDI sequence playback should use target.type = midi-file.");
-  }
-  if (!Array.isArray(midiFile.trackBindings) || midiFile.trackBindings.length === 0) {
-    add("warning", "midiFile has no trackBindings.");
-    return;
-  }
-
-  for (const binding of midiFile.trackBindings) {
-    validateReference(binding?.source, "midiFile.trackBindings.source", names, add);
-    if (binding?.channel !== undefined) {
-      const channel = Number(binding.channel);
-      if (!Number.isInteger(channel) || channel < 1 || channel > 16) {
-        add("error", `MIDI channel must be an integer from 1 to 16 for ${binding.source || "binding"}.`);
-      }
-    }
-    if (binding?.program !== undefined) {
-      const program = Number(binding.program);
-      if (!Number.isInteger(program) || program < 0 || program > 127) {
-        add("error", `MIDI program must be an integer from 0 to 127 for ${binding.source || "binding"}.`);
-      }
-    }
-  }
-}
-
-function validateSourceBindings(bindings, names, add) {
-  if (!Array.isArray(bindings)) {
-    add("error", "sourceBindings must be an array.");
-    return;
-  }
-
-  const seenSources = new Set();
-  for (const binding of bindings) {
-    if (!binding || typeof binding !== "object") {
-      add("error", "Every source binding must be an object.");
-      continue;
-    }
-
-    validateReference(binding.source, "sourceBindings.source", names, add);
-    if (seenSources.has(binding.source)) {
-      add("warning", `Source ${binding.source} has multiple source bindings; only one is edited by the source inspector.`);
-    }
-    seenSources.add(binding.source);
-
-    if (binding.type !== SOURCE_BINDING_AUDIO_FILE) {
-      add("error", `Unsupported source binding type: ${binding.type || "(missing)"}.`);
-      continue;
-    }
-    if (!binding.dataUrl && !binding.url) {
-      add("error", `Audio source binding for ${binding.source || "?"} needs a dataUrl or url.`);
-    }
-    if (binding.gain !== undefined) {
-      validateNonNegativeNumber(binding.gain, "sourceBindings.gain", add);
-    }
-    if (binding.muted !== undefined && typeof binding.muted !== "boolean") {
-      add("error", "sourceBindings.muted must be a boolean when present.");
-    }
-    if (binding.spatialization && !["pan-distance", "stereo-pan"].includes(binding.spatialization)) {
-      add("error", `Unsupported source spatialization: ${binding.spatialization}.`);
-    }
-  }
-}
-
-function validateSourceGenerators(generators, names, add) {
-  if (!Array.isArray(generators)) {
-    add("error", "sourceGenerators must be an array.");
-    return;
-  }
-
-  const seenSources = new Set();
-  for (const generator of generators) {
-    if (!generator || typeof generator !== "object") {
-      add("error", "Every source generator must be an object.");
-      continue;
-    }
-
-    validateReference(generator.source, "sourceGenerators.source", names, add);
-    if (seenSources.has(generator.source)) {
-      add("warning", `Source ${generator.source} has multiple source generators.`);
-    }
-    seenSources.add(generator.source);
-
-    if (![SOURCE_OUTPUT_MIDI_OSTINATO, SOURCE_OUTPUT_ADDITIVE_SYNTH].includes(generator.type)) {
-      add("error", `Unsupported source generator type: ${generator.type || "(missing)"}.`);
-      continue;
-    }
-
-    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO) {
-      validateMidiValue(generator.pitch, 0, 127, `sourceGenerators.pitch for ${generator.source || "generator"}`, add);
-      validateMidiValue(generator.channel, 1, 16, `sourceGenerators.channel for ${generator.source || "generator"}`, add);
-      validatePositiveNumber(generator.periodMs, `sourceGenerators.periodMs for ${generator.source || "generator"}`, add);
-      validatePositiveNumber(generator.durationMs, `sourceGenerators.durationMs for ${generator.source || "generator"}`, add);
-      validateMidiValue(generator.velocity, 1, 127, `sourceGenerators.velocity for ${generator.source || "generator"}`, add);
-    }
-
-    if (generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH) {
-      validatePositiveNumber(generator.frequencyHz, `sourceGenerators.frequencyHz for ${generator.source || "generator"}`, add);
-      if (Number(generator.frequencyHz) < 20 || Number(generator.frequencyHz) > 16000) {
-        add("error", `sourceGenerators.frequencyHz for ${generator.source || "generator"} must be from 20 to 16000.`);
-      }
-      validateNonNegativeNumber(generator.gain, `sourceGenerators.gain for ${generator.source || "generator"}`, add);
-      if (Number(generator.gain) > 1) {
-        add("error", `sourceGenerators.gain for ${generator.source || "generator"} must be from 0 to 1.`);
-      }
-      if (generator.attackMs !== undefined) {
-        validatePositiveNumber(generator.attackMs, `sourceGenerators.attackMs for ${generator.source || "generator"}`, add);
-      }
-      if (generator.releaseMs !== undefined) {
-        validatePositiveNumber(generator.releaseMs, `sourceGenerators.releaseMs for ${generator.source || "generator"}`, add);
-      }
-      if (!Array.isArray(generator.partials) || generator.partials.length === 0) {
-        add("error", `Additive source generator for ${generator.source || "generator"} needs at least one partial.`);
-      } else {
-        generator.partials.forEach((partial, index) => validateAdditivePartial(partial, generator.source, index, add));
-      }
-    }
-
-    if (generator.muted !== undefined && typeof generator.muted !== "boolean") {
-      add("error", "sourceGenerators.muted must be a boolean when present.");
-    }
-    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO && generator.waveform && !["sine", "triangle", "sawtooth", "square"].includes(generator.waveform)) {
-      add("error", `Unsupported source generator waveform: ${generator.waveform}.`);
-    }
-    if (generator.type === SOURCE_OUTPUT_MIDI_OSTINATO && generator.outputMode && !["internal", "external"].includes(generator.outputMode)) {
-      add("error", `Unsupported source generator output mode: ${generator.outputMode}.`);
-    }
-    if (generator.outputId !== undefined && typeof generator.outputId !== "string") {
-      add("error", "sourceGenerators.outputId must be a string when present.");
-    }
-    if (generator.outputName !== undefined && typeof generator.outputName !== "string") {
-      add("error", "sourceGenerators.outputName must be a string when present.");
-    }
-    if (generator.spatialization && !["pan-distance", "stereo-pan"].includes(generator.spatialization)) {
-      add("error", `Unsupported source generator spatialization: ${generator.spatialization}.`);
-    }
-  }
-}
-
-function validateAdditivePartial(partial, sourceName, index, add) {
-  const label = `sourceGenerators.partials[${index}] for ${sourceName || "generator"}`;
-  if (!partial || typeof partial !== "object") {
-    add("error", `${label} must be an object.`);
-    return;
-  }
-  if (partial.frequencyHz === undefined) {
-    validatePositiveNumber(partial.ratio ?? partial.frequencyRatio, `${label}.ratio`, add);
-  } else {
-    validatePositiveNumber(partial.frequencyHz, `${label}.frequencyHz`, add);
-  }
-  validateNonNegativeNumber(partial.amplitude, `${label}.amplitude`, add);
-  if (Number(partial.amplitude) > 1) {
-    add("error", `${label}.amplitude must be from 0 to 1.`);
-  }
-  if (partial.detuneCents !== undefined) {
-    validateNumber(partial.detuneCents, `${label}.detuneCents`, add);
-  }
-  if (partial.amplitudeLfoHz !== undefined) {
-    validateNonNegativeNumber(partial.amplitudeLfoHz, `${label}.amplitudeLfoHz`, add);
-  }
-  if (partial.amplitudeLfoDepth !== undefined) {
-    validateNonNegativeNumber(partial.amplitudeLfoDepth, `${label}.amplitudeLfoDepth`, add);
-    if (Number(partial.amplitudeLfoDepth) > 1) {
-      add("error", `${label}.amplitudeLfoDepth must be from 0 to 1.`);
-    }
-  }
-  if (partial.detuneLfoHz !== undefined) {
-    validateNonNegativeNumber(partial.detuneLfoHz, `${label}.detuneLfoHz`, add);
-  }
-  if (partial.detuneLfoCents !== undefined) {
-    validateNonNegativeNumber(partial.detuneLfoCents, `${label}.detuneLfoCents`, add);
-  }
-  if (partial.swellHz !== undefined) {
-    validateNonNegativeNumber(partial.swellHz, `${label}.swellHz`, add);
-  }
-  if (partial.swellDepth !== undefined) {
-    validateNonNegativeNumber(partial.swellDepth, `${label}.swellDepth`, add);
-    if (Number(partial.swellDepth) > 1) {
-      add("error", `${label}.swellDepth must be from 0 to 1.`);
-    }
-  }
-  if (partial.swellShape !== undefined) {
-    validatePositiveNumber(partial.swellShape, `${label}.swellShape`, add);
-  }
-  if (partial.lfoPhase !== undefined) {
-    validateNumber(partial.lfoPhase, `${label}.lfoPhase`, add);
-  }
-}
-
-function validateSourceGeneratorMappings(mappings, names, add) {
-  if (!Array.isArray(mappings)) {
-    add("error", "sourceGeneratorMappings must be an array.");
-    return;
-  }
-
-  const supportedFeatures = new Set(["x", "y", "angle", "distance"]);
-  const supportedParameters = new Set(SOURCE_GENERATOR_MAPPING_PARAMETERS);
-
-  for (const mapping of mappings) {
-    if (!mapping || typeof mapping !== "object") {
-      add("error", "Every source generator mapping must be an object.");
-      continue;
-    }
-
-    validateReference(mapping.source, "sourceGeneratorMappings.source", names, add);
-    if (!supportedFeatures.has(mapping.feature)) {
-      add("error", `Unsupported source generator mapping feature: ${mapping.feature || "(missing)"}.`);
-    }
-    const parameter = mapping.parameter || mapping.target;
-    if (!supportedParameters.has(parameter)) {
-      add("error", `Unsupported source generator mapping parameter: ${parameter || "(missing)"}.`);
-    }
-    validateNumber(mapping.inputMin, "sourceGeneratorMappings.inputMin", add);
-    validateNumber(mapping.inputMax, "sourceGeneratorMappings.inputMax", add);
-    validateNumber(mapping.outputMin, "sourceGeneratorMappings.outputMin", add);
-    validateNumber(mapping.outputMax, "sourceGeneratorMappings.outputMax", add);
-    validateMappingSnap(mapping, "sourceGeneratorMappings", add);
-    if (mapping.inputMin === mapping.inputMax) {
-      add("warning", `${mapping.source || "Generator"} ${parameter || "mapping"} has identical inputMin/inputMax.`);
-    }
-    if (mapping.curve === "exp" && (Number(mapping.outputMin) <= 0 || Number(mapping.outputMax) <= 0)) {
-      add("error", `Exponential source generator mapping ${parameter || ""} needs positive outputMin/outputMax.`);
-    }
-  }
-}
-
-function validateMidiValue(value, min, max, label, add) {
-  const number = Number(value);
-  if (!Number.isInteger(number) || number < min || number > max) {
-    add("error", `${label} must be an integer from ${min} to ${max}.`);
-  }
-}
-
-function validateMappingSnap(mapping, label, add) {
-  if (mapping.quantize !== undefined) {
-    const quantize = Number(mapping.quantize);
-    if (!Number.isFinite(quantize) || quantize <= 0) {
-      add("error", `${label}.quantize must be a positive number when present.`);
-    }
-  }
-
-  if (mapping.values !== undefined) {
-    if (!Array.isArray(mapping.values) || mapping.values.length === 0) {
-      add("error", `${label}.values must be a non-empty array of numbers when present.`);
-      return;
-    }
-    for (const value of mapping.values) {
-      if (!Number.isFinite(Number(value))) {
-        add("error", `${label}.values must contain only numbers.`);
-        return;
-      }
-    }
-  }
-}
-
-function targetParameterNames(target) {
-  if (target?.parameters && typeof target.parameters === "object") {
-    return new Set(Object.keys(target.parameters));
-  }
-
-  const targetApi = globalThis.MusicSpaceTargets;
-  const targetType = target?.type || "subtractive";
-  const backend = (targetApi?.listTargetBackends?.() || []).find((candidate) => candidate.type === targetType);
-  return new Set(backend?.parameters || []);
-}
-
-function validateNamedList(values, expectedLength, label, names, add) {
-  if (!Array.isArray(values) || values.length < expectedLength) {
-    add("error", `${label} constraint needs at least ${expectedLength} source reference(s).`);
-    return;
-  }
-  for (const value of values) {
-    validateReference(value, `${label}.sources`, names, add);
-  }
-}
-
-function validateReference(name, label, names, add) {
-  if (typeof name !== "string" || name.trim() === "") {
-    add("error", `${label} needs a non-empty object name.`);
-    return;
-  }
-  if (!names.has(name)) {
-    add("error", `${label} references unknown object ${name}.`);
-  }
-}
-
-function validateMinMax(min, max, label, add) {
-  validateNumber(min, `${label} min`, add);
-  validateNumber(max, `${label} max`, add);
-  if (Number.isFinite(Number(min)) && Number.isFinite(Number(max)) && Number(min) > Number(max)) {
-    add("error", `${label} min must be less than or equal to max.`);
-  }
-}
-
-function validatePositiveNumber(value, label, add) {
-  validateNumber(value, label, add);
-  if (Number.isFinite(Number(value)) && Number(value) <= 0) {
-    add("error", `${label} must be positive.`);
-  }
-}
-
-function validateNonNegativeNumber(value, label, add) {
-  validateNumber(value, label, add);
-  if (Number.isFinite(Number(value)) && Number(value) < 0) {
-    add("error", `${label} must be non-negative.`);
-  }
-}
-
-function validateNumber(value, label, add) {
-  if (!Number.isFinite(Number(value))) {
-    add("error", `${label} must be a finite number.`);
-  }
-}
-
-function isFinitePoint(point) {
-  return Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y));
-}
-
 function capitalize(value) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
-}
-
-function parameterFeatureValue(feature, entity) {
-  if (feature === "x") {
-    return entity.x;
-  }
-
-  if (feature === "y") {
-    return entity.y;
-  }
-
-  if (feature === "angle") {
-    return Math.atan2(entity.y - listener.y, entity.x - listener.x);
-  }
-
-  return distanceBetween(entity, listener);
 }
 
 function drawParameterMappingCues(ctx) {
@@ -2703,7 +1393,7 @@ function drawParameterMappingCues(ctx) {
     }
 
     ctx.beginPath();
-    ctx.moveTo(listener.x, listener.y);
+    ctx.moveTo(state.listener.x, state.listener.y);
     ctx.lineTo(entity.x, entity.y);
     ctx.stroke();
     ctx.fillText("Param", entity.x, entity.y + entity.radius + 6);
@@ -2719,9 +1409,9 @@ function sourceEmitterCapability(sourceOrName) {
     return { audio: false, midi: false, emits: false };
   }
 
-  const audio = sourceAudioClient.bindingsForSource(sourceName).some((binding) => (
-    binding.type === SOURCE_BINDING_AUDIO_FILE && Boolean(binding.dataUrl || binding.url)
-  ));
+  const audio = sourceAudioClient
+    .bindingsForSource(sourceName)
+    .some((binding) => binding.type === SOURCE_BINDING_AUDIO_FILE && Boolean(binding.dataUrl || binding.url));
   const midi = Boolean(midiFileClient.hasTrackBindingForSource?.(sourceName));
   const generated = Boolean(generatorClient.hasGeneratorForSource?.(sourceName));
   const [generator] = generatorClient.generatorsForSource?.(sourceName) || [];
@@ -2747,9 +1437,11 @@ function isPartialSource(sourceOrName) {
 }
 
 function isPartialGenerator(generator) {
-  return generator?.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
-    && Array.isArray(generator.partials)
-    && generator.partials.length === 1;
+  return (
+    generator?.type === SOURCE_OUTPUT_ADDITIVE_SYNTH &&
+    Array.isArray(generator.partials) &&
+    generator.partials.length === 1
+  );
 }
 
 function updateSelectionSummary() {
@@ -2758,6 +1450,9 @@ function updateSelectionSummary() {
   }
 
   const summary = selectedEntitySummary(selectedEntity);
+  const key = JSON.stringify(summary);
+  if (key === selectionSummaryKey) return;
+  selectionSummaryKey = key;
   selectionSummary.replaceChildren();
   selectionSummary.hidden = !summary;
   if (!summary) {
@@ -2780,12 +1475,12 @@ function selectedEntitySummary(entity) {
     return null;
   }
 
-  if (entity === listener) {
+  if (entity === state.listener) {
     return {
       title: "Listener",
       lines: [
-        `${sources.length} sources, ${constraints.length} constraints`,
-        `Mode: ${listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"}`
+        `${state.sources.length} sources, ${state.constraints.length} constraints`,
+        `Mode: ${state.listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"}`
       ]
     };
   }
@@ -2799,7 +1494,7 @@ function selectedEntitySummary(entity) {
       title: `Mover: ${entity.name}`,
       lines: [
         `Trajectory: ${describeTrajectory(entity.trajectory)}`,
-        `${constraints.filter((constraint) => constraintReferencesEntity(constraint, entity)).length} constraints`
+        `${state.constraints.filter((constraint) => constraintReferencesEntity(constraint, entity)).length} constraints`
       ]
     };
   }
@@ -2809,10 +1504,7 @@ function selectedEntitySummary(entity) {
     const spec = constraint ? constraintEditorSpec(constraint) : null;
     return {
       title: entityLabel(entity),
-      lines: [
-        spec?.summary || "Constraint node",
-        "Double-click to edit parameters"
-      ]
+      lines: [spec?.summary || "Constraint node", "Double-click to edit parameters"]
     };
   }
 
@@ -2827,8 +1519,12 @@ function selectedSourceSummary(source) {
   const audioBindings = sourceAudioClient.bindingsForSource(name);
   const generators = generatorClient.generatorsForSource(name);
   const generatorMappings = generatorClient.mappingsForSource(name);
-  const midiBindings = (currentPatchSnapshot()?.midiFile?.trackBindings || []).filter((binding) => binding.source === name);
-  const relatedConstraints = constraints.filter((constraint) => constraintReferencesEntity(constraint, source));
+  const midiBindings = (currentPatchSnapshot()?.midiFile?.trackBindings || []).filter(
+    (binding) => binding.source === name
+  );
+  const relatedConstraints = state.constraints.filter((constraint) =>
+    constraintReferencesEntity(constraint, source)
+  );
   const lines = [];
 
   if (audioBindings.length || midiBindings.length || generators.length) {
@@ -2836,7 +1532,9 @@ function selectedSourceSummary(source) {
       lines.push(`Audio: ${audioBindings[0].name || audioBindings[0].url || "file"}`);
     }
     if (midiBindings.length) {
-      lines.push(`MIDI sequence: ${midiBindings.map((binding) => binding.track || `track ${binding.trackIndex ?? "?"}`).join(", ")}`);
+      lines.push(
+        `MIDI sequence: ${midiBindings.map((binding) => binding.track || `track ${binding.trackIndex ?? "?"}`).join(", ")}`
+      );
     }
     if (generators.length) {
       const generator = generatorClient.effectiveGeneratorsForSource?.(name)?.[0] || generators[0];
@@ -2852,7 +1550,9 @@ function selectedSourceSummary(source) {
   }
 
   if (generatorMappings.length) {
-    lines.push(`Mapped controls: ${generatorMappings.map((mapping) => formatMappingOption(mapping.parameter || mapping.target)).join(", ")}`);
+    lines.push(
+      `Mapped controls: ${generatorMappings.map((mapping) => formatMappingOption(mapping.parameter || mapping.target)).join(", ")}`
+    );
   }
 
   lines.push(`${relatedConstraints.length} constraints`);
@@ -2890,7 +1590,7 @@ function drawAll() {
   midiFileClient.updateSpatial();
   generatorClient.updateSpatial();
 
-  for (const constraint of constraints) {
+  for (const constraint of state.constraints) {
     constraint.draw(ctx);
   }
   drawConstraintDiagnostics(ctx);
@@ -2898,16 +1598,16 @@ function drawAll() {
   drawParameterMappingCues(ctx);
   sourceAudioClient.updateSpatial();
 
-  for (const mover of movingObjects) {
+  for (const mover of state.movingObjects) {
     drawMoverTrajectory(ctx, mover);
   }
 
-  for (const mover of movingObjects) {
+  for (const mover of state.movingObjects) {
     mover.draw(ctx);
   }
 
-  listener.draw(ctx);
-  for (const source of sources) {
+  state.listener.draw(ctx);
+  for (const source of state.sources) {
     source.draw(ctx, sourceEmitterCapability(source));
     drawSourceMuteCue(ctx, source);
   }
@@ -2916,7 +1616,7 @@ function drawAll() {
     drawSelection(ctx, selectedEntity);
   }
 
-  if (propagationPaused) {
+  if (state.propagationPaused) {
     drawPropagationPausedBadge(ctx);
   }
 }
@@ -2950,7 +1650,7 @@ function drawConnector(ctx, from, to, color) {
 }
 
 function drawConstraintDiagnostics(ctx) {
-  const residuals = lastPropagationReport?.residuals || measureConstraintResiduals();
+  const residuals = state.lastPropagationReport?.residuals || measureConstraintResiduals();
   for (const residual of residuals) {
     const node = residual.constraint.node;
     ctx.save();
@@ -3080,1038 +1780,12 @@ function drawAngleSector(ctx, anchor, centerAngle, width, color) {
   ctx.restore();
 }
 
-function distanceBetween(a, b) {
-  return Math.max(MIN_DISTANCE, Math.hypot(a.x - b.x, a.y - b.y));
-}
-
-function setEntityDistance(entity, anchor, distance) {
-  const currentDistance = Math.hypot(entity.x - anchor.x, entity.y - anchor.y);
-  const angle = currentDistance === 0
-    ? 0
-    : Math.atan2(entity.y - anchor.y, entity.x - anchor.x);
-
-  const nextX = anchor.x + distance * Math.cos(angle);
-  const nextY = anchor.y + distance * Math.sin(angle);
-  translateEntity(entity, nextX - entity.x, nextY - entity.y);
-}
-
-function setSourceDistance(source, anchor, distance) {
-  setEntityDistance(source, anchor, distance);
-}
-
-function translateEntity(entity, dx, dy) {
-  if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
-    updateRotatorDisplacementDelta(entity, dx, dy);
-  }
-
-  entity.x += dx;
-  entity.y += dy;
-
-  if (entity instanceof MovingObject) {
-    translateTrajectoryFrame(entity.trajectory, dx, dy);
-  }
-}
-
-function translateTrajectoryFrame(trajectory, dx, dy) {
-  if (!trajectory) {
-    return;
-  }
-
-  if (trajectory.type === "rotation") {
-    trajectory.centerX += dx;
-    trajectory.centerY += dy;
-  } else if (trajectory.type === "shuttle") {
-    translateShuttleEndpoint(trajectory.start, dx, dy);
-    translateShuttleEndpoint(trajectory.end, dx, dy);
-    trajectory.ax = trajectory.start.x;
-    trajectory.ay = trajectory.start.y;
-    trajectory.bx = trajectory.end.x;
-    trajectory.by = trajectory.end.y;
-  }
-}
-
-function translateShuttleEndpoint(endpoint, dx, dy) {
-  if (!endpoint || endpoint.type !== "fixed") {
-    return;
-  }
-
-  endpoint.x += dx;
-  endpoint.y += dy;
-}
-
-function updateRotatorDisplacementDelta(mover, dx, dy) {
-  const trajectory = mover.trajectory;
-  trajectory.rotationDelta = 0;
-
-  if (!trajectory.displacementInducesRotation) {
-    return;
-  }
-
-  const displacement = Math.hypot(dx, dy);
-  if (displacement <= 0.001) {
-    return;
-  }
-
-  const radius = averageAttachmentRadius(mover);
-  trajectory.rotationDelta = trajectory.direction * displacement / radius;
-  trajectory.phase += trajectory.rotationDelta;
-}
-
-function averageAttachmentRadius(mover) {
-  const radii = constraints
-    .filter((constraint) => constraint instanceof SolidAttachmentConstraint && constraint.carrier === mover)
-    .map((constraint) => Math.max(MIN_DISTANCE, Math.hypot(constraint.offsetX, constraint.offsetY)));
-
-  if (radii.length === 0) {
-    return 80;
-  }
-
-  return radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
-}
-
-function rotateVector(x, y, angle) {
-  return {
-    x: x * Math.cos(angle) - y * Math.sin(angle),
-    y: x * Math.sin(angle) + y * Math.cos(angle)
-  };
-}
-
-function rotatorFrameDelta(trajectory) {
-  const periodSeconds = Math.max(0.5, trajectory.periodSeconds || 20);
-  return trajectory.direction * (Math.PI * 2) / (periodSeconds * FRAMES_PER_SECOND);
-}
-
-function resolveTrajectoryEndpoint(endpoint, fallbackX, fallbackY) {
-  if (endpoint?.type === "object") {
-    const object = getObjectByName(endpoint.name);
-    if (object) {
-      return { x: object.x, y: object.y };
-    }
-  }
-
-  return {
-    x: endpoint?.x ?? fallbackX,
-    y: endpoint?.y ?? fallbackY
-  };
-}
-
-function getObjectByName(name) {
-  if (!name) {
-    return null;
-  }
-
-  if (listener?.name === name) {
-    return listener;
-  }
-
-  return (sources || []).find((source) => source.name === name) ||
-    (movingObjects || []).find((mover) => mover.name === name) ||
-    null;
-}
-
-function entityLabel(entity) {
-  if (entity instanceof ConstraintNode) {
-    return `${entity.label} constraint`;
-  }
-
-  return entity && entity.name ? entity.name : "Object";
-}
-
-function normalizeAngle(angle) {
-  let nextAngle = angle;
-  while (nextAngle <= -Math.PI) {
-    nextAngle += Math.PI * 2;
-  }
-  while (nextAngle > Math.PI) {
-    nextAngle -= Math.PI * 2;
-  }
-  return nextAngle;
-}
-
-function normalizeTrajectory(trajectory, x, y) {
-  const type = trajectory && trajectory.type ? trajectory.type : "free";
-
-  if (type === "translation") {
-    return {
-      type,
-      vx: trajectory.vx ?? 1.2,
-      vy: trajectory.vy ?? 0.6,
-      bounce: trajectory.bounce ?? true
-    };
-  }
-
-  if (type === "rotation") {
-    const centerX = trajectory.centerX ?? listener?.x ?? WIDTH / 2;
-    const centerY = trajectory.centerY ?? listener?.y ?? HEIGHT / 2;
-    return {
-      type,
-      centerX,
-      centerY,
-      radius: trajectory.radius ?? Math.max(40, Math.hypot(x - centerX, y - centerY)),
-      phase: trajectory.phase ?? Math.atan2(y - centerY, x - centerX),
-      angularSpeed: trajectory.angularSpeed ?? 0.018
-    };
-  }
-
-  if (type === "shuttle") {
-    const start = normalizeTrajectoryEndpoint(trajectory.start, trajectory.ax ?? x - 80, trajectory.ay ?? y);
-    const end = normalizeTrajectoryEndpoint(trajectory.end, trajectory.bx ?? x + 80, trajectory.by ?? y);
-    return {
-      type,
-      start,
-      end,
-      ax: start.x,
-      ay: start.y,
-      bx: end.x,
-      by: end.y,
-      phase: trajectory.phase ?? 0.5,
-      speed: trajectory.speed ?? 0.01,
-      direction: trajectory.direction ?? 1,
-      showPath: trajectory.showPath ?? true
-    };
-  }
-
-  if (type === "bounce") {
-    return {
-      type,
-      vx: trajectory.vx ?? 1.8,
-      vy: trajectory.vy ?? 1.1
-    };
-  }
-
-  if (type === "rotator") {
-    return {
-      type,
-      running: trajectory.running ?? true,
-      periodSeconds: trajectory.periodSeconds ?? 20,
-      direction: trajectory.direction ?? 1,
-      displacementInducesRotation: trajectory.displacementInducesRotation ?? true,
-      phase: trajectory.phase ?? 0,
-      rotationDelta: 0
-    };
-  }
-
-  return { type: "free" };
-}
-
-function normalizeTrajectoryEndpoint(endpoint, fallbackX, fallbackY) {
-  if (endpoint?.type === "object") {
-    const object = getObjectByName(endpoint.name);
-    return {
-      type: "object",
-      name: endpoint.name,
-      x: object?.x ?? endpoint.x ?? fallbackX,
-      y: object?.y ?? endpoint.y ?? fallbackY
-    };
-  }
-
-  return {
-    type: "fixed",
-    x: endpoint?.x ?? fallbackX,
-    y: endpoint?.y ?? fallbackY
-  };
-}
-
-function getRadialLimitsForSource(source) {
-  const limit = constraints.find((constraint) =>
-    constraint instanceof RadialLimitConstraint && constraint.source === source
-  );
-
-  if (!limit) {
-    return { minDistance: MIN_DISTANCE, maxDistance: Number.POSITIVE_INFINITY };
-  }
-
-  return {
-    minDistance: limit.minDistance,
-    maxDistance: limit.maxDistance
-  };
-}
-
-function distributeDistanceDelta(sourcesToAdjust, totalDelta, anchor) {
-  let remainingDelta = totalDelta;
-  const activeSources = [...sourcesToAdjust];
-  const movedEntities = new Set();
-
-  while (activeSources.length > 0 && Math.abs(remainingDelta) > CONSTRAINT_EPSILON) {
-    const share = remainingDelta / activeSources.length;
-    let appliedDelta = 0;
-    let clampedAny = false;
-
-    for (let index = activeSources.length - 1; index >= 0; index -= 1) {
-      const source = activeSources[index];
-      const currentDistance = Math.hypot(source.x - anchor.x, source.y - anchor.y);
-      const nextDistance = currentDistance + share;
-
-      if (nextDistance < MIN_DISTANCE) {
-        setSourceDistance(source, anchor, MIN_DISTANCE);
-        movedEntities.add(source);
-        appliedDelta += MIN_DISTANCE - currentDistance;
-        activeSources.splice(index, 1);
-        clampedAny = true;
-      }
-    }
-
-    if (!clampedAny) {
-      for (const source of activeSources) {
-        const currentDistance = Math.hypot(source.x - anchor.x, source.y - anchor.y);
-        setSourceDistance(source, anchor, currentDistance + share);
-        movedEntities.add(source);
-      }
-      remainingDelta = 0;
-      break;
-    }
-
-    remainingDelta -= appliedDelta;
-  }
-
-  return {
-    satisfied: Math.abs(remainingDelta) <= CONSTRAINT_EPSILON,
-    remainingDelta,
-    movedEntities: [...movedEntities]
-  };
-}
-
-function distributeProduct(sourcesToAdjust, targetProduct, allSources, anchor) {
-  const activeSources = [...sourcesToAdjust];
-  const movedEntities = new Set();
-  let usedBackoff = false;
-
-  while (activeSources.length > 0) {
-    const fixedProduct = allSources
-      .filter((source) => !activeSources.includes(source))
-      .reduce((product, source) => product * distanceBetween(source, anchor), 1);
-    const targetActiveProduct = targetProduct / fixedProduct;
-    const currentActiveProduct = activeSources
-      .reduce((product, source) => product * distanceBetween(source, anchor), 1);
-
-    if (targetActiveProduct <= 0 || currentActiveProduct <= 0) {
-      return { satisfied: false, usedBackoff, movedEntities: [...movedEntities] };
-    }
-
-    const factor = Math.pow(targetActiveProduct / currentActiveProduct, 1 / activeSources.length);
-    let clampedAny = false;
-
-    for (let index = activeSources.length - 1; index >= 0; index -= 1) {
-      const source = activeSources[index];
-      const currentDistance = distanceBetween(source, anchor);
-      const nextDistance = currentDistance * factor;
-      const { minDistance, maxDistance } = getRadialLimitsForSource(source);
-      const clampedDistance = clamp(nextDistance, minDistance, maxDistance);
-
-      if (Math.abs(nextDistance - clampedDistance) > CONSTRAINT_EPSILON) {
-        setSourceDistance(source, anchor, clampedDistance);
-        movedEntities.add(source);
-        activeSources.splice(index, 1);
-        clampedAny = true;
-        usedBackoff = true;
-      }
-    }
-
-    if (!clampedAny) {
-      for (const source of activeSources) {
-        const currentDistance = distanceBetween(source, anchor);
-        setSourceDistance(source, anchor, currentDistance * factor);
-        if (Math.abs(currentDistance * factor - currentDistance) > CONSTRAINT_EPSILON) {
-          movedEntities.add(source);
-        }
-      }
-      return { satisfied: true, usedBackoff, movedEntities: [...movedEntities] };
-    }
-  }
-
-  return { satisfied: false, usedBackoff, movedEntities: [...movedEntities] };
-}
-
-function enforceConstraints(moved, options = {}) {
-  if (solverMode === SOLVER_MODE_XPBD) {
-    const xpbdReport = enforceConstraintsWithXpbd(moved, options);
-    if (xpbdReport) {
-      lastPropagationReport = xpbdReport;
-      setConstraintStatus(formatPropagationStatus(lastPropagationReport));
-      return;
-    }
-  }
-
-  enforceConstraintsByPropagation(moved);
-}
-
-function refineXpbdAfterDrag(entity) {
-  if (solverMode !== SOLVER_MODE_XPBD || !entity) {
-    return false;
-  }
-
-  const xpbdReport = enforceConstraintsWithXpbd(entity, { iterations: XPBD_ITERATIONS_RELEASE });
-  if (!xpbdReport) {
-    return false;
-  }
-
-  lastPropagationReport = xpbdReport;
-  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
-  return true;
-}
-
-function enforceConstraintsWithXpbd(moved, {
-  iterations = XPBD_ITERATIONS_DRAG,
-  preserveTrajectoryFrame = false
-} = {}) {
-  const component = buildConstraintComponent(moved);
-  if (!component ||
-    component.entities.length > MAX_XPBD_COMPONENT_ENTITIES ||
-    component.constraints.length > MAX_XPBD_COMPONENT_CONSTRAINTS) {
-    return null;
-  }
-
-  applyXpbdRotatorFrameDeltas(component.constraints);
-
-  const positions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
-  const originalPositions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
-  const mobility = createXpbdMobility(component, moved);
-  const intent = moved && component.indexByEntity.has(moved)
-    ? {
-        index: component.indexByEntity.get(moved),
-        x: moved.x,
-        y: moved.y,
-        stiffness: 0.35
-      }
-    : null;
-
-  for (let iteration = 0; iteration < iterations; iteration += 1) {
-    applyXpbdSoftIntent(positions, mobility, intent);
-
-    for (const constraint of orderedXpbdConstraints(component.constraints)) {
-      projectXpbdConstraint(constraint, component.indexByEntity, positions, mobility);
-    }
-  }
-
-  for (const constraint of component.constraints) {
-    projectXpbdHardConstraint(constraint, component.indexByEntity, positions, mobility);
-  }
-
-  const movedEntities = [];
-  for (let index = 0; index < component.entities.length; index += 1) {
-    const entity = component.entities[index];
-    const next = positions[index];
-    const dx = next.x - entity.x;
-    const dy = next.y - entity.y;
-    if (Math.hypot(dx, dy) > 0.001) {
-      commitXpbdEntityPosition(entity, next, { preserveTrajectoryFrame });
-    }
-    if (Math.hypot(next.x - originalPositions[index].x, next.y - originalPositions[index].y) > CONSTRAINT_EPSILON) {
-      movedEntities.push(entity);
-    }
-  }
-
-  for (const constraint of component.constraints) {
-    constraint.updateNode?.();
-  }
-
-  return createPropagationReport({
-    hitEntityCap: false,
-    hitStepCap: false,
-    messages: [],
-    movedEntities,
-    processCounts: new Map(),
-    propagationSteps: iterations * component.constraints.length,
-    solverMode: SOLVER_MODE_XPBD
-  });
-}
-
-function orderedXpbdConstraints(componentConstraints) {
-  const hard = [];
-  const structural = [];
-  const aggregate = [];
-
-  for (const constraint of componentConstraints) {
-    if (constraint instanceof PinConstraint ||
-      constraint instanceof RadialLimitConstraint ||
-      constraint instanceof AngleSectorConstraint) {
-      hard.push(constraint);
-    } else if (constraint instanceof SolidAttachmentConstraint ||
-      constraint instanceof FixedDistanceConstraint ||
-      constraint instanceof MinimumSeparationConstraint) {
-      structural.push(constraint);
-    } else {
-      aggregate.push(constraint);
-    }
-  }
-
-  return [...hard, ...structural, ...aggregate];
-}
-
-function applyXpbdRotatorFrameDeltas(componentConstraints) {
-  for (const constraint of componentConstraints) {
-    if (constraint instanceof SolidAttachmentConstraint) {
-      constraint.applyCarrierRotation();
-    }
-  }
-}
-
-function commitXpbdEntityPosition(entity, next, { preserveTrajectoryFrame = false } = {}) {
-  if (preserveTrajectoryFrame && entity instanceof MovingObject) {
-    entity.x = next.x;
-    entity.y = next.y;
-    return;
-  }
-
-  translateEntity(entity, next.x - entity.x, next.y - entity.y);
-}
-
-function buildConstraintComponent(startEntity) {
-  if (!startEntity) {
-    return null;
-  }
-
-  const entities = [];
-  const componentConstraints = [];
-  const entitySet = new Set();
-  const constraintSet = new Set();
-  const queue = [startEntity];
-  entitySet.add(startEntity);
-
-  while (queue.length > 0) {
-    const entity = queue.shift();
-    for (const constraint of constraints) {
-      if (constraintSet.has(constraint)) {
-        continue;
-      }
-
-      const affected = constraint.affectedEntities?.().filter(Boolean) || [];
-      if (!affected.includes(entity)) {
-        continue;
-      }
-
-      constraintSet.add(constraint);
-      componentConstraints.push(constraint);
-
-      for (const affectedEntity of affected) {
-        if (!entitySet.has(affectedEntity)) {
-          entitySet.add(affectedEntity);
-          queue.push(affectedEntity);
-        }
-      }
-    }
-  }
-
-  for (const entity of entitySet) {
-    entities.push(entity);
-  }
-
-  return {
-    constraints: componentConstraints,
-    entities,
-    indexByEntity: new Map(entities.map((entity, index) => [entity, index]))
-  };
-}
-
-function createXpbdMobility(component, moved) {
-  const pinned = new Set(
-    component.constraints
-      .filter((constraint) => constraint instanceof PinConstraint)
-      .map((constraint) => constraint.target)
-  );
-
-  return component.entities.map((entity) => {
-    if (pinned.has(entity)) {
-      return 0;
-    }
-
-    if (entity === listener && entity !== moved) {
-      return 0;
-    }
-
-    return 1;
-  });
-}
-
-function applyXpbdSoftIntent(positions, mobility, intent) {
-  if (!intent || mobility[intent.index] <= 0) {
-    return;
-  }
-
-  const position = positions[intent.index];
-  position.x += (intent.x - position.x) * intent.stiffness;
-  position.y += (intent.y - position.y) * intent.stiffness;
-}
-
-function projectXpbdConstraint(constraint, indexByEntity, positions, mobility) {
-  if (constraint instanceof PinConstraint ||
-    constraint instanceof RadialLimitConstraint ||
-    constraint instanceof AngleSectorConstraint) {
-    projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility);
-    return;
-  }
-
-  if (constraint instanceof FixedDistanceConstraint) {
-    projectXpbdDistance(indexByEntity.get(constraint.anchor), indexByEntity.get(constraint.target), constraint.distance, positions, mobility);
-  } else if (constraint instanceof SolidAttachmentConstraint) {
-    projectXpbdSolid(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof MinimumSeparationConstraint) {
-    projectXpbdMinSeparation(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof SumConstraint) {
-    projectXpbdSum(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof ProductConstraint) {
-    projectXpbdProduct(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof DistanceRatioConstraint) {
-    projectXpbdRatio(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof AngleConstraint) {
-    projectXpbdAngle(constraint, indexByEntity, positions, mobility);
-  }
-}
-
-function projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility) {
-  if (constraint instanceof PinConstraint) {
-    const index = indexByEntity.get(constraint.target);
-    if (index === undefined) {
-      return;
-    }
-    positions[index].x = constraint.fixedX;
-    positions[index].y = constraint.fixedY;
-  } else if (constraint instanceof RadialLimitConstraint) {
-    projectXpbdRadialLimit(constraint, indexByEntity, positions, mobility);
-  } else if (constraint instanceof AngleSectorConstraint) {
-    projectXpbdAngleSector(constraint, indexByEntity, positions, mobility);
-  }
-}
-
-function projectXpbdDistance(aIndex, bIndex, targetDistance, positions, mobility) {
-  if (aIndex === undefined || bIndex === undefined) {
-    return;
-  }
-
-  const a = positions[aIndex];
-  const b = positions[bIndex];
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const distance = Math.hypot(dx, dy);
-  if (distance < 0.000001) {
-    return;
-  }
-
-  const aMobility = mobility[aIndex];
-  const bMobility = mobility[bIndex];
-  const mobilitySum = aMobility + bMobility;
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  const residual = distance - targetDistance;
-  const nx = dx / distance;
-  const ny = dy / distance;
-  a.x += nx * residual * (aMobility / mobilitySum);
-  a.y += ny * residual * (aMobility / mobilitySum);
-  b.x -= nx * residual * (bMobility / mobilitySum);
-  b.y -= ny * residual * (bMobility / mobilitySum);
-}
-
-function projectXpbdRadialLimit(constraint, indexByEntity, positions, mobility) {
-  const sourceIndex = indexByEntity.get(constraint.source);
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  if (sourceIndex === undefined || listenerIndex === undefined || mobility[sourceIndex] <= 0) {
-    return;
-  }
-
-  const source = positions[sourceIndex];
-  const anchor = positions[listenerIndex];
-  const dx = source.x - anchor.x;
-  const dy = source.y - anchor.y;
-  const distance = Math.hypot(dx, dy);
-  const clampedDistance = clamp(distance, constraint.minDistance, constraint.maxDistance);
-  if (Math.abs(distance - clampedDistance) <= CONSTRAINT_EPSILON) {
-    return;
-  }
-
-  const angle = distance === 0 ? 0 : Math.atan2(dy, dx);
-  source.x = anchor.x + clampedDistance * Math.cos(angle);
-  source.y = anchor.y + clampedDistance * Math.sin(angle);
-}
-
-function projectXpbdAngleSector(constraint, indexByEntity, positions, mobility) {
-  const sourceIndex = indexByEntity.get(constraint.source);
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  if (sourceIndex === undefined || listenerIndex === undefined || mobility[sourceIndex] <= 0) {
-    return;
-  }
-
-  const source = positions[sourceIndex];
-  const anchor = positions[listenerIndex];
-  const distance = Math.hypot(source.x - anchor.x, source.y - anchor.y);
-  const angle = Math.atan2(source.y - anchor.y, source.x - anchor.x);
-  const delta = normalizeAngle(angle - constraint.centerAngle);
-  const halfWidth = constraint.width / 2;
-  if (Math.abs(delta) <= halfWidth) {
-    return;
-  }
-
-  const clampedAngle = constraint.centerAngle + clamp(delta, -halfWidth, halfWidth);
-  source.x = anchor.x + distance * Math.cos(clampedAngle);
-  source.y = anchor.y + distance * Math.sin(clampedAngle);
-}
-
-function projectXpbdSolid(constraint, indexByEntity, positions, mobility) {
-  const carrierIndex = indexByEntity.get(constraint.carrier);
-  const attachedIndex = indexByEntity.get(constraint.attached);
-  if (carrierIndex === undefined || attachedIndex === undefined) {
-    return;
-  }
-
-  const carrier = positions[carrierIndex];
-  const attached = positions[attachedIndex];
-  const errorX = attached.x - carrier.x - constraint.offsetX;
-  const errorY = attached.y - carrier.y - constraint.offsetY;
-  const carrierMobility = mobility[carrierIndex];
-  const attachedMobility = mobility[attachedIndex];
-  const mobilitySum = carrierMobility + attachedMobility;
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  carrier.x += errorX * (carrierMobility / mobilitySum);
-  carrier.y += errorY * (carrierMobility / mobilitySum);
-  attached.x -= errorX * (attachedMobility / mobilitySum);
-  attached.y -= errorY * (attachedMobility / mobilitySum);
-}
-
-function projectXpbdMinSeparation(constraint, indexByEntity, positions, mobility) {
-  const aIndex = indexByEntity.get(constraint.a);
-  const bIndex = indexByEntity.get(constraint.b);
-  if (aIndex === undefined || bIndex === undefined) {
-    return;
-  }
-
-  const a = positions[aIndex];
-  const b = positions[bIndex];
-  const distance = Math.hypot(b.x - a.x, b.y - a.y);
-  if (distance >= constraint.minDistance) {
-    return;
-  }
-
-  projectXpbdDistance(aIndex, bIndex, constraint.minDistance, positions, mobility);
-}
-
-function projectXpbdSum(constraint, indexByEntity, positions, mobility) {
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  if (listenerIndex === undefined) {
-    return;
-  }
-
-  const anchor = positions[listenerIndex];
-  const sourceIndexes = constraint.sources
-    .map((source) => indexByEntity.get(source))
-    .filter((index) => index !== undefined && mobility[index] > 0);
-  const total = constraint.sources.reduce((sum, source) => {
-    const index = indexByEntity.get(source);
-    if (index === undefined) {
-      return sum;
-    }
-    return sum + Math.hypot(positions[index].x - anchor.x, positions[index].y - anchor.y);
-  }, 0);
-  const mobilitySum = sourceIndexes.reduce((sum, index) => sum + mobility[index], 0);
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  const residual = total - constraint.totalDistance;
-  for (const index of sourceIndexes) {
-    const source = positions[index];
-    const dx = source.x - anchor.x;
-    const dy = source.y - anchor.y;
-    const distance = Math.hypot(dx, dy);
-    const angle = distance === 0 ? 0 : Math.atan2(dy, dx);
-    const nextDistance = Math.max(MIN_DISTANCE, distance - residual * (mobility[index] / mobilitySum));
-    source.x = anchor.x + nextDistance * Math.cos(angle);
-    source.y = anchor.y + nextDistance * Math.sin(angle);
-  }
-}
-
-function projectXpbdProduct(constraint, indexByEntity, positions, mobility) {
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  if (listenerIndex === undefined || constraint.product <= 0) {
-    return;
-  }
-
-  const anchor = positions[listenerIndex];
-  const sourceIndexes = constraint.sources
-    .map((source) => indexByEntity.get(source))
-    .filter((index) => index !== undefined && mobility[index] > 0);
-  const mobilitySum = sourceIndexes.reduce((sum, index) => sum + mobility[index], 0);
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  const currentLogProduct = constraint.sources.reduce((sum, source) => {
-    const index = indexByEntity.get(source);
-    if (index === undefined) {
-      return sum;
-    }
-    return sum + Math.log(Math.max(MIN_DISTANCE, Math.hypot(positions[index].x - anchor.x, positions[index].y - anchor.y)));
-  }, 0);
-  const logResidual = currentLogProduct - Math.log(Math.max(1, constraint.product));
-
-  for (const index of sourceIndexes) {
-    const source = positions[index];
-    const dx = source.x - anchor.x;
-    const dy = source.y - anchor.y;
-    const distance = Math.max(MIN_DISTANCE, Math.hypot(dx, dy));
-    const angle = Math.atan2(dy, dx);
-    const nextDistance = distance * Math.exp(-logResidual * (mobility[index] / mobilitySum));
-    source.x = anchor.x + nextDistance * Math.cos(angle);
-    source.y = anchor.y + nextDistance * Math.sin(angle);
-  }
-}
-
-function projectXpbdRatio(constraint, indexByEntity, positions, mobility) {
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  const aIndex = indexByEntity.get(constraint.a);
-  const bIndex = indexByEntity.get(constraint.b);
-  if (listenerIndex === undefined || aIndex === undefined || bIndex === undefined || constraint.ratio <= 0) {
-    return;
-  }
-
-  const anchor = positions[listenerIndex];
-  const a = positions[aIndex];
-  const b = positions[bIndex];
-  const distanceA = Math.max(MIN_DISTANCE, Math.hypot(a.x - anchor.x, a.y - anchor.y));
-  const distanceB = Math.max(MIN_DISTANCE, Math.hypot(b.x - anchor.x, b.y - anchor.y));
-  const mobilitySum = mobility[aIndex] + mobility[bIndex];
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  const logResidual = Math.log(distanceA / distanceB) - Math.log(constraint.ratio);
-  if (mobility[aIndex] > 0) {
-    setXpbdPolarDistance(a, anchor, distanceA * Math.exp(-logResidual * (mobility[aIndex] / mobilitySum)));
-  }
-  if (mobility[bIndex] > 0) {
-    setXpbdPolarDistance(b, anchor, distanceB * Math.exp(logResidual * (mobility[bIndex] / mobilitySum)));
-  }
-}
-
-function projectXpbdAngle(constraint, indexByEntity, positions, mobility) {
-  const listenerIndex = indexByEntity.get(constraint.listener);
-  const aIndex = indexByEntity.get(constraint.a);
-  const bIndex = indexByEntity.get(constraint.b);
-  if (listenerIndex === undefined || aIndex === undefined || bIndex === undefined) {
-    return;
-  }
-
-  const anchor = positions[listenerIndex];
-  const a = positions[aIndex];
-  const b = positions[bIndex];
-  const angleA = Math.atan2(a.y - anchor.y, a.x - anchor.x);
-  const angleB = Math.atan2(b.y - anchor.y, b.x - anchor.x);
-  const residual = normalizeAngle(angleB - angleA - constraint.angle);
-  const mobilitySum = mobility[aIndex] + mobility[bIndex];
-  if (mobilitySum <= 0) {
-    return;
-  }
-
-  if (mobility[aIndex] > 0) {
-    rotateXpbdAround(a, anchor, residual * (mobility[aIndex] / mobilitySum));
-  }
-  if (mobility[bIndex] > 0) {
-    rotateXpbdAround(b, anchor, -residual * (mobility[bIndex] / mobilitySum));
-  }
-}
-
-function setXpbdPolarDistance(position, anchor, distance) {
-  const angle = Math.atan2(position.y - anchor.y, position.x - anchor.x);
-  position.x = anchor.x + Math.max(MIN_DISTANCE, distance) * Math.cos(angle);
-  position.y = anchor.y + Math.max(MIN_DISTANCE, distance) * Math.sin(angle);
-}
-
-function rotateXpbdAround(position, anchor, deltaAngle) {
-  const dx = position.x - anchor.x;
-  const dy = position.y - anchor.y;
-  const rotated = rotateVector(dx, dy, deltaAngle);
-  position.x = anchor.x + rotated.x;
-  position.y = anchor.y + rotated.y;
-}
-
-function enforceConstraintsByPropagation(moved) {
-  const messages = [];
-  const queue = [];
-  const queuedEntities = new Set();
-  const processCounts = new Map();
-  const movedEntities = new Set();
-  let propagationSteps = 0;
-  let hitEntityCap = false;
-
-  enqueuePropagationEntity(moved, queue, queuedEntities, processCounts);
-
-  while (queue.length > 0 && propagationSteps < MAX_PROPAGATION_STEPS) {
-    const currentMoved = queue.shift();
-    queuedEntities.delete(currentMoved);
-
-    const processCount = processCounts.get(currentMoved) || 0;
-    if (processCount >= MAX_ENTITY_PROPAGATION_COUNT) {
-      hitEntityCap = true;
-      continue;
-    }
-    processCounts.set(currentMoved, processCount + 1);
-    movedEntities.add(currentMoved);
-    propagationSteps += 1;
-
-    for (const constraint of constraints) {
-      const result = constraint.enforce(currentMoved);
-      if (result && result.message && !messages.includes(result.message)) {
-        messages.push(result.message);
-      }
-      for (const movedEntity of result?.movedEntities || []) {
-        enqueuePropagationEntity(movedEntity, queue, queuedEntities, processCounts, currentMoved);
-      }
-      if (result?.movedEntity) {
-        enqueuePropagationEntity(result.movedEntity, queue, queuedEntities, processCounts, currentMoved);
-      }
-    }
-  }
-
-  lastPropagationReport = createPropagationReport({
-    hitEntityCap: hitEntityCap || [...processCounts.values()].some((count) => count >= MAX_ENTITY_PROPAGATION_COUNT),
-    hitStepCap: queue.length > 0,
-    messages,
-    movedEntities: [...movedEntities],
-    processCounts,
-    propagationSteps
-  });
-  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
-}
-
-function enqueuePropagationEntity(entity, queue, queuedEntities, processCounts, currentMoved = null) {
-  if (!entity || entity === currentMoved || queuedEntities.has(entity)) {
-    return;
-  }
-
-  if ((processCounts.get(entity) || 0) >= MAX_ENTITY_PROPAGATION_COUNT) {
-    return;
-  }
-
-  queue.push(entity);
-  queuedEntities.add(entity);
-}
-
-function createPropagationReport({
-  hitEntityCap,
-  hitStepCap,
-  messages,
-  movedEntities,
-  processCounts,
-  propagationPaused = false,
-  propagationSteps,
-  solverMode = SOLVER_MODE_PROPAGATION
-}) {
-  const residuals = measureConstraintResiduals();
-
-  return {
-    hitEntityCap,
-    hitStepCap,
-    messages,
-    movedEntities,
-    processCounts,
-    propagationPaused,
-    propagationSteps,
-    residuals,
-    solverMode,
-    satisfied: residuals.length === 0 && !hitEntityCap && !hitStepCap && !propagationPaused
-  };
-}
-
-function measureConstraintResiduals() {
-  return constraints
-    .map((constraint) => ({
-      constraint,
-      measurement: normalizeConstraintMeasurement(constraint)
-    }))
-    .filter(({ measurement }) => measurement.error > measurement.tolerance);
-}
-
-function normalizeConstraintMeasurement(constraint) {
-  const measurement = constraint.measureError?.() || {
-    error: 0,
-    label: constraint.node?.label || "Constraint",
-    tolerance: CONSTRAINT_EPSILON,
-    unit: "px"
-  };
-
-  return {
-    error: Number.isFinite(measurement.error) ? measurement.error : Number.POSITIVE_INFINITY,
-    label: measurement.label || constraint.node?.label || "Constraint",
-    tolerance: measurement.tolerance ?? CONSTRAINT_EPSILON,
-    unit: measurement.unit || ""
-  };
-}
-
-function formatPropagationStatus(report) {
-  const statusParts = [...report.messages];
-
-  if (report.solverMode === SOLVER_MODE_XPBD) {
-    if (report.residuals.length > 0) {
-      statusParts.push("Best fit.");
-    }
-  } else {
-    if (report.hitStepCap) {
-      statusParts.push(`Propagation stopped after ${MAX_PROPAGATION_STEPS} steps.`);
-    } else if (report.hitEntityCap) {
-      statusParts.push(`Propagation capped one entity after ${MAX_ENTITY_PROPAGATION_COUNT} passes.`);
-    }
-  }
-
-  if (report.residuals.length > 0) {
-    const residual = report.residuals[0].measurement;
-    const suffix = report.residuals.length > 1 ? ` (+${report.residuals.length - 1} more)` : "";
-    statusParts.push(`${residual.label} residual ${formatConstraintError(residual)}${suffix}.`);
-  }
-
-  return statusParts.join(" ");
-}
-
-function formatConstraintError(measurement) {
-  const roundedError = measurement.error >= 10
-    ? measurement.error.toFixed(1)
-    : measurement.error.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-  const roundedTolerance = measurement.tolerance >= 10
-    ? measurement.tolerance.toFixed(1)
-    : measurement.tolerance.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-  const unit = measurement.unit ? ` ${measurement.unit}` : "";
-  return `${roundedError}${unit} > ${roundedTolerance}${unit}`;
-}
-
-function getLastPropagationReport() {
-  if (!lastPropagationReport) {
-    return null;
-  }
-
-  return {
-    hitEntityCap: lastPropagationReport.hitEntityCap,
-    hitStepCap: lastPropagationReport.hitStepCap,
-    messages: [...lastPropagationReport.messages],
-    movedEntities: lastPropagationReport.movedEntities.map(entityLabel),
-    propagationPaused: lastPropagationReport.propagationPaused,
-    propagationSteps: lastPropagationReport.propagationSteps,
-    residuals: lastPropagationReport.residuals.map(({ measurement }) => ({
-      error: measurement.error,
-      label: measurement.label,
-      tolerance: measurement.tolerance,
-      unit: measurement.unit
-    })),
-    solverMode: lastPropagationReport.solverMode,
-    satisfied: lastPropagationReport.satisfied
-  };
-}
-
 function setSolverMode(nextMode, { updateUrl = false } = {}) {
-  solverMode = nextMode === SOLVER_MODE_XPBD ? SOLVER_MODE_XPBD : SOLVER_MODE_PROPAGATION;
+  state.solverMode = nextMode === SOLVER_MODE_XPBD ? SOLVER_MODE_XPBD : SOLVER_MODE_PROPAGATION;
   updateSolverIndicator();
   if (updateUrl) {
     updateSolverModeUrl();
   }
-}
-
-function getSolverMode() {
-  return solverMode;
-}
-
-function getUiMode() {
-  return uiMode;
 }
 
 function setUiMode(nextMode) {
@@ -4121,14 +1795,14 @@ function setUiMode(nextMode) {
   uiModePlayButton?.setAttribute("aria-pressed", String(uiMode === UI_MODE_PLAY));
   uiModeEditButton?.setAttribute("aria-pressed", String(uiMode === UI_MODE_EDIT));
   updateToolbarAvailability();
-  if (listener && Array.isArray(sources)) {
+  if (state.listener && Array.isArray(state.sources)) {
     configureCanvasResolution();
     drawAll();
   }
 }
 
 function updateSolverIndicator() {
-  const isXpbd = solverMode === SOLVER_MODE_XPBD;
+  const isXpbd = state.solverMode === SOLVER_MODE_XPBD;
   solverModePropagationButton?.setAttribute("aria-pressed", String(!isXpbd));
   solverModeXpbdButton?.setAttribute("aria-pressed", String(isXpbd));
 }
@@ -4139,7 +1813,7 @@ function updateSolverModeUrl() {
   }
 
   const url = new URL(window.location.href);
-  if (solverMode === SOLVER_MODE_XPBD) {
+  if (state.solverMode === SOLVER_MODE_XPBD) {
     url.searchParams.set("solver", SOLVER_MODE_XPBD);
   } else {
     url.searchParams.delete("solver");
@@ -4148,6 +1822,7 @@ function updateSolverModeUrl() {
 }
 
 async function toggleSoundOutput() {
+  const ticket = ++soundGeneration;
   const nextEnabled = !soundOutputEnabled;
   if (nextEnabled && !patchHasSoundOutput()) {
     setConstraintStatus("This patch has no sound, MIDI, generator, or parameter output.");
@@ -4158,16 +1833,27 @@ async function toggleSoundOutput() {
   soundOutputEnabled = nextEnabled;
   updateSoundToggleButton();
 
-  const [parameterEnabled, sourceAudioEnabled, midiEnabled, generatorEnabled] = await Promise.all([
+  const results = await Promise.allSettled([
     parameterClient.setEnabled(nextEnabled),
     sourceAudioClient.setEnabled(nextEnabled),
     midiFileClient.setEnabled(nextEnabled),
     generatorClient.setEnabled(nextEnabled)
   ]);
 
-  soundOutputEnabled = Boolean(parameterEnabled || sourceAudioEnabled || midiEnabled || generatorEnabled);
+  if (ticket !== soundGeneration) return;
+  soundOutputEnabled = results.some((result) => result.status === "fulfilled" && result.value);
   updateSoundToggleButton();
   drawAll();
+}
+
+function synchronizeSoundOutput() {
+  soundOutputEnabled = Boolean(
+    parameterClient.isEnabled() ||
+    sourceAudioClient.isEnabled() ||
+    midiFileClient.isEnabled?.() ||
+    generatorClient.isEnabled()
+  );
+  updateSoundToggleButton();
 }
 
 function updateSoundToggleButton() {
@@ -4199,7 +1885,7 @@ function patchHasSoundOutput() {
 }
 
 function patchHasMovers() {
-  return Array.isArray(movingObjects) && movingObjects.length > 0;
+  return Array.isArray(state.movingObjects) && state.movingObjects.length > 0;
 }
 
 function updateToolbarAvailability() {
@@ -4221,15 +1907,6 @@ function updateToolbarAvailability() {
   }
 
   updateMidiToolbarVisibility();
-}
-
-function refreshConstraints() {
-  for (const constraint of constraints) {
-    constraint.refresh();
-  }
-  propagationPaused = false;
-  lastPropagationReport = null;
-  setConstraintStatus("");
 }
 
 function setActiveTool(tool) {
@@ -4266,7 +1943,8 @@ function toolPrompt(tool) {
     separation: "Separation: click two sources or movers.",
     angleSector: "Sector: click one source or mover.",
     translateTrajectory: "Move: click a mover, or empty space to create one.",
-    rotateTrajectory: "Orbit: click a mover, or empty space to create one. The mover itself travels around the listener.",
+    rotateTrajectory:
+      "Orbit: click a mover, or empty space to create one. The mover itself travels around the listener.",
     rotatorTrajectory: "Spin: click a mover, or empty space to create a rotative object.",
     shuttleTrajectory: "Shuttle: click a mover, or empty space to create one, then set endpoints.",
     bounceTrajectory: "Bounce: click a mover, or empty space to create one."
@@ -4295,16 +1973,22 @@ function isVariableArityConstraintTool(tool) {
 }
 
 function canUseEntityForTool(tool, entity) {
-  if (!entity || constraints.some((constraint) => constraint.node === entity)) {
+  if (!entity || state.constraints.some((constraint) => constraint.node === entity)) {
     return false;
   }
 
   if (tool === "radialLimit" || tool === "angleSector") {
-    return entity !== listener;
+    return entity !== state.listener;
   }
 
-  if (tool === "sum" || tool === "product" || tool === "angle" || tool === "distanceRatio" || tool === "separation") {
-    return entity !== listener;
+  if (
+    tool === "sum" ||
+    tool === "product" ||
+    tool === "angle" ||
+    tool === "distanceRatio" ||
+    tool === "separation"
+  ) {
+    return entity !== state.listener;
   }
 
   return true;
@@ -4314,7 +1998,7 @@ function handleToolClick(x, y, entity) {
   if (activeTool === "source") {
     pushUndoSnapshot("create source");
     const source = new SoundSource(x, y, nextSourceName());
-    sources.push(source);
+    state.sources.push(source);
     selectedEntity = source;
     setActiveTool(TOOL_SELECT);
     drawAll();
@@ -4324,7 +2008,7 @@ function handleToolClick(x, y, entity) {
   if (activeTool === "mover") {
     pushUndoSnapshot("create mover");
     const mover = new MovingObject(x, y, nextMoverName(), { type: "free" });
-    movingObjects.push(mover);
+    state.movingObjects.push(mover);
     selectedEntity = mover;
     setActiveTool(TOOL_SELECT);
     drawAll();
@@ -4333,11 +2017,10 @@ function handleToolClick(x, y, entity) {
 
   if (isTrajectoryTool(activeTool)) {
     pushUndoSnapshot("assign trajectory");
-    const mover = entity instanceof MovingObject
-      ? entity
-      : new MovingObject(x, y, nextMoverName(), { type: "free" });
-    if (!movingObjects.includes(mover)) {
-      movingObjects.push(mover);
+    const mover =
+      entity instanceof MovingObject ? entity : new MovingObject(x, y, nextMoverName(), { type: "free" });
+    if (!state.movingObjects.includes(mover)) {
+      state.movingObjects.push(mover);
     }
     assignTrajectoryFromTool(mover, activeTool);
     selectedEntity = mover;
@@ -4366,7 +2049,9 @@ function handleToolClick(x, y, entity) {
   }
 
   if (isVariableArityConstraintTool(activeTool)) {
-    setConstraintStatus(`${capitalize(activeTool)}: ${pendingToolEntities.length} selected. Click more, or click ${capitalize(activeTool)} again to finish.`);
+    setConstraintStatus(
+      `${capitalize(activeTool)}: ${pendingToolEntities.length} selected. Click more, or click ${capitalize(activeTool)} again to finish.`
+    );
     drawAll();
     return true;
   }
@@ -4380,7 +2065,7 @@ function finishPendingConstraintTool() {
   let addedMessage = "";
   if (constraint) {
     pushUndoSnapshot("create constraint");
-    constraints.push(constraint);
+    state.constraints.push(constraint);
     selectedEntity = constraint.node;
     addedMessage = `${constraint.node.label} constraint added.`;
   }
@@ -4405,20 +2090,25 @@ function handleToolButtonClick(tool) {
 
 function createConstraintFromTool(tool, entities) {
   if (tool === "angle") {
-    return new AngleConstraint(listener, entities[0], entities[1]);
+    return new AngleConstraint(state.listener, entities[0], entities[1]);
   }
 
   if (tool === "sum") {
-    return new SumConstraint(listener, entities);
+    return new SumConstraint(state.listener, entities);
   }
 
   if (tool === "product") {
-    return new ProductConstraint(listener, entities);
+    return new ProductConstraint(state.listener, entities);
   }
 
   if (tool === "radialLimit") {
-    const distance = distanceBetween(entities[0], listener);
-    return new RadialLimitConstraint(listener, entities[0], Math.max(MIN_DISTANCE, distance * 0.55), distance * 1.35);
+    const distance = distanceBetween(entities[0], state.listener);
+    return new RadialLimitConstraint(
+      state.listener,
+      entities[0],
+      Math.max(MIN_DISTANCE, distance * 0.55),
+      distance * 1.35
+    );
   }
 
   if (tool === "fixedDistance") {
@@ -4426,7 +2116,7 @@ function createConstraintFromTool(tool, entities) {
   }
 
   if (tool === "distanceRatio") {
-    return new DistanceRatioConstraint(listener, entities[0], entities[1]);
+    return new DistanceRatioConstraint(state.listener, entities[0], entities[1]);
   }
 
   if (tool === "pin") {
@@ -4438,57 +2128,79 @@ function createConstraintFromTool(tool, entities) {
   }
 
   if (tool === "separation") {
-    return new MinimumSeparationConstraint(entities[0], entities[1], Math.max(50, distanceBetween(entities[0], entities[1])));
+    return new MinimumSeparationConstraint(
+      entities[0],
+      entities[1],
+      Math.max(50, distanceBetween(entities[0], entities[1]))
+    );
   }
 
   if (tool === "angleSector") {
-    return new AngleSectorConstraint(listener, entities[0]);
+    return new AngleSectorConstraint(state.listener, entities[0]);
   }
 
   return null;
 }
 
 function isTrajectoryTool(tool) {
-  return tool === "translateTrajectory" ||
+  return (
+    tool === "translateTrajectory" ||
     tool === "rotateTrajectory" ||
     tool === "rotatorTrajectory" ||
     tool === "shuttleTrajectory" ||
-    tool === "bounceTrajectory";
+    tool === "bounceTrajectory"
+  );
 }
 
 function assignTrajectoryFromTool(mover, tool) {
   if (tool === "translateTrajectory") {
-    mover.trajectory = normalizeTrajectory({ type: "translation", vx: 1.4, vy: 0.7, bounce: true }, mover.x, mover.y);
+    mover.trajectory = normalizeTrajectory(
+      { type: "translation", vx: 1.4, vy: 0.7, bounce: true },
+      mover.x,
+      mover.y
+    );
   } else if (tool === "rotateTrajectory") {
-    const radius = Math.max(40, distanceBetween(mover, listener));
-    mover.trajectory = normalizeTrajectory({
-      type: "rotation",
-      centerX: listener.x,
-      centerY: listener.y,
-      radius,
-      phase: Math.atan2(mover.y - listener.y, mover.x - listener.x),
-      angularSpeed: 0.018
-    }, mover.x, mover.y);
+    const radius = Math.max(40, distanceBetween(mover, state.listener));
+    mover.trajectory = normalizeTrajectory(
+      {
+        type: "rotation",
+        centerX: state.listener.x,
+        centerY: state.listener.y,
+        radius,
+        phase: Math.atan2(mover.y - state.listener.y, mover.x - state.listener.x),
+        angularSpeed: 0.018
+      },
+      mover.x,
+      mover.y
+    );
   } else if (tool === "shuttleTrajectory") {
-    mover.trajectory = normalizeTrajectory({
-      type: "shuttle",
-      ax: clamp(mover.x - 120, 0, WIDTH),
-      ay: mover.y,
-      bx: clamp(mover.x + 120, 0, WIDTH),
-      by: mover.y,
-      phase: 0.5,
-      speed: 0.008,
-      direction: 1
-    }, mover.x, mover.y);
+    mover.trajectory = normalizeTrajectory(
+      {
+        type: "shuttle",
+        ax: clamp(mover.x - 120, 0, WIDTH),
+        ay: mover.y,
+        bx: clamp(mover.x + 120, 0, WIDTH),
+        by: mover.y,
+        phase: 0.5,
+        speed: 0.008,
+        direction: 1
+      },
+      mover.x,
+      mover.y
+    );
     openShuttleEditor(mover);
   } else if (tool === "rotatorTrajectory") {
-    mover.trajectory = normalizeTrajectory({
-      type: "rotator",
-      running: true,
-      periodSeconds: 20,
-      direction: 1,
-      displacementInducesRotation: true
-    }, mover.x, mover.y);
+    mover.trajectory = normalizeTrajectory(
+      {
+        type: "rotator",
+        running: true,
+        periodSeconds: 20,
+        direction: 1,
+        displacementInducesRotation: true
+      },
+      mover.x,
+      mover.y
+    );
     openRotationEditor(mover);
   } else if (tool === "bounceTrajectory") {
     mover.trajectory = normalizeTrajectory({ type: "bounce", vx: 1.8, vy: 1.1 }, mover.x, mover.y);
@@ -4497,9 +2209,13 @@ function assignTrajectoryFromTool(mover, tool) {
 
 function editableInspectorTargets() {
   return [
-    { entity: listener, label: "Listener", open: () => openListenerEditor() },
-    ...sources.map((source) => ({ entity: source, label: entityLabel(source), open: () => openSourceEditor(source) })),
-    ...movingObjects
+    { entity: state.listener, label: "Listener", open: () => openListenerEditor() },
+    ...state.sources.map((source) => ({
+      entity: source,
+      label: entityLabel(source),
+      open: () => openSourceEditor(source)
+    })),
+    ...state.movingObjects
       .filter((mover) => mover.trajectory?.type === "rotator" || mover.trajectory?.type === "shuttle")
       .map((mover) => ({
         entity: mover,
@@ -4512,7 +2228,7 @@ function editableInspectorTargets() {
           }
         }
       })),
-    ...constraints.map((constraint) => ({
+    ...state.constraints.map((constraint) => ({
       entity: constraint.node,
       label: constraint.node.label,
       open: () => openConstraintEditor(constraint)
@@ -4522,7 +2238,7 @@ function editableInspectorTargets() {
 
 function currentInspectorEntity() {
   if (!listenerEditor.hidden) {
-    return listener;
+    return state.listener;
   }
   if (!sourceEditor.hidden && activeSourceEditorSource) {
     return activeSourceEditorSource;
@@ -4547,7 +2263,10 @@ function navigateInspector(delta) {
   }
 
   const current = currentInspectorEntity();
-  const currentIndex = Math.max(0, targets.findIndex((target) => target.entity === current));
+  const currentIndex = Math.max(
+    0,
+    targets.findIndex((target) => target.entity === current)
+  );
   const nextIndex = (currentIndex + delta + targets.length) % targets.length;
   const target = targets[nextIndex];
   target.open();
@@ -4576,7 +2295,7 @@ function updateInspectorNavButtons() {
 }
 
 function openListenerEditor() {
-  if (!listener) {
+  if (!state.listener) {
     return;
   }
 
@@ -4586,10 +2305,10 @@ function openListenerEditor() {
   activeShuttleMover = null;
   closeConstraintEditor();
   closeSourceEditor();
-  listenerXInput.value = String(roundEditorValue(listener.x));
-  listenerYInput.value = String(roundEditorValue(listener.y));
-  listenerDrawTraceInput.checked = Boolean(listener.drawTrace);
-  setListenerMode(listenerMode);
+  listenerXInput.value = String(roundEditorValue(state.listener.x));
+  listenerYInput.value = String(roundEditorValue(state.listener.y));
+  listenerDrawTraceInput.checked = Boolean(state.listener.drawTrace);
+  setListenerMode(state.listenerMode);
   listenerEditor.hidden = false;
   updateInspectorNavButtons();
   setConstraintStatus("Editing listener.");
@@ -4597,15 +2316,15 @@ function openListenerEditor() {
 }
 
 function applyListenerEditor() {
-  if (!listener || listenerEditor.hidden) {
+  if (!state.listener || listenerEditor.hidden) {
     return;
   }
 
-  const nextX = clampNumberInput(listenerXInput.value, 0, WIDTH, listener.x);
-  const nextY = clampNumberInput(listenerYInput.value, 0, HEIGHT, listener.y);
+  const nextX = clampNumberInput(listenerXInput.value, 0, WIDTH, state.listener.x);
+  const nextY = clampNumberInput(listenerYInput.value, 0, HEIGHT, state.listener.y);
   const nextDrawTrace = Boolean(listenerDrawTraceInput.checked);
-  const moved = nextX !== listener.x || nextY !== listener.y;
-  const changedTrace = nextDrawTrace !== Boolean(listener.drawTrace);
+  const moved = nextX !== state.listener.x || nextY !== state.listener.y;
+  const changedTrace = nextDrawTrace !== Boolean(state.listener.drawTrace);
 
   if (!moved && !changedTrace) {
     setConstraintStatus("Listener unchanged.");
@@ -4613,20 +2332,22 @@ function applyListenerEditor() {
   }
 
   pushUndoSnapshot("edit listener");
-  selectedEntity = listener;
-  listener.drawTrace = nextDrawTrace;
+  selectedEntity = state.listener;
+  state.listener.drawTrace = nextDrawTrace;
   if (changedTrace) {
-    listener.prevX = listener.x;
-    listener.prevY = listener.y;
+    state.listener.prevX = state.listener.x;
+    state.listener.prevY = state.listener.y;
   }
   if (moved) {
-    moveEntity(listener, nextX, nextY);
+    moveEntity(state.listener, nextX, nextY);
   } else {
     drawAll();
   }
   updateTraceSelectedButton();
   updatePatchInspector();
-  setConstraintStatus(`Listener updated in ${listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"} mode.`);
+  setConstraintStatus(
+    `Listener updated in ${state.listenerMode === LISTENER_MODE_RETARGET ? "re-anchor" : "preserve"} mode.`
+  );
 }
 
 function closeListenerEditor() {
@@ -4666,14 +2387,18 @@ function applyRotationEditor() {
 
   pushUndoSnapshot("edit rotative object");
   const periodSeconds = Number(rotationPeriodInput.value);
-  activeRotationMover.trajectory = normalizeTrajectory({
-    ...activeRotationMover.trajectory,
-    type: "rotator",
-    running: rotationRunningInput.checked,
-    periodSeconds: Number.isFinite(periodSeconds) ? Math.max(0.5, periodSeconds) : 20,
-    direction: Number(rotationDirectionInput.value) < 0 ? -1 : 1,
-    displacementInducesRotation: rotationDisplacementInput.checked
-  }, activeRotationMover.x, activeRotationMover.y);
+  activeRotationMover.trajectory = normalizeTrajectory(
+    {
+      ...activeRotationMover.trajectory,
+      type: "rotator",
+      running: rotationRunningInput.checked,
+      periodSeconds: Number.isFinite(periodSeconds) ? Math.max(0.5, periodSeconds) : 20,
+      direction: Number(rotationDirectionInput.value) < 0 ? -1 : 1,
+      displacementInducesRotation: rotationDisplacementInput.checked
+    },
+    activeRotationMover.x,
+    activeRotationMover.y
+  );
   setConstraintStatus(`Rotative object ${activeRotationMover.name} updated.`);
   drawAll();
 }
@@ -4745,7 +2470,11 @@ function populateEndpointSelect(select, mover) {
 }
 
 function selectableEndpointObjects(excludedMover) {
-  return [listener, ...sources, ...movingObjects.filter((mover) => mover !== excludedMover)];
+  return [
+    state.listener,
+    ...state.sources,
+    ...state.movingObjects.filter((mover) => mover !== excludedMover)
+  ];
 }
 
 function applyShuttleEditor() {
@@ -4756,14 +2485,18 @@ function applyShuttleEditor() {
   pushUndoSnapshot("edit shuttle trajectory");
   const current = activeShuttleMover.trajectory;
   const speed = Number(shuttleSpeedInput.value);
-  activeShuttleMover.trajectory = normalizeTrajectory({
-    ...current,
-    type: "shuttle",
-    start: endpointFromEditor(shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput),
-    end: endpointFromEditor(shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput),
-    speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed,
-    showPath: shuttleShowPathInput.checked
-  }, activeShuttleMover.x, activeShuttleMover.y);
+  activeShuttleMover.trajectory = normalizeTrajectory(
+    {
+      ...current,
+      type: "shuttle",
+      start: endpointFromEditor(shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput),
+      end: endpointFromEditor(shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput),
+      speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed,
+      showPath: shuttleShowPathInput.checked
+    },
+    activeShuttleMover.x,
+    activeShuttleMover.y
+  );
   setConstraintStatus(`Shuttle trajectory ${activeShuttleMover.name} updated.`);
   drawAll();
 }
@@ -4799,7 +2532,7 @@ function closeShuttleEditor() {
 }
 
 function findConstraintForNode(node) {
-  return constraints.find((constraint) => constraint.node === node) || null;
+  return state.constraints.find((constraint) => constraint.node === node) || null;
 }
 
 function constraintEditorSpec(constraint) {
@@ -4955,9 +2688,12 @@ function readConstraintEditorValues(constraint) {
   if (constraint instanceof RadialLimitConstraint && valueA > valueB) {
     return { ok: false, message: "Minimum distance must be less than or equal to maximum distance." };
   }
-  if ((constraint instanceof ProductConstraint ||
+  if (
+    (constraint instanceof ProductConstraint ||
       constraint instanceof FixedDistanceConstraint ||
-      constraint instanceof DistanceRatioConstraint) && valueA <= 0) {
+      constraint instanceof DistanceRatioConstraint) &&
+    valueA <= 0
+  ) {
     return { ok: false, message: `${constraintValueALabel.textContent} must be positive.` };
   }
   if (constraint instanceof AngleSectorConstraint && valueB <= 0) {
@@ -5042,11 +2778,11 @@ function roundEditorValue(value) {
 }
 
 function radiansToDegrees(value) {
-  return value * 180 / Math.PI;
+  return (value * 180) / Math.PI;
 }
 
 function degreesToRadians(value) {
-  return value * Math.PI / 180;
+  return (value * Math.PI) / 180;
 }
 
 function midiToFrequency(pitch) {
@@ -5113,8 +2849,10 @@ function updateSourceOutputTypeOptions(hasMidiBinding) {
 }
 
 async function refreshSourceGeneratorMidiOutputs() {
-  if (sourceOutputTypeInput.value !== SOURCE_OUTPUT_MIDI_OSTINATO
-      || sourceGeneratorOutputModeInput.value !== "external") {
+  if (
+    sourceOutputTypeInput.value !== SOURCE_OUTPUT_MIDI_OSTINATO ||
+    sourceGeneratorOutputModeInput.value !== "external"
+  ) {
     return;
   }
 
@@ -5158,15 +2896,18 @@ function fillSourceGeneratorEditor(generator) {
     spatialization: "pan-distance"
   };
 
-  const pitch = nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
-    ? Math.round(frequencyToMidi(nextGenerator.frequencyHz ?? 261.63))
-    : nextGenerator.pitch ?? 60;
+  const pitch =
+    nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+      ? Math.round(frequencyToMidi(nextGenerator.frequencyHz ?? 261.63))
+      : (nextGenerator.pitch ?? 60);
   sourceGeneratorPitchInput.value = String(pitch);
   sourceGeneratorPeriodInput.value = String(nextGenerator.periodMs ?? 1000);
   sourceGeneratorDurationInput.value = String(nextGenerator.durationMs ?? 160);
-  sourceGeneratorVelocityInput.value = String(nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
-    ? Math.round((nextGenerator.gain ?? 0.18) * 127)
-    : nextGenerator.velocity ?? 80);
+  sourceGeneratorVelocityInput.value = String(
+    nextGenerator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+      ? Math.round((nextGenerator.gain ?? 0.18) * 127)
+      : (nextGenerator.velocity ?? 80)
+  );
   sourceGeneratorWaveformInput.value = nextGenerator.waveform || "triangle";
   sourceGeneratorOutputModeInput.value = nextGenerator.outputMode === "external" ? "external" : "internal";
   sourceGeneratorOutputInput.value = nextGenerator.outputId || "";
@@ -5281,7 +3022,7 @@ function addPatchMappingRow(mapping = defaultParameterMapping()) {
 }
 
 function parameterMappingSourceOptions() {
-  return [...sources, ...movingObjects].map((entity) => entity.name);
+  return [...state.sources, ...state.movingObjects].map((entity) => entity.name);
 }
 
 function parameterMappingTargetOptions() {
@@ -5292,7 +3033,8 @@ function parameterMappingTargetOptions() {
 function parameterMappingTargetSpec(target) {
   const defaults = parameterClient.targetDefaults?.() || {};
   const targetSpec = parameterClient.targetSpec?.() || {};
-  const declared = targetSpec.parameters?.[target] || targetSpec.params?.[target] || targetSpec.defaults?.[target] || {};
+  const declared =
+    targetSpec.parameters?.[target] || targetSpec.params?.[target] || targetSpec.defaults?.[target] || {};
   const config = parameterClient.targetParameterConfig?.(target) || {};
   const defaultValue = Number(declared.default ?? defaults[target] ?? 1);
   const hasDeclaredRange = Number.isFinite(Number(declared.min)) && Number.isFinite(Number(declared.max));
@@ -5315,7 +3057,14 @@ function parameterMappingTargetSpec(target) {
     return { min: 0.1, max: 30, step: 0.01, defaultMin: 0.5, defaultMax: 18, defaultCurve: "linear" };
   }
   if (target.includes("gain") || target.includes("spread")) {
-    return { min: 0, max: 1, step: 0.01, defaultMin: 0, defaultMax: Math.max(0.2, defaultValue || 0.2), defaultCurve: "linear" };
+    return {
+      min: 0,
+      max: 1,
+      step: 0.01,
+      defaultMin: 0,
+      defaultMax: Math.max(0.2, defaultValue || 0.2),
+      defaultCurve: "linear"
+    };
   }
   if (target.includes("/grain/rate")) {
     return { min: 1, max: 80, step: 0.1, defaultMin: 4, defaultMax: 42, defaultCurve: "linear" };
@@ -5328,12 +3077,19 @@ function parameterMappingTargetSpec(target) {
   }
 
   const max = Math.max(1, Number.isFinite(defaultValue) ? Math.abs(defaultValue) * 2 : 1);
-  return { min: 0, max, step: parameterMappingStep(config), defaultMin: 0, defaultMax: max, defaultCurve: "linear" };
+  return {
+    min: 0,
+    max,
+    step: parameterMappingStep(config),
+    defaultMin: 0,
+    defaultMax: max,
+    defaultCurve: "linear"
+  };
 }
 
 function parameterMappingStep(config = {}) {
   const digits = Number.isInteger(config.digits) ? config.digits : 2;
-  return digits <= 0 ? 1 : 1 / (10 ** Math.min(digits, 6));
+  return digits <= 0 ? 1 : 1 / 10 ** Math.min(digits, 6);
 }
 
 function updatePatchMappingTargetFields(row, { resetValues = false } = {}) {
@@ -5355,12 +3111,12 @@ function updatePatchMappingTargetFields(row, { resetValues = false } = {}) {
     return;
   }
 
-  outputMinInput.value = String(roundEditorValue(
-    clampNumberInput(outputMinInput.value, spec.min, spec.max, spec.defaultMin)
-  ));
-  outputMaxInput.value = String(roundEditorValue(
-    clampNumberInput(outputMaxInput.value, spec.min, spec.max, spec.defaultMax)
-  ));
+  outputMinInput.value = String(
+    roundEditorValue(clampNumberInput(outputMinInput.value, spec.min, spec.max, spec.defaultMin))
+  );
+  outputMaxInput.value = String(
+    roundEditorValue(clampNumberInput(outputMaxInput.value, spec.min, spec.max, spec.defaultMax))
+  );
 }
 
 function updateOpenPatchMappingReadouts() {
@@ -5403,10 +3159,34 @@ function parameterMappingFromRow(row) {
     source,
     feature,
     target,
-    inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
-    inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
-    outputMin: numberFromMappingField(row, "output-min", targetSpec.defaultMin, targetSpec.min, targetSpec.max),
-    outputMax: numberFromMappingField(row, "output-max", targetSpec.defaultMax, targetSpec.min, targetSpec.max),
+    inputMin: numberFromMappingField(
+      row,
+      "input-min",
+      featureSpec.defaultMin,
+      featureSpec.min,
+      featureSpec.max
+    ),
+    inputMax: numberFromMappingField(
+      row,
+      "input-max",
+      featureSpec.defaultMax,
+      featureSpec.min,
+      featureSpec.max
+    ),
+    outputMin: numberFromMappingField(
+      row,
+      "output-min",
+      targetSpec.defaultMin,
+      targetSpec.min,
+      targetSpec.max
+    ),
+    outputMax: numberFromMappingField(
+      row,
+      "output-max",
+      targetSpec.defaultMax,
+      targetSpec.min,
+      targetSpec.max
+    ),
     curve: row.querySelector("[data-mapping-field='curve']").value
   };
   return mappingWithSnapFields(row, normalized);
@@ -5416,7 +3196,9 @@ function parameterMappingsFromEditor() {
   if (!patchMappingList) {
     return [];
   }
-  return Array.from(patchMappingList.querySelectorAll(".mapping-row")).map((row) => parameterMappingFromRow(row));
+  return Array.from(patchMappingList.querySelectorAll(".mapping-row")).map((row) =>
+    parameterMappingFromRow(row)
+  );
 }
 
 function formatParameterMappingValue(value, target) {
@@ -5467,7 +3249,12 @@ function addSourceGeneratorMappingRow(mapping = defaultSourceGeneratorMapping())
   row.className = "mapping-row";
   row.append(
     createMappingSelect("Source motion", "feature", SOURCE_GENERATOR_MAPPING_FEATURES, mapping.feature),
-    createMappingSelect("Controls generator", "parameter", SOURCE_GENERATOR_MAPPING_PARAMETERS, mapping.parameter || mapping.target),
+    createMappingSelect(
+      "Controls generator",
+      "parameter",
+      SOURCE_GENERATOR_MAPPING_PARAMETERS,
+      mapping.parameter || mapping.target
+    ),
     createMappingNumber("Motion min", "input-min", mapping.inputMin),
     createMappingNumber("Motion max", "input-max", mapping.inputMax),
     createMappingNumber("Parameter min", "output-min", mapping.outputMin),
@@ -5532,12 +3319,12 @@ function updateMappingFeatureFields(row, { resetValues = false } = {}) {
     return;
   }
 
-  inputMinInput.value = String(roundEditorValue(
-    clampNumberInput(inputMinInput.value, spec.min, spec.max, spec.defaultMin)
-  ));
-  inputMaxInput.value = String(roundEditorValue(
-    clampNumberInput(inputMaxInput.value, spec.min, spec.max, spec.defaultMax)
-  ));
+  inputMinInput.value = String(
+    roundEditorValue(clampNumberInput(inputMinInput.value, spec.min, spec.max, spec.defaultMin))
+  );
+  inputMaxInput.value = String(
+    roundEditorValue(clampNumberInput(inputMaxInput.value, spec.min, spec.max, spec.defaultMax))
+  );
 }
 
 function updateMappingParameterFields(row, { resetValues = false } = {}) {
@@ -5602,8 +3389,20 @@ function sourceGeneratorMappingFromRow(row) {
   const normalized = {
     feature,
     parameter,
-    inputMin: numberFromMappingField(row, "input-min", featureSpec.defaultMin, featureSpec.min, featureSpec.max),
-    inputMax: numberFromMappingField(row, "input-max", featureSpec.defaultMax, featureSpec.min, featureSpec.max),
+    inputMin: numberFromMappingField(
+      row,
+      "input-min",
+      featureSpec.defaultMin,
+      featureSpec.min,
+      featureSpec.max
+    ),
+    inputMax: numberFromMappingField(
+      row,
+      "input-max",
+      featureSpec.defaultMax,
+      featureSpec.min,
+      featureSpec.max
+    ),
     outputMin: numberFromMappingField(row, "output-min", spec.defaultMin, spec.min, spec.max),
     outputMax: numberFromMappingField(row, "output-max", spec.defaultMax, spec.min, spec.max),
     curve: row.querySelector("[data-mapping-field='curve']").value
@@ -5612,43 +3411,7 @@ function sourceGeneratorMappingFromRow(row) {
 }
 
 function mappedSourceGeneratorValue(mapping, value) {
-  if (mapping.inputMin === mapping.inputMax) {
-    return snappedMappingValue(mapping, mapping.outputMin);
-  }
-  const low = Math.min(mapping.inputMin, mapping.inputMax);
-  const high = Math.max(mapping.inputMin, mapping.inputMax);
-  const normalized = clamp((value - low) / Math.max(0.000001, high - low), 0, 1);
-  const t = mapping.inputMin <= mapping.inputMax ? normalized : 1 - normalized;
-
-  let mappedValue;
-  if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
-    const logMin = Math.log(mapping.outputMin);
-    const logMax = Math.log(mapping.outputMax);
-    mappedValue = Math.exp(logMin + (logMax - logMin) * t);
-  } else {
-    mappedValue = mapping.outputMin + (mapping.outputMax - mapping.outputMin) * t;
-  }
-
-  return snappedMappingValue(mapping, mappedValue);
-}
-
-function snappedMappingValue(mapping, value) {
-  const outputLow = Math.min(mapping.outputMin, mapping.outputMax);
-  const outputHigh = Math.max(mapping.outputMin, mapping.outputMax);
-
-  if (Array.isArray(mapping.values) && mapping.values.length > 0) {
-    const nearest = mapping.values.reduce((best, candidate) => (
-      Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
-    ), mapping.values[0]);
-    return clamp(nearest, outputLow, outputHigh);
-  }
-
-  if (Number.isFinite(Number(mapping.quantize)) && Number(mapping.quantize) > 0) {
-    const step = Number(mapping.quantize);
-    return clamp(Math.round(value / step) * step, outputLow, outputHigh);
-  }
-
-  return value;
+  return MusicSpaceMapping.valueFromMapping(mapping, value);
 }
 
 function normalizeSourceGeneratorMappedParameter(parameter, value) {
@@ -5796,9 +3559,8 @@ function parseMappingValues(value) {
 }
 
 function sourceGeneratorFromEditor(sourceName) {
-  const outputId = sourceGeneratorOutputModeInput.value === "external"
-    ? sourceGeneratorOutputInput.value
-    : "";
+  const outputId =
+    sourceGeneratorOutputModeInput.value === "external" ? sourceGeneratorOutputInput.value : "";
   const output = cachedSourceGeneratorMidiOutputs.find((candidate) => candidate.id === outputId);
   const [existingGenerator] = activeSourceEditorSource
     ? generatorClient.generatorsForSource(activeSourceEditorSource.name)
@@ -5816,9 +3578,10 @@ function sourceGeneratorFromEditor(sourceName) {
       releaseMs: existingGenerator?.releaseMs ?? 450,
       muted: sourceMutedInput.checked,
       spatialization: sourceSpatializationInput.value || "pan-distance",
-      partials: Array.isArray(existingGenerator?.partials) && existingGenerator.partials.length > 0
-        ? existingGenerator.partials.map((partial) => ({ ...partial }))
-        : defaultAdditivePartials()
+      partials:
+        Array.isArray(existingGenerator?.partials) && existingGenerator.partials.length > 0
+          ? existingGenerator.partials.map((partial) => ({ ...partial }))
+          : defaultAdditivePartials()
     };
   }
 
@@ -5841,11 +3604,42 @@ function sourceGeneratorFromEditor(sourceName) {
 
 function defaultAdditivePartials() {
   return [
-    { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.06, swellHz: 0.03, swellDepth: 0.18 },
-    { ratio: 2, amplitude: 0.42, detuneCents: 1.5, detuneLfoHz: 0.04, detuneLfoCents: 3, swellHz: 0.05, swellDepth: 0.28 },
-    { ratio: 3, amplitude: 0.24, detuneCents: -2, amplitudeLfoHz: 0.07, amplitudeLfoDepth: 0.1, swellHz: 0.07, swellDepth: 0.35 },
+    {
+      ratio: 1,
+      amplitude: 1,
+      amplitudeLfoHz: 0.05,
+      amplitudeLfoDepth: 0.06,
+      swellHz: 0.03,
+      swellDepth: 0.18
+    },
+    {
+      ratio: 2,
+      amplitude: 0.42,
+      detuneCents: 1.5,
+      detuneLfoHz: 0.04,
+      detuneLfoCents: 3,
+      swellHz: 0.05,
+      swellDepth: 0.28
+    },
+    {
+      ratio: 3,
+      amplitude: 0.24,
+      detuneCents: -2,
+      amplitudeLfoHz: 0.07,
+      amplitudeLfoDepth: 0.1,
+      swellHz: 0.07,
+      swellDepth: 0.35
+    },
     { ratio: 5, amplitude: 0.12, detuneLfoHz: 0.03, detuneLfoCents: 5, swellHz: 0.09, swellDepth: 0.46 },
-    { ratio: 8, amplitude: 0.07, detuneCents: 3, amplitudeLfoHz: 0.09, amplitudeLfoDepth: 0.16, swellHz: 0.12, swellDepth: 0.55 }
+    {
+      ratio: 8,
+      amplitude: 0.07,
+      detuneCents: 3,
+      amplitudeLfoHz: 0.09,
+      amplitudeLfoDepth: 0.16,
+      swellHz: 0.12,
+      swellDepth: 0.55
+    }
   ];
 }
 
@@ -5896,13 +3690,14 @@ function openSourceEditor(source) {
   const [midiBinding] = midiFileClient.bindingsForSource(source.name);
   const generatorMappings = generatorClient.mappingsForSource(source.name);
   sourceNameInput.value = source.name;
-  sourceOutputTypeInput.value = binding?.type === SOURCE_BINDING_AUDIO_FILE
-    ? SOURCE_BINDING_AUDIO_FILE
-    : [SOURCE_OUTPUT_MIDI_OSTINATO, SOURCE_OUTPUT_ADDITIVE_SYNTH].includes(generator?.type)
-    ? generator.type
-    : midiBinding
-    ? SOURCE_OUTPUT_MIDI_FILE
-    : "none";
+  sourceOutputTypeInput.value =
+    binding?.type === SOURCE_BINDING_AUDIO_FILE
+      ? SOURCE_BINDING_AUDIO_FILE
+      : [SOURCE_OUTPUT_MIDI_OSTINATO, SOURCE_OUTPUT_ADDITIVE_SYNTH].includes(generator?.type)
+        ? generator.type
+        : midiBinding
+          ? SOURCE_OUTPUT_MIDI_FILE
+          : "none";
   updateSourceOutputTypeOptions(Boolean(midiBinding));
   activeSourceEditorInitialOutputType = sourceOutputTypeInput.value;
   sourceSpatializationInput.value = binding?.spatialization || generator?.spatialization || "pan-distance";
@@ -5922,12 +3717,12 @@ function openSourceEditor(source) {
   sourceAudioFileName.textContent = midiBinding
     ? `MIDI file track: ${midiBinding.track || "track"} · ch ${midiBinding.channel || 1}`
     : generator
-    ? generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
-      ? "Additive synth generator assigned."
-      : "MIDI ostinato generator assigned."
-    : binding?.name
-    ? `Selected: ${binding.name}`
-    : "No audio file assigned.";
+      ? generator.type === SOURCE_OUTPUT_ADDITIVE_SYNTH
+        ? "Additive synth generator assigned."
+        : "MIDI ostinato generator assigned."
+      : binding?.name
+        ? `Selected: ${binding.name}`
+        : "No audio file assigned.";
   updateSourceEditorVisibility();
   refreshSourceGeneratorMidiOutputs();
   sourceEditor.hidden = false;
@@ -6007,9 +3802,11 @@ function applySourceEditor() {
     sourceAudioFileName.textContent = generator
       ? `${capitalize(generatorLabel)} generator assigned.`
       : `Could not create ${generatorLabel} generator.`;
-    setConstraintStatus(generator
-      ? `${sourceName} ${generatorLabel} updated.`
-      : `${sourceName} ${generatorLabel} could not be updated.`);
+    setConstraintStatus(
+      generator
+        ? `${sourceName} ${generatorLabel} updated.`
+        : `${sourceName} ${generatorLabel} could not be updated.`
+    );
     updatePatchInspector();
     drawAll();
     return;
@@ -6018,13 +3815,18 @@ function applySourceEditor() {
   if (outputType === SOURCE_OUTPUT_MIDI_FILE) {
     sourceAudioClient.removeBinding(sourceName);
     generatorClient.removeGenerator(sourceName);
-    const updatedBinding = midiFileClient.updateTrackBinding(sourceName, sourceMidiFileBindingFromEditor(sourceName));
+    const updatedBinding = midiFileClient.updateTrackBinding(
+      sourceName,
+      sourceMidiFileBindingFromEditor(sourceName)
+    );
     sourceAudioFileName.textContent = updatedBinding
       ? `MIDI file track: ${updatedBinding.track || "track"} · ch ${updatedBinding.channel || 1}`
       : "No MIDI file track assigned.";
-    setConstraintStatus(updatedBinding
-      ? `${sourceName} MIDI file track updated.`
-      : `${sourceName} has no MIDI file track binding.`);
+    setConstraintStatus(
+      updatedBinding
+        ? `${sourceName} MIDI file track updated.`
+        : `${sourceName} has no MIDI file track binding.`
+    );
     updatePatchInspector();
     drawAll();
     return;
@@ -6085,7 +3887,7 @@ function renameSource(source, nextName) {
 }
 
 function renameTrajectoryEndpointReferences(previousName, nextName) {
-  for (const mover of movingObjects) {
+  for (const mover of state.movingObjects) {
     const trajectory = mover.trajectory;
     if (trajectory?.start?.type === "object" && trajectory.start.name === previousName) {
       trajectory.start = { ...trajectory.start, name: nextName };
@@ -6139,7 +3941,7 @@ function deleteSelectedEntity() {
     return;
   }
 
-  if (selectedEntity === listener) {
+  if (selectedEntity === state.listener) {
     setConstraintStatus("The listener cannot be deleted.");
     return;
   }
@@ -6147,9 +3949,9 @@ function deleteSelectedEntity() {
   const entity = selectedEntity;
   pushUndoSnapshot(`delete ${entityLabel(entity)}`);
 
-  const constraintIndex = constraints.findIndex((constraint) => constraint.node === entity);
+  const constraintIndex = state.constraints.findIndex((constraint) => constraint.node === entity);
   if (constraintIndex >= 0) {
-    const [removed] = constraints.splice(constraintIndex, 1);
+    const [removed] = state.constraints.splice(constraintIndex, 1);
     if (activeConstraintEditorConstraint === removed) {
       closeConstraintEditor();
     }
@@ -6159,9 +3961,11 @@ function deleteSelectedEntity() {
     return;
   }
 
-  sources = sources.filter((source) => source !== entity);
-  movingObjects = movingObjects.filter((mover) => mover !== entity);
-  constraints = constraints.filter((constraint) => !constraintReferencesEntity(constraint, entity));
+  state.sources = state.sources.filter((source) => source !== entity);
+  state.movingObjects = state.movingObjects.filter((mover) => mover !== entity);
+  state.constraints = state.constraints.filter(
+    (constraint) => !constraintReferencesEntity(constraint, entity)
+  );
 
   if (activeRotationMover === entity) {
     closeRotationEditor();
@@ -6176,8 +3980,8 @@ function deleteSelectedEntity() {
     sourceAudioClient.removeBinding(entity.name);
     generatorClient.removeGenerator(entity.name);
   }
-  sourceAudioClient.removeBindingsForMissingSources(sources.map((source) => source.name));
-  generatorClient.removeGeneratorsForMissingSources(sources.map((source) => source.name));
+  sourceAudioClient.removeBindingsForMissingSources(state.sources.map((source) => source.name));
+  generatorClient.removeGeneratorsForMissingSources(state.sources.map((source) => source.name));
 
   selectedEntity = null;
   pendingToolEntities = pendingToolEntities.filter((candidate) => candidate !== entity);
@@ -6186,19 +3990,19 @@ function deleteSelectedEntity() {
 }
 
 function nextSourceName() {
-  const usedNames = new Set(sources.map((source) => source.name));
+  const usedNames = new Set(state.sources.map((source) => source.name));
   for (let index = 0; index < 26; index += 1) {
     const candidate = String.fromCharCode(65 + index);
     if (!usedNames.has(candidate)) {
       return candidate;
     }
   }
-  return `S${sources.length + 1}`;
+  return `S${state.sources.length + 1}`;
 }
 
 function nextMoverName() {
-  let index = movingObjects.length + 1;
-  const usedNames = new Set(movingObjects.map((mover) => mover.name));
+  let index = state.movingObjects.length + 1;
+  const usedNames = new Set(state.movingObjects.map((mover) => mover.name));
   while (usedNames.has(`M${index}`)) {
     index += 1;
   }
@@ -6214,23 +4018,23 @@ function getPointerPosition(event) {
 }
 
 function findEntityAt(x, y) {
-  if (listener.isInside(x, y)) {
-    return listener;
+  if (state.listener.isInside(x, y)) {
+    return state.listener;
   }
 
-  for (const source of sources) {
+  for (const source of state.sources) {
     if (source.isInside(x, y)) {
       return source;
     }
   }
 
-  for (const mover of movingObjects) {
+  for (const mover of state.movingObjects) {
     if (mover.isInside(x, y)) {
       return mover;
     }
   }
 
-  for (const constraint of constraints) {
+  for (const constraint of state.constraints) {
     if (constraint.node.isInside(x, y)) {
       return constraint.node;
     }
@@ -6240,7 +4044,7 @@ function findEntityAt(x, y) {
 }
 
 function findDoubleClickEntityAt(x, y) {
-  for (const mover of movingObjects) {
+  for (const mover of state.movingObjects) {
     const trajectoryType = mover.trajectory?.type;
     if ((trajectoryType === "rotator" || trajectoryType === "shuttle") && mover.isInside(x, y)) {
       return mover;
@@ -6255,8 +4059,10 @@ function isRepeatedCanvasClick(event, x, y, entity) {
     return false;
   }
 
-  return event.timeStamp - lastCanvasClick.time <= DOUBLE_CLICK_MS &&
-    Math.hypot(x - lastCanvasClick.x, y - lastCanvasClick.y) <= DOUBLE_CLICK_DISTANCE;
+  return (
+    event.timeStamp - lastCanvasClick.time <= DOUBLE_CLICK_MS &&
+    Math.hypot(x - lastCanvasClick.x, y - lastCanvasClick.y) <= DOUBLE_CLICK_DISTANCE
+  );
 }
 
 function handleEntityDoubleClick(entity) {
@@ -6286,9 +4092,9 @@ function handleEntityDoubleClick(entity) {
     return true;
   }
 
-  if (entity === listener) {
+  if (entity === state.listener) {
     openListenerEditor();
-    selectedEntity = listener;
+    selectedEntity = state.listener;
     drawAll();
     return true;
   }
@@ -6304,41 +4110,14 @@ function handleEntityDoubleClick(entity) {
   return false;
 }
 
-function moveEntity(entity, x, y, { skipPropagation = false } = {}) {
-  const nextX = clamp(x, 0, WIDTH);
-  const nextY = clamp(y, 0, HEIGHT);
-  translateEntity(entity, nextX - entity.x, nextY - entity.y);
-
-  if (skipPropagation) {
-    pausePropagation(entity);
-  } else if (entity === listener && listenerMode === LISTENER_MODE_RETARGET) {
-    propagationPaused = false;
-    refreshConstraints();
-  } else {
-    propagationPaused = false;
-    enforceConstraints(entity);
-  }
-
+function moveEntity(entity, x, y, options) {
+  scene.moveEntity(entity, x, y, options);
   drawTracesForChangedEntities();
   drawAll();
 }
 
-function pausePropagation(entity) {
-  propagationPaused = true;
-  lastPropagationReport = createPropagationReport({
-    hitEntityCap: false,
-    hitStepCap: false,
-    messages: ["Propagation paused (Shift). Constraints are not being enforced."],
-    movedEntities: entity ? [entity] : [],
-    processCounts: new Map(),
-    propagationPaused: true,
-    propagationSteps: 0
-  });
-  setConstraintStatus(formatPropagationStatus(lastPropagationReport));
-}
-
 function resumePropagationAfterPausedDrag() {
-  propagationPaused = false;
+  state.propagationPaused = false;
   refreshConstraints();
   setConstraintStatus("Propagation resumed; constraints retargeted to paused positions.");
 }
@@ -6348,14 +4127,14 @@ function setConstraintStatus(message) {
 }
 
 function setListenerMode(nextMode) {
-  listenerMode = nextMode;
+  state.listenerMode = nextMode;
   listenerModeRetargetButton.setAttribute(
     "aria-pressed",
-    String(listenerMode === LISTENER_MODE_RETARGET)
+    String(state.listenerMode === LISTENER_MODE_RETARGET)
   );
   listenerModePreserveButton.setAttribute(
     "aria-pressed",
-    String(listenerMode === LISTENER_MODE_PRESERVE)
+    String(state.listenerMode === LISTENER_MODE_PRESERVE)
   );
 }
 
@@ -6435,10 +4214,6 @@ function stopAllDrawing() {
   setConstraintStatus(`Drawing stopped for ${enabledCount} object${enabledCount === 1 ? "" : "s"}.`);
 }
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
 function syncTracePositions() {
   for (const entity of getTraceableEntities()) {
     entity.prevX = entity.x;
@@ -6448,10 +4223,10 @@ function syncTracePositions() {
 
 function getTraceableEntities() {
   return [
-    listener,
-    ...sources,
-    ...movingObjects,
-    ...constraints.map((constraint) => constraint.node)
+    state.listener,
+    ...state.sources,
+    ...state.movingObjects,
+    ...state.constraints.map((constraint) => constraint.node)
   ].filter(Boolean);
 }
 
@@ -6499,52 +4274,26 @@ function traceColorForEntity(entity) {
     return "rgba(124, 58, 237, 0.45)";
   }
 
-  if (entity === listener) {
+  if (entity === state.listener) {
     return "rgba(17, 24, 39, 0.45)";
   }
 
   return "rgba(220, 38, 38, 0.45)";
 }
 
-function animate() {
-  if (!isAnimating) {
-    return;
-  }
-
-  if (movingObjects.length > 0) {
-    for (const mover of movingObjects) {
-      const moved = mover.tick();
-      if (moved) {
-        enforceConstraints(mover, { preserveTrajectoryFrame: true });
-      }
-    }
-
-    drawTracesForChangedEntities();
-    drawAll();
-    animationFrame = requestAnimationFrame(animate);
-    return;
-  }
-
-  const source = sources[0];
-  velocity.x += (Math.random() - 0.5) * 0.5;
-  velocity.y += (Math.random() - 0.5) * 0.5;
-
-  const maxSpeed = 2;
-  const speed = Math.hypot(velocity.x, velocity.y);
-  if (speed > maxSpeed) {
-    velocity.x *= maxSpeed / speed;
-    velocity.y *= maxSpeed / speed;
-  }
-
-  const nextX = clamp(source.x + velocity.x, 0, WIDTH);
-  const nextY = clamp(source.y + velocity.y, 0, HEIGHT);
-
-  source.x = nextX;
-  source.y = nextY;
-
-  enforceConstraints(source);
+function stepAnimation() {
+  scene.step();
   drawTracesForChangedEntities();
-  drawAll();
+}
+
+function animate(timestamp) {
+  if (!isAnimating) return;
+  if (document.hidden) {
+    simulationClock.reset();
+  } else {
+    simulationClock.advance(timestamp, stepAnimation);
+    drawAll();
+  }
   animationFrame = requestAnimationFrame(animate);
 }
 
@@ -6559,6 +4308,7 @@ function startAnimation() {
     return;
   }
 
+  simulationClock.reset();
   isAnimating = true;
   animationToggle.textContent = "Stop Movers";
   setAnimationPressedState(true);
@@ -6568,6 +4318,7 @@ function startAnimation() {
 
 function stopAnimation() {
   isAnimating = false;
+  simulationClock.reset();
   animationToggle.textContent = "Start Movers";
   setAnimationPressedState(false);
 
@@ -6611,10 +4362,12 @@ function savePatch() {
 }
 
 function slugify(value) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "musicspace-patch";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "musicspace-patch"
+  );
 }
 
 function loadPatchFile(file) {
@@ -6627,8 +4380,10 @@ function loadPatchFile(file) {
     try {
       const patch = JSON.parse(reader.result);
       patch.name = patch.name || file.name.replace(/\.json$/i, "");
-      loadPatch(patch, { preserveAsActive: true, clearUndo: true });
-      patchSelect.value = "";
+      if (loadPatch(patch, { preserveAsActive: true, clearUndo: true })) {
+        stopAnimation();
+        patchSelect.value = "";
+      }
     } catch (error) {
       setConstraintStatus("Could not load patch JSON.");
     }
@@ -6699,9 +4454,9 @@ function applyPatchJsonEditor() {
     patch.key = `edited-${slugify(patch.name)}-${Date.now()}`;
   }
 
+  if (!loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: true })) return;
   stopAnimation();
   selectPatchOptionForPatch(patch);
-  loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: true });
   patchJsonTextarea.value = JSON.stringify(currentPatchSnapshot(), null, 2);
   setConstraintStatus("Patch JSON applied.");
 }
@@ -6725,9 +4480,7 @@ function parsePatchJsonEditor() {
 
 function updateHoverState(entity) {
   hoveredEntity = entity;
-  canvas.style.cursor = activeTool === TOOL_SELECT
-    ? (hoveredEntity ? "grab" : "default")
-    : "crosshair";
+  canvas.style.cursor = activeTool === TOOL_SELECT ? (hoveredEntity ? "grab" : "default") : "crosshair";
 }
 
 function beginDrag(event) {
@@ -6790,13 +4543,15 @@ function continueDrag(event) {
 
   if (!dragged.didSnapshot && dragDistance > 2) {
     pushUndoSnapshot(`move ${entityLabel(dragged.entity)}`);
-    if (constraints.some((constraint) => constraint.node === dragged.entity)) {
+    if (state.constraints.some((constraint) => constraint.node === dragged.entity)) {
       dragged.entity.isManual = true;
     }
     dragged.didSnapshot = true;
   }
   dragged.skipPropagation = dragged.skipPropagation || event.shiftKey;
-  moveEntity(dragged.entity, x - dragged.offsetX, y - dragged.offsetY, { skipPropagation: dragged.skipPropagation });
+  moveEntity(dragged.entity, x - dragged.offsetX, y - dragged.offsetY, {
+    skipPropagation: dragged.skipPropagation
+  });
 }
 
 function endDrag(event) {
@@ -6809,7 +4564,7 @@ function endDrag(event) {
   const releasedEntity = dragged.entity;
   const startX = dragged.startX;
   const startY = dragged.startY;
-  const wasPropagationPaused = propagationPaused;
+  const wasPropagationPaused = state.propagationPaused;
 
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
@@ -6832,7 +4587,7 @@ function endDrag(event) {
   if (wasPropagationPaused) {
     resumePropagationAfterPausedDrag();
   } else {
-    propagationPaused = false;
+    state.propagationPaused = false;
   }
   if (!wasClick && !wasPropagationPaused && refineXpbdAfterDrag(releasedEntity)) {
     drawTracesForChangedEntities();
@@ -6844,14 +4599,19 @@ function endDrag(event) {
 }
 
 canvas.addEventListener("pointerdown", beginDrag);
+
 canvas.addEventListener("pointermove", continueDrag);
+
 canvas.addEventListener("pointerup", endDrag);
+
 canvas.addEventListener("pointercancel", endDrag);
+
 canvas.addEventListener("pointerleave", () => {
   if (!dragged) {
     updateHoverState(null);
   }
 });
+
 globalThis.addEventListener?.("resize", () => {
   if (configureCanvasResolution()) {
     drawAll();
@@ -6893,13 +4653,25 @@ canvas.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (!event.metaKey && !event.ctrlKey && !event.altKey && event.shiftKey && (event.key === " " || event.key === "Spacebar")) {
+  if (
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    event.shiftKey &&
+    (event.key === " " || event.key === "Spacebar")
+  ) {
     toggleAnimation();
     event.preventDefault();
     return;
   }
 
-  if (!event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && (event.key === " " || event.key === "Spacebar")) {
+  if (
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.shiftKey &&
+    (event.key === " " || event.key === "Spacebar")
+  ) {
     toggleSoundOutput();
     event.preventDefault();
     return;
@@ -6917,19 +4689,21 @@ canvas.addEventListener("keydown", (event) => {
     return;
   }
 
-  const entity = selectedEntity || listener;
+  const entity = selectedEntity || state.listener;
   const step = event.shiftKey ? 10 : 4;
   pushUndoSnapshot(`nudge ${entityLabel(entity)}`);
   selectedEntity = entity;
   moveEntity(entity, entity.x + direction.x * step, entity.y + direction.y * step);
   event.preventDefault();
 });
+
 globalThis.addEventListener?.("keydown", (event) => {
   if (event.key === "Escape" && isCanvasFullscreen) {
     exitCanvasFullscreen();
     event.preventDefault();
   }
 });
+
 document.addEventListener?.("fullscreenchange", handleDocumentFullscreenChange);
 
 for (const button of toolButtons) {
@@ -6939,12 +4713,17 @@ for (const button of toolButtons) {
 }
 
 uiModePlayButton.addEventListener("click", () => setUiMode(UI_MODE_PLAY));
+
 uiModeEditButton.addEventListener("click", () => setUiMode(UI_MODE_EDIT));
+
 animationToggle.addEventListener("click", toggleAnimation);
+
 targetToggleButton.addEventListener("click", () => {
   toggleSoundOutput();
 });
+
 traceSelectedButton.addEventListener("click", toggleSelectedTrace);
+
 traceNoneButton.addEventListener("click", stopAllDrawing);
 
 listenerModeRetargetButton.addEventListener("click", () => {
@@ -6954,6 +4733,7 @@ listenerModeRetargetButton.addEventListener("click", () => {
     drawAll();
   }
 });
+
 listenerModePreserveButton.addEventListener("click", () => {
   setListenerMode(LISTENER_MODE_PRESERVE);
   if (!listenerEditor.hidden) {
@@ -6961,36 +4741,53 @@ listenerModePreserveButton.addEventListener("click", () => {
     drawAll();
   }
 });
+
 solverModePropagationButton.addEventListener("click", () => {
   setSolverMode(SOLVER_MODE_PROPAGATION, { updateUrl: true });
 });
+
 solverModeXpbdButton.addEventListener("click", () => {
   setSolverMode(SOLVER_MODE_XPBD, { updateUrl: true });
 });
+
 patchSelect.addEventListener("change", () => {
   stopAnimation();
   loadMenuPatch(patchSelect.value, { clearUndo: true });
 });
+
 savePatchButton.addEventListener("click", savePatch);
+
 loadPatchButton.addEventListener("click", () => {
   patchFileInput.click();
 });
+
 patchFileInput.addEventListener("change", () => {
   loadPatchFile(patchFileInput.files[0]);
   patchFileInput.value = "";
 });
+
 patchJsonToggle.addEventListener("click", togglePatchJsonEditor);
+
 patchInspectorInlineToggle.addEventListener("click", togglePatchInspector);
+
 patchJsonInlineToggle.addEventListener("click", togglePatchJsonEditor);
+
 patchJsonApplyButton.addEventListener("click", applyPatchJsonEditor);
+
 patchInspectorToggle.addEventListener("click", togglePatchInspector);
+
 patchInspectorClose.addEventListener("click", closePatchInspector);
+
 patchValidateButton.addEventListener("click", validatePatchEditor);
+
 patchMappingAddButton.addEventListener("click", () => addPatchMappingRow());
+
 patchMappingApplyButton.addEventListener("click", applyPatchMappingsEditor);
+
 midiLoadSequenceButton.addEventListener("click", () => {
   midiSequenceFileInput.click();
 });
+
 midiSequenceFileInput.addEventListener("change", async () => {
   const file = midiSequenceFileInput.files[0];
   midiSequenceFileInput.value = "";
@@ -7007,27 +4804,46 @@ midiSequenceFileInput.addEventListener("change", async () => {
     setConstraintStatus(error.message || "Could not load MIDI/MusicXML file.");
   }
 });
+
 clearTraceButton.addEventListener("click", clearTrace);
+
 saveTraceButton.addEventListener("click", saveTrace);
+
 resetButton.addEventListener("click", () => {
   stopAnimation();
   resetScene();
 });
+
 fullscreenToggleButton.addEventListener("click", toggleCanvasFullscreen);
+
 rotationApplyButton.addEventListener("click", applyRotationEditor);
+
 rotationCloseButton.addEventListener("click", closeRotationEditor);
+
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);
+
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
+
 rotationPrevButton.addEventListener("click", () => navigateInspector(-1));
+
 rotationNextButton.addEventListener("click", () => navigateInspector(1));
+
 shuttlePrevButton.addEventListener("click", () => navigateInspector(-1));
+
 shuttleNextButton.addEventListener("click", () => navigateInspector(1));
+
 constraintPrevButton.addEventListener("click", () => navigateInspector(-1));
+
 constraintNextButton.addEventListener("click", () => navigateInspector(1));
+
 constraintRecaptureButton.addEventListener("click", recaptureConstraintFromGeometry);
+
 constraintApplyButton.addEventListener("click", applyConstraintEditor);
+
 constraintCloseButton.addEventListener("click", closeConstraintEditor);
+
 sourceAudioFileInput.addEventListener("change", handleSourceAudioFileChange);
+
 sourceOutputTypeInput.addEventListener("change", () => {
   updateSourceEditorVisibility();
   refreshSourceGeneratorMidiOutputs();
@@ -7041,22 +4857,34 @@ sourceOutputTypeInput.addEventListener("change", () => {
     sourceAudioFileName.textContent = "No sound assigned.";
   }
 });
+
 sourceGeneratorOutputModeInput.addEventListener("change", () => {
   updateSourceEditorVisibility();
   refreshSourceGeneratorMidiOutputs();
 });
+
 sourceGeneratorMappingAddButton.addEventListener("click", () => {
   addSourceGeneratorMappingRow();
 });
+
 sourceApplyButton.addEventListener("click", applySourceEditor);
+
 sourcePrevButton.addEventListener("click", () => navigateInspector(-1));
+
 sourceNextButton.addEventListener("click", () => navigateInspector(1));
+
 sourceToggleMuteButton.addEventListener("click", toggleSelectedSourceMute);
+
 sourceRemoveBindingButton.addEventListener("click", removeSourceBindingFromEditor);
+
 sourceCloseButton.addEventListener("click", closeSourceEditor);
+
 listenerApplyButton.addEventListener("click", applyListenerEditor);
+
 listenerPrevButton.addEventListener("click", () => navigateInspector(-1));
+
 listenerNextButton.addEventListener("click", () => navigateInspector(1));
+
 listenerCloseButton.addEventListener("click", closeListenerEditor);
 
 async function initializeApp() {
@@ -7069,6 +4897,7 @@ async function initializeApp() {
   setActiveTool(TOOL_SELECT);
   setUiMode(UI_MODE_PLAY);
   setListenerMode(LISTENER_MODE_RETARGET);
+  state.solverMode = getInitialSolverMode();
   updateSolverIndicator();
   updateSoundToggleButton();
 
@@ -7084,7 +4913,9 @@ async function initializeApp() {
     const errorOption = document.createElement("option");
     errorOption.textContent = "Patch JSON unavailable";
     patchSelect.append(errorOption);
-    setConstraintStatus(`Could not load built-in patch JSON: ${error.message}. Serve this directory over HTTP, then reload.`);
+    setConstraintStatus(
+      `Could not load built-in patch JSON: ${error.message}. Serve this directory over HTTP, then reload.`
+    );
   }
 }
 

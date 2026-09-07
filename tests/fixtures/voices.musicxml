@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Two voices</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <direction><sound tempo="120"/></direction>
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice></note>
+      <backup><duration>2</duration></backup>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><voice>2</voice></note>
+    </measure>
+    <measure number="2">
+      <direction><sound tempo="60"/></direction>
+      <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration></note>
+    </measure>
+  </part>
+</score-partwise>

@@ -154,3 +154,7 @@ The Faust integration can work in two phases:
 - **Runtime:** instantiate the compiled DSP through the patch-provided adapter module and call the Faust parameter setter for each mapped path.
 
 The generated target manifest can then seed MusicSpace mappings and suggested constraints, while still allowing the user to edit the controller scene.
+
+## Lifecycle and buffering
+
+Clients invalidate asynchronous startup when stopped, disposed or replaced by a patch. Source audio decodes concurrently, caches current-patch buffers and schedules a shared start after setting initial spatial values. Parameter monitors reuse DOM rows and refresh at 10 Hz while parameter application continues on every update. See `ARCHITECTURE.md` for the client contract and `TESTING.md` for lifecycle regression coverage.

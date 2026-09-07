@@ -172,8 +172,8 @@
               },
               "program": {
                 "type": "integer",
-                "minimum": 0,
-                "maximum": 127
+                "minimum": 1,
+                "maximum": 128
               },
               "isDrums": {
                 "type": "boolean"
@@ -535,6 +535,9 @@
       "required": ["type"],
       "properties": {
         "type": { "type": "string" },
+        "angle": { "type": "number" },
+        "totalDistance": { "type": "number", "minimum": 0 },
+        "product": { "type": "number", "minimum": 0 },
         "node": { "$ref": "#/$defs/constraintNode" }
       }
     },

@@ -1,0 +1,134 @@
+{
+  "revision": "32c1a5fa",
+  "browser": "149.0.7827.55",
+  "results": [
+    {
+      "patch": "Product + Limit",
+      "mode": "propagation",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0
+      },
+      "render": {
+        "medianMs": 0.1,
+        "p95Ms": 0.1
+      },
+      "domNodes": 7500,
+      "constraintVisits": 1118,
+      "residuals": 0
+    },
+    {
+      "patch": "Product + Limit",
+      "mode": "xpbd",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "render": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "domNodes": 7500,
+      "constraintVisits": 0,
+      "residuals": 0
+    },
+    {
+      "patch": "Granular Cloud Study",
+      "mode": "propagation",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "render": {
+        "medianMs": 0.2,
+        "p95Ms": 0.3
+      },
+      "domNodes": 12000,
+      "constraintVisits": 110808,
+      "residuals": 1
+    },
+    {
+      "patch": "Granular Cloud Study",
+      "mode": "xpbd",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "render": {
+        "medianMs": 0.2,
+        "p95Ms": 0.3
+      },
+      "domNodes": 12000,
+      "constraintVisits": 0,
+      "residuals": 0
+    },
+    {
+      "patch": "Rotating Partials",
+      "mode": "propagation",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0.1,
+        "p95Ms": 0.2
+      },
+      "render": {
+        "medianMs": 0.2,
+        "p95Ms": 0.4
+      },
+      "domNodes": 7500,
+      "constraintVisits": 2112000,
+      "residuals": 1
+    },
+    {
+      "patch": "Rotating Partials",
+      "mode": "xpbd",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0.1,
+        "p95Ms": 0.2
+      },
+      "render": {
+        "medianMs": 0.2,
+        "p95Ms": 0.4
+      },
+      "domNodes": 7500,
+      "constraintVisits": 0,
+      "residuals": 32
+    },
+    {
+      "patch": "100 independent links",
+      "mode": "propagation",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "render": {
+        "medianMs": 0.7,
+        "p95Ms": 1
+      },
+      "domNodes": 7500,
+      "constraintVisits": 100000,
+      "residuals": 0
+    },
+    {
+      "patch": "100 independent links",
+      "mode": "xpbd",
+      "samples": 500,
+      "solve": {
+        "medianMs": 0,
+        "p95Ms": 0.1
+      },
+      "render": {
+        "medianMs": 0.7,
+        "p95Ms": 0.9
+      },
+      "domNodes": 7500,
+      "constraintVisits": 0,
+      "residuals": 0
+    }
+  ]
+}

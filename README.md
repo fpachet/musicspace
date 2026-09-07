@@ -42,19 +42,19 @@ The current propagation solver remains the default. Use the Solver segmented con
 
 No build step or package installation is required.
 
-If you have Node.js available, you can run a syntax check:
+For development, use Node.js 22.13 or later and run `npm ci` once. Run syntax and lint checks with:
 
 ```sh
 npm run check
 ```
 
-Run the engine regression suite with:
+Run all unit, model, parser and lifecycle regressions with:
 
 ```sh
 npm test
 ```
 
-Run the browser smoke test with:
+Run the Chromium integration tests with:
 
 ```sh
 npx playwright install chromium
@@ -113,7 +113,7 @@ npm run export:linkedin
 - Pure geometric/control sources draw as light hollow handles; sources with audio-file, additive synth, MIDI-file track, or generated MIDI output draw with a stronger emitter style and a small sound or MIDI icon badge.
 - Use Backspace/Delete to remove the selected source, mover, or constraint node. Dependent constraints are removed with deleted sources/movers.
 - Use Cmd/Ctrl+Z to undo edits, especially deletes. The toolbar shows the pending undo action when one is available.
-- Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. The mover transport appears only on patches with moving objects.
+- Use **Start Movers** / **Stop Movers**, or press Shift+Space, to animate movers. Restarting resumes their positions; the simulation uses elapsed time consistently across display refresh rates and pauses its clock while the page is hidden. The mover transport appears only on patches with moving objects.
 - Use **Play Sound** / **Stop Sound** or press Space to enable or stop browser sound. It starts source audio-file bindings, source generators, MIDI/MusicXML sequence playback, and parameter target backends only when the patch actually contains `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`; patches with only geometric constraints stay silent. Select a source and press `m` to mute or unmute its audio binding, additive synth, or generated MIDI ostinato.
 - Transport and MIDI output controls are hidden when they do not apply to the current patch.
 - Use **Load MIDI/MusicXML** to import `.mid`, `.midi`, `.musicxml`, `.xml`, or compressed `.mxl` files. MusicSpace creates one source per playable track or part.
@@ -125,6 +125,8 @@ npm run export:linkedin
 - Use **Reset** to restore the currently selected patch.
 
 ## Built-In Patches
+
+See [the guided exercises](EXAMPLES.md) for a progression through the examples and their expected results.
 
 - **Angle + Balance** shows a two-source angle relation plus a group balance/sum relation.
 - **Product + Limit** demonstrates bounded deterministic backoff: a product constraint propagates multiplicatively, but once source B reaches its radial limit, the product correction is propagated to the remaining source.
@@ -142,12 +144,19 @@ npm run export:linkedin
 - **Faust Control Study** maps constrained source motion to a `faust-wasm` target: `/osc/freq`, `/filter/frequency`, `/filter/q`, and `/output/gain`. The bundled study includes a Faust DSP source plus a browser adapter, so it runs without a compile step while keeping the same patch-level binding used by compiled Faust artifacts.
 - **FM Space** maps constrained source constellations to a Faust-style two-modulator FM synth: carrier frequency, modulator ratios/indices, vibrato, tremolo, feedback color, drive, filter, pan, and gain all move from MusicSpace geometry.
 - **FM Harmonic Space** uses the same Faust-style FM target but snaps modulator ratios to harmonic integer values, letting continuous spatial motion choose stable FM islands instead of sweeping through every in-between ratio.
+- **Chord Import Check** plays C and E together, followed by G, using a small MusicXML fixture.
+- **Conflict Diagnostics** intentionally combines an incompatible pin and radial limit so residual reporting can be inspected.
 - **Granular Cloud Study** maps compound trajectories and constraints to a self-contained granular synth: `/grain/rate`, `/grain/size`, `/grain/pitch`, `/grain/spread`, `/filter/frequency`, `/filter/q`, and `/output/gain`.
 
 ## Repository Layout
 
 - `musicspace.html` contains the static page structure and styling.
-- `musicspace.js` contains the canvas entities, constraints, drawing, interaction, animation logic, and scene feature extraction. It does not know about Faust, Web Audio, MIDI, OSC, or concrete target clients.
+- `musicspace.js` contains rendering, interaction, inspectors, undo commands, and output coordination.
+- `musicspace-model.js` owns the headless scene and edit operations; `musicspace-solvers.js` and `musicspace-graph.js` own solving and indexed adjacency.
+- `musicspace-trajectories.js` and `musicspace-clock.js` provide fixed simulation steps driven by elapsed time.
+- `musicspace-patch.js` validates input before scene replacement and provides independent snapshots.
+- `ARCHITECTURE.md` documents module boundaries and lifecycle contracts; `TESTING.md` documents checks and benchmarks; `EXAMPLES.md` provides guided exercises.
+- `REFACTORING.md` records the reliability and performance implementation and measured results.
 - `musicspace-mapping.js` contains backend-independent parameter mapping from scene features to target values.
 - `musicspace-parameter-client.js` owns the generic target monitor UI, target lifecycle, mapping normalization, and patch serialization for `parameterMappings`.
 - `musicspace-source-audio-client.js` owns per-source audio-file playback and listener-relative pan, distance gain, and distance reverb send for `sourceBindings`.

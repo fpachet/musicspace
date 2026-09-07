@@ -11,6 +11,7 @@
   const SPATIAL_INTERVAL_MS = 60;
   const MAX_SPATIAL_DISTANCE = 360;
   const PPQ = 480;
+  const HEIGHT = 600;
 
   function createMidiFileClient(options = {}) {
     const modeSelect = options.modeSelect || null;
@@ -19,6 +20,7 @@
     const trackList = options.trackList || null;
     const status = options.status || null;
     const onStatus = options.onStatus || (() => {});
+    const onStateChange = options.onStateChange || (() => {});
     const getSource = options.getSource || (() => null);
     const getListener = options.getListener || (() => null);
 
@@ -36,12 +38,17 @@
     let availableOutputs = [];
     let selectedOutputId = "";
     let loadToken = 0;
+    let playbackGeneration = 0;
 
     if (modeSelect) {
       modeSelect.addEventListener("change", () => {
         stop();
         updateModeAvailability();
-        setStatus(modeSelect.value === "external" ? "External MIDI mode selected." : "Internal GM-style synth selected.");
+        setStatus(
+          modeSelect.value === "external"
+            ? "External MIDI mode selected."
+            : "Internal GM-style synth selected."
+        );
       });
     }
 
@@ -57,18 +64,28 @@
       updateSpatial,
       setEnabled,
       stop,
+      isEnabled() {
+        return isPlaying;
+      },
+      dispose() {
+        loadToken += 1;
+        stop();
+        patchMidiSpec = null;
+        midiFile = null;
+        trackBindings = [];
+      },
       renameSource(oldName, newName) {
         if (patchMidiSpec?.trackBindings) {
           patchMidiSpec = {
             ...patchMidiSpec,
-            trackBindings: patchMidiSpec.trackBindings.map((binding) => (
+            trackBindings: patchMidiSpec.trackBindings.map((binding) =>
               binding.source === oldName ? { ...binding, source: newName } : binding
-            ))
+            )
           };
         }
-        trackBindings = trackBindings.map((binding) => (
+        trackBindings = trackBindings.map((binding) =>
           binding.source === oldName ? { ...binding, source: newName } : binding
-        ));
+        );
         updatePanel();
         updateSpatial(true);
       },
@@ -99,18 +116,19 @@
           return null;
         }
 
-        const updatedSpecBindings = patchMidiSpec.trackBindings.map((binding) => (
+        const updatedSpecBindings = patchMidiSpec.trackBindings.map((binding) =>
           binding.source === sourceName ? normalizeTrackBindingUpdate(binding, updates) : binding
-        ));
-        const updatedSpecBinding = updatedSpecBindings.find((binding) => binding.source === sourceName) || null;
+        );
+        const updatedSpecBinding =
+          updatedSpecBindings.find((binding) => binding.source === sourceName) || null;
         if (!updatedSpecBinding) {
           return null;
         }
 
         patchMidiSpec = { ...patchMidiSpec, trackBindings: updatedSpecBindings };
-        trackBindings = trackBindings.map((binding) => (
+        trackBindings = trackBindings.map((binding) =>
           binding.source === sourceName ? normalizeTrackBindingUpdate(binding, updatedSpecBinding) : binding
-        ));
+        );
         updatePanel();
         updateSpatial(true);
         setStatus(`${sourceName} MIDI track set to channel ${updatedSpecBinding.channel}.`);
@@ -121,7 +139,9 @@
           return false;
         }
 
-        const nextSpecBindings = patchMidiSpec.trackBindings.filter((binding) => binding.source !== sourceName);
+        const nextSpecBindings = patchMidiSpec.trackBindings.filter(
+          (binding) => binding.source !== sourceName
+        );
         const removed = nextSpecBindings.length !== patchMidiSpec.trackBindings.length;
         if (!removed) {
           return false;
@@ -212,26 +232,39 @@
       }
 
       stop();
-
+      const ticket = playbackGeneration;
+      let candidate;
       try {
-        renderer = modeSelect?.value === "external"
-          ? await createExternalRenderer()
-          : createInternalRenderer();
+        candidate =
+          modeSelect?.value === "external" ? await createExternalRenderer() : createInternalRenderer();
       } catch (error) {
+        if (ticket !== playbackGeneration) return false;
         renderer = null;
         setStatus(error.message || "Could not start MIDI playback.");
         return false;
       }
 
-      if (!renderer) {
+      if (ticket !== playbackGeneration) {
+        candidate?.stop();
         return false;
       }
+      renderer = candidate;
+      if (!renderer) return false;
 
+      try {
+        await renderer.start(trackBindings);
+      } catch (error) {
+        if (ticket === playbackGeneration) {
+          stop();
+          setStatus("Could not start MIDI playback.");
+        }
+        return false;
+      }
+      if (ticket !== playbackGeneration) return false;
       isPlaying = true;
       startedAt = nowSeconds();
       nextEventIndex = 0;
       boundTrackIndices = new Set(trackBindings.map((binding) => binding.trackIndex));
-      renderer.start(trackBindings);
       updateSpatial(true);
       scheduleDueEvents();
       schedulerTimer = global.setInterval(scheduleDueEvents, SCHEDULER_INTERVAL_MS);
@@ -241,6 +274,7 @@
     }
 
     function stop() {
+      playbackGeneration += 1;
       const wasPlaying = isPlaying;
 
       if (schedulerTimer) {
@@ -261,6 +295,7 @@
 
       if (wasPlaying) {
         setStatus("MIDI stopped.");
+        onStateChange(false);
       }
       return false;
     }
@@ -316,9 +351,10 @@
         throw new Error("Web MIDI is not available in this browser.");
       }
 
-      midiAccess = midiAccess || await global.navigator.requestMIDIAccess({ sysex: false });
+      midiAccess = midiAccess || (await global.navigator.requestMIDIAccess({ sysex: false }));
       refreshMidiOutputs();
-      const output = availableOutputs.find((candidate) => candidate.id === selectedOutputId) || availableOutputs[0];
+      const output =
+        availableOutputs.find((candidate) => candidate.id === selectedOutputId) || availableOutputs[0];
       if (!output) {
         throw new Error("No MIDI output is available.");
       }
@@ -394,9 +430,14 @@
         return;
       }
 
-      const rows = trackBindings.length > 0
-        ? trackBindings
-        : (patchMidiSpec.trackBindings || []).map((binding) => ({ ...binding, noteCount: 0, channel: binding.channel }));
+      const rows =
+        trackBindings.length > 0
+          ? trackBindings
+          : (patchMidiSpec.trackBindings || []).map((binding) => ({
+              ...binding,
+              noteCount: 0,
+              channel: binding.channel
+            }));
 
       for (const binding of rows) {
         const row = document.createElement("div");
@@ -409,7 +450,9 @@
           binding.track && binding.track !== binding.source ? binding.track : "",
           binding.channel ? `ch ${binding.channel}` : "",
           binding.noteCount ? `${binding.noteCount} notes` : ""
-        ].filter(Boolean).join(" · ");
+        ]
+          .filter(Boolean)
+          .join(" · ");
         row.append(label, output);
         trackList.append(row);
       }
@@ -449,7 +492,7 @@
       const pan = clamp(dx / (MAX_SPATIAL_DISTANCE * 0.85), -1, 1);
       const gain = clamp(1 - normalizedDistance * 0.75, 0.18, 1);
       const reverb = clamp(normalizedDistance, 0, 1);
-      const filter = clamp(1 - normalizedDistance * 0.55 - Math.max(0, dy) / HEIGHT * 0.25, 0.25, 1);
+      const filter = clamp(1 - normalizedDistance * 0.55 - (Math.max(0, dy) / HEIGHT) * 0.25, 0.25, 1);
 
       return { pan, gain, reverb, filter };
     }
@@ -466,7 +509,7 @@
       return spec;
     }
 
-    const { sequenceData, ...serializableSpec } = spec;
+    const { sequenceData: _sequenceData, ...serializableSpec } = spec;
     return serializableSpec;
   }
 
@@ -503,7 +546,8 @@
       name: sequence.title || cleanFileName(fileName),
       listener,
       sources,
-      constraints: sources.length >= 2 ? [{ type: "sum", sources: sources.map((source) => source.name) }] : [],
+      constraints:
+        sources.length >= 2 ? [{ type: "sum", sources: sources.map((source) => source.name) }] : [],
       target: { type: "midi-file" },
       midiFile: {
         name: fileName,
@@ -569,7 +613,11 @@
     const bytes = new Uint8Array(arrayBuffer);
     const lowerName = String(name || "").toLowerCase();
 
-    if (startsWith(bytes, [0x4d, 0x54, 0x68, 0x64]) || lowerName.endsWith(".mid") || lowerName.endsWith(".midi")) {
+    if (
+      startsWith(bytes, [0x4d, 0x54, 0x68, 0x64]) ||
+      lowerName.endsWith(".mid") ||
+      lowerName.endsWith(".midi")
+    ) {
       return parseMidiFile(arrayBuffer);
     }
 
@@ -595,7 +643,8 @@
       rootFile = match ? match[1] : null;
     }
 
-    const mainEntry = entries.find((entry) => entry.name === rootFile) ||
+    const mainEntry =
+      entries.find((entry) => entry.name === rootFile) ||
       entries.find((entry) => /\.(musicxml|xml)$/i.test(entry.name) && !entry.name.startsWith("META-INF/"));
 
     if (!mainEntry) {
@@ -630,9 +679,8 @@
       }
 
       const compressed = new Uint8Array(arrayBuffer, dataStart, compressedSize);
-      const data = method === 0 ? compressed :
-        method === 8 ? new Uint8Array(await inflateRaw(compressed)) :
-          null;
+      const data =
+        method === 0 ? compressed : method === 8 ? new Uint8Array(await inflateRaw(compressed)) : null;
 
       if (data && !name.endsWith("/")) {
         entries.push({ name, data });
@@ -650,9 +698,13 @@
     }
 
     try {
-      return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+      return await new Response(
+        new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
+      ).arrayBuffer();
     } catch (error) {
-      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer();
+      return new Response(
+        new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"))
+      ).arrayBuffer();
     }
   }
 
@@ -671,9 +723,7 @@
     const rawTracks = Array.from(document.querySelectorAll("score-partwise > part"))
       .map((part, index) => parseMusicXmlPart(part, partInfo.get(part.getAttribute("id")), index + 1))
       .filter((track) => track.noteCount > 0);
-    const tempoEvents = rawTracks
-      .flatMap((track) => track.tempos)
-      .sort((a, b) => a.tick - b.tick);
+    const tempoEvents = rawTracks.flatMap((track) => track.tempos).sort((a, b) => a.tick - b.tick);
     const tempoMap = buildTempoMap(tempoEvents, PPQ);
     const musicalTracks = rawTracks.map((track) => ({
       ...track,
@@ -681,11 +731,16 @@
       primaryProgram: track.programs[0]?.program || 1
     }));
     const events = buildPlaybackEvents(rawTracks, tempoMap);
-    const durationSeconds = events.reduce((max, event) => Math.max(max, event.seconds + (event.durationSeconds || 0)), 0);
+    const durationSeconds = events.reduce(
+      (max, event) => Math.max(max, event.seconds + (event.durationSeconds || 0)),
+      0
+    );
 
     return {
       format: "musicxml",
-      title: textContent(document.querySelector("work-title")) || textContent(document.querySelector("movement-title")),
+      title:
+        textContent(document.querySelector("work-title")) ||
+        textContent(document.querySelector("movement-title")),
       trackCount: rawTracks.length,
       ppq: PPQ,
       rawTracks,
@@ -728,12 +783,21 @@
   function parseMusicXmlPart(part, info, index) {
     const channel = info?.channel || index;
     const program = info?.program || 1;
-    const events = [{ tick: 0, type: "programChange", channel, program, bytes: [0xc0 + channelIndex(channel), clampInt(program - 1, 0, 127)] }];
+    const events = [
+      {
+        tick: 0,
+        type: "programChange",
+        channel,
+        program,
+        bytes: [0xc0 + channelIndex(channel), clampInt(program - 1, 0, 127)]
+      }
+    ];
     const tempos = [];
     const channels = [channel];
     const programs = [{ tick: 0, channel, program }];
     let divisions = 1;
     let quarterPosition = 0;
+    let previousNotePosition = 0;
     let noteCount = 0;
 
     for (const measure of Array.from(part.querySelectorAll(":scope > measure"))) {
@@ -742,11 +806,15 @@
         divisions = Number(divisionsText) || divisions;
       }
 
+      let measureEnd = quarterPosition;
       for (const child of Array.from(measure.children)) {
         if (child.localName === "direction") {
           const tempo = Number(child.querySelector("sound")?.getAttribute("tempo"));
           if (Number.isFinite(tempo) && tempo > 0) {
-            tempos.push({ tick: Math.round(quarterPosition * PPQ), microsecondsPerQuarter: Math.round(60000000 / tempo) });
+            tempos.push({
+              tick: Math.round(quarterPosition * PPQ),
+              microsecondsPerQuarter: Math.round(60000000 / tempo)
+            });
           }
         } else if (child.localName === "backup") {
           quarterPosition -= durationQuarters(child, divisions);
@@ -756,11 +824,17 @@
           const isChord = Boolean(child.querySelector(":scope > chord"));
           const isRest = Boolean(child.querySelector(":scope > rest"));
           const duration = durationQuarters(child, divisions);
+          const notePosition = isChord ? previousNotePosition : quarterPosition;
+          if (!isChord) previousNotePosition = notePosition;
 
           if (!isRest) {
             const note = musicXmlNoteNumber(child, info, channel);
-            const velocity = clampInt(Number(child.querySelector(":scope > velocity")?.textContent) || 84, 1, 127);
-            const tick = Math.round(quarterPosition * PPQ);
+            const velocity = clampInt(
+              Number(child.querySelector(":scope > velocity")?.textContent) || 84,
+              1,
+              127
+            );
+            const tick = Math.round(notePosition * PPQ);
             const durationTicks = Math.max(1, Math.round(duration * PPQ));
             events.push({
               tick,
@@ -786,7 +860,9 @@
             quarterPosition += duration;
           }
         }
+        measureEnd = Math.max(measureEnd, quarterPosition);
       }
+      quarterPosition = measureEnd;
     }
 
     return {
@@ -805,7 +881,10 @@
     const instrument = instrumentId ? info?.instruments.get(instrumentId) : null;
 
     if (instrument?.unpitched) {
-      return { number: clampInt(instrument.unpitched, 0, 127), channel: instrument.channel || fallbackChannel };
+      return {
+        number: clampInt(instrument.unpitched, 0, 127),
+        channel: instrument.channel || fallbackChannel
+      };
     }
 
     const pitch = note.querySelector(":scope > pitch");
@@ -813,14 +892,20 @@
       const step = textContent(pitch.querySelector("step"));
       const alter = Number(textContent(pitch.querySelector("alter")) || 0);
       const octave = Number(textContent(pitch.querySelector("octave")) || 4);
-      return { number: clampInt((octave + 1) * 12 + stepToSemitone(step) + alter, 0, 127), channel: instrument?.channel || fallbackChannel };
+      return {
+        number: clampInt((octave + 1) * 12 + stepToSemitone(step) + alter, 0, 127),
+        channel: instrument?.channel || fallbackChannel
+      };
     }
 
     const unpitched = note.querySelector(":scope > unpitched");
     if (unpitched) {
       const step = textContent(unpitched.querySelector("display-step"));
       const octave = Number(textContent(unpitched.querySelector("display-octave")) || 4);
-      return { number: clampInt((octave + 1) * 12 + stepToSemitone(step), 0, 127), channel: instrument?.channel || fallbackChannel };
+      return {
+        number: clampInt((octave + 1) * 12 + stepToSemitone(step), 0, 127),
+        channel: instrument?.channel || fallbackChannel
+      };
     }
 
     return { number: 60, channel: fallbackChannel };
@@ -861,13 +946,13 @@
 
   function createWebMidiRenderer(output) {
     const lastSpatial = new Map();
-    const panicTimers = [];
+    let hasStarted = false;
     let activeChannels = [];
     let bindingByTrackIndex = new Map();
 
     return {
       start(bindings) {
-        clearPanicTimers();
+        hasStarted = true;
         bindingByTrackIndex = new Map(bindings.map((binding) => [binding.trackIndex, binding]));
         activeChannels = Array.from(new Set(bindings.map((binding) => channelIndex(binding.channel))));
         for (const binding of bindings) {
@@ -901,29 +986,19 @@
         }
       },
       stop() {
+        if (!hasStarted) return;
+        // MIDIOutput.clear cancels this output's queued timestamped messages.
+        output.clear?.();
         sendMidiPanic(output, activeChannels);
-        clearPanicTimers();
-        bindingByTrackIndex = new Map();
-
-        // Web MIDI cannot cancel note-ons already scheduled with future timestamps.
-        // Repeat panic after the scheduler lookahead window so those notes are also released.
-        for (const delayMs of [80, (SCHEDULE_AHEAD_SECONDS * 1000) + 60, 500]) {
-          panicTimers.push(global.setTimeout(() => {
-            sendMidiPanic(output, activeChannels);
-          }, delayMs));
-        }
+        bindingByTrackIndex.clear();
+        hasStarted = false;
       }
     };
-
-    function clearPanicTimers() {
-      while (panicTimers.length > 0) {
-        global.clearTimeout(panicTimers.pop());
-      }
-    }
   }
 
   function sendMidiPanic(output, channels) {
-    const targetChannels = channels.length > 0 ? channels : Array.from({ length: 16 }, (_, channel) => channel);
+    const targetChannels =
+      channels.length > 0 ? channels : Array.from({ length: 16 }, (_, channel) => channel);
 
     for (const channel of targetChannels) {
       output.send([0xb0 + channel, 64, 0]); // sustain off
@@ -984,8 +1059,9 @@
     master.connect(context.destination);
 
     return {
-      start(bindings) {
-        context.resume();
+      async start(bindings) {
+        await context.resume();
+        if (context.state === "closed") return;
         for (const binding of bindings) {
           ensureTrackNode(binding);
         }
@@ -1014,7 +1090,11 @@
           const node = ensureTrackNode(binding);
           node.pan.pan.setTargetAtTime(binding.spatial.pan, time, rampTime);
           node.gain.gain.setTargetAtTime(binding.spatial.gain, time, rampTime);
-          node.reverbSend.gain.setTargetAtTime(binding.spatial.reverb * binding.spatial.gain * 0.28, time, rampTime);
+          node.reverbSend.gain.setTargetAtTime(
+            binding.spatial.reverb * binding.spatial.gain * 0.28,
+            time,
+            rampTime
+          );
           node.filter.frequency.setTargetAtTime(500 + binding.spatial.filter * 6500, time, rampTime);
         }
       },
@@ -1232,6 +1312,9 @@
     const format = reader.readUint16();
     const trackCount = reader.readUint16();
     const division = reader.readUint16();
+    if (headerLength < 6 || ![0, 1].includes(format) || trackCount === 0)
+      throw new Error("Unsupported or malformed MIDI header.");
+    if (division === 0) throw new Error("MIDI ticks per quarter must be positive.");
     if (headerLength > 6) {
       reader.skip(headerLength - 6);
     }
@@ -1248,9 +1331,7 @@
       rawTracks.push(parseTrack(reader.readBytes(reader.readUint32()), index));
     }
 
-    const tempoEvents = rawTracks
-      .flatMap((track) => track.tempos)
-      .sort((a, b) => a.tick - b.tick);
+    const tempoEvents = rawTracks.flatMap((track) => track.tempos).sort((a, b) => a.tick - b.tick);
     const tempoMap = buildTempoMap(tempoEvents, division);
     const musicalTracks = rawTracks
       .filter((track) => track.noteCount > 0)
@@ -1260,7 +1341,10 @@
         primaryProgram: track.programs[0]?.program || 1
       }));
     const events = buildPlaybackEvents(rawTracks, tempoMap);
-    const durationSeconds = events.reduce((max, event) => Math.max(max, event.seconds + (event.durationSeconds || 0)), 0);
+    const durationSeconds = events.reduce(
+      (max, event) => Math.max(max, event.seconds + (event.durationSeconds || 0)),
+      0
+    );
 
     return { format, trackCount, ppq: division, rawTracks, musicalTracks, events, durationSeconds };
   }
@@ -1315,13 +1399,24 @@
       const channel = (status & 0x0f) + 1;
       channels.push(channel);
 
-      if (eventType === 0x8 || eventType === 0x9 || eventType === 0xa || eventType === 0xb || eventType === 0xe) {
+      if (
+        eventType === 0x8 ||
+        eventType === 0x9 ||
+        eventType === 0xa ||
+        eventType === 0xb ||
+        eventType === 0xe
+      ) {
         const data1 = reader.readUint8();
         const data2 = reader.readUint8();
         const bytes = [status, data1, data2];
-        const type = eventType === 0x9 && data2 > 0 ? "noteOn" :
-          (eventType === 0x8 || eventType === 0x9 ? "noteOff" :
-            eventType === 0xb ? "controlChange" : "channel");
+        const type =
+          eventType === 0x9 && data2 > 0
+            ? "noteOn"
+            : eventType === 0x8 || eventType === 0x9
+              ? "noteOff"
+              : eventType === 0xb
+                ? "controlChange"
+                : "channel";
         if (type === "noteOn") {
           noteCount += 1;
         }
@@ -1350,7 +1445,8 @@
   }
 
   function buildTempoMap(tempoEvents, ppq) {
-    const sorted = tempoEvents.length > 0 ? tempoEvents : [{ tick: 0, microsecondsPerQuarter: DEFAULT_TEMPO }];
+    const sorted =
+      tempoEvents.length > 0 ? tempoEvents : [{ tick: 0, microsecondsPerQuarter: DEFAULT_TEMPO }];
     const map = [];
     let lastTick = 0;
     let seconds = 0;
@@ -1406,7 +1502,7 @@
   }
 
   function ticksToSeconds(ticks, tempo, ppq) {
-    return ticks * tempo / 1000000 / ppq;
+    return (ticks * tempo) / 1000000 / ppq;
   }
 
   function secondsAtTick(tick, tempoMap) {
@@ -1457,15 +1553,18 @@
       },
       readVarInt() {
         let value = 0;
-        while (true) {
+        for (let count = 0; count < 4; count += 1) {
           const byte = this.readUint8();
           value = (value << 7) | (byte & 0x7f);
           if ((byte & 0x80) === 0) {
             return value;
           }
         }
+        throw new Error("MIDI variable-length value exceeds four bytes.");
       },
       skip(length) {
+        if (!Number.isInteger(length) || length < 0 || offset + length > view.byteLength)
+          throw new Error("Truncated MIDI data.");
         offset += length;
       }
     };
@@ -1524,20 +1623,7 @@
   }
 
   function midiNoteFrequency(note) {
-    return 440 * (2 ** ((note - 69) / 12));
-  }
-
-  function drumFrequency(note) {
-    if (note <= 36) {
-      return 55;
-    }
-    if (note <= 45) {
-      return 110;
-    }
-    if (note <= 51) {
-      return 220;
-    }
-    return 440;
+    return 440 * 2 ** ((note - 69) / 12);
   }
 
   function drumDuration(note) {

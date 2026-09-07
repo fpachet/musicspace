@@ -16,6 +16,11 @@
     const getEntity = options.getEntity || (() => null);
     const getFeature = options.getFeature || (() => 0);
 
+    const monitorRows = new Map();
+    const now = options.now || (() => global.performance?.now?.() ?? Date.now());
+    const monitorIntervalMs = options.monitorIntervalMs ?? 100;
+    let lastMonitorUpdate = -Infinity;
+    let generation = 0;
     let mappings = [];
     let targetController = null;
     let targetSpec = targetApi.normalizeTargetSpec();
@@ -70,9 +75,9 @@
         return targetController?.parameterConfig(target) || { suffix: "", digits: 2 };
       },
       renameSource(oldName, newName) {
-        mappings = mappings.map((mapping) => (
+        mappings = mappings.map((mapping) =>
           mapping.source === oldName ? { ...mapping, source: newName } : mapping
-        ));
+        );
         update({ immediate: true });
       },
       parameterValues() {
@@ -83,17 +88,27 @@
       },
       async setEnabled(enabled) {
         const shouldEnable = Boolean(enabled) && mappings.length > 0;
+        const ticket = generation;
         const nextEnabled = await targetController?.setEnabled(shouldEnable);
+        if (ticket !== generation) return false;
         updateToggle();
         return Boolean(nextEnabled);
       },
+      stop() {
+        return targetController?.setEnabled(false);
+      },
       dispose() {
+        generation += 1;
         targetController?.dispose();
       }
     };
 
     function resetTargetController(spec) {
+      generation += 1;
       targetController?.dispose();
+      monitorRows.clear();
+      grid?.replaceChildren();
+      lastMonitorUpdate = -Infinity;
       targetSpec = targetApi.normalizeTargetSpec(spec);
       targetController = targetApi.createTargetController(targetSpec, { onStatus });
       targetParamValues = targetController.defaults();
@@ -115,7 +130,7 @@
         getFeature
       });
 
-      updatePanel();
+      updatePanel(immediate);
       targetController?.apply(targetParamValues, { immediate });
     }
 
@@ -135,25 +150,34 @@
       toggleButton.setAttribute("aria-pressed", String(enabled));
     }
 
-    function updatePanel() {
-      if (!panel || !grid) {
+    function updatePanel(immediate = false) {
+      if (!panel || !grid) return;
+      panel.hidden = mappings.length === 0;
+      if (panel.hidden) {
+        if (monitorRows.size > 0) {
+          grid.replaceChildren();
+          monitorRows.clear();
+        }
         return;
       }
-
-      panel.hidden = mappings.length === 0;
-      grid.replaceChildren();
-
+      const timestamp = now();
+      if (!immediate && timestamp - lastMonitorUpdate < monitorIntervalMs) return;
+      lastMonitorUpdate = timestamp;
       for (const [target, value] of Object.entries(targetParamValues)) {
         const config = targetController?.parameterConfig(target) || { suffix: "", digits: 2 };
-        const row = document.createElement("div");
-        const label = document.createElement("span");
-        const output = document.createElement("output");
-
-        row.className = "target-param";
-        label.textContent = target;
-        output.value = `${value.toFixed(config.digits)}${config.suffix}`;
-        row.append(label, output);
-        grid.append(row);
+        let output = monitorRows.get(target);
+        if (!output) {
+          const row = document.createElement("div");
+          const label = document.createElement("span");
+          output = document.createElement("output");
+          row.className = "target-param";
+          label.textContent = target;
+          row.append(label, output);
+          grid.append(row);
+          monitorRows.set(target, output);
+        }
+        const formatted = `${value.toFixed(config.digits)}${config.suffix}`;
+        if (output.value !== formatted) output.value = formatted;
       }
     }
   }

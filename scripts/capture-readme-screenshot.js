@@ -102,7 +102,9 @@ async function stopMoversIfRunning(page) {
   }
   if ((await animationToggle.getAttribute("aria-pressed")) === "true") {
     await animationToggle.click();
-    await page.waitForFunction(() => document.querySelector("#animation-toggle")?.getAttribute("aria-pressed") === "false");
+    await page.waitForFunction(
+      () => document.querySelector("#animation-toggle")?.getAttribute("aria-pressed") === "false"
+    );
   }
 }
 

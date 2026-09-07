@@ -11,7 +11,7 @@
   function normalizeMappings(mappings, options = {}) {
     const isSupportedTarget = options.isSupportedTarget || (() => true);
 
-    return mappings
+    return (Array.isArray(mappings) ? mappings : [])
       .filter((mapping) => mapping && mapping.source && mapping.target && mapping.feature)
       .map((mapping) => ({
         source: mapping.source,
@@ -25,12 +25,13 @@
         ...(finitePositive(mapping.quantize) ? { quantize: Number(mapping.quantize) } : {}),
         ...(finiteValues(mapping.values).length > 0 ? { values: finiteValues(mapping.values) } : {})
       }))
-      .filter((mapping) =>
-        Number.isFinite(mapping.inputMin) &&
-        Number.isFinite(mapping.inputMax) &&
-        Number.isFinite(mapping.outputMin) &&
-        Number.isFinite(mapping.outputMax) &&
-        isSupportedTarget(mapping.target)
+      .filter(
+        (mapping) =>
+          Number.isFinite(mapping.inputMin) &&
+          Number.isFinite(mapping.inputMax) &&
+          Number.isFinite(mapping.outputMin) &&
+          Number.isFinite(mapping.outputMax) &&
+          isSupportedTarget(mapping.target)
       );
   }
 
@@ -51,13 +52,11 @@
 
   function valueFromMapping(mapping, rawValue) {
     const inputSpan = mapping.inputMax - mapping.inputMin;
-    const normalized = inputSpan === 0
-      ? 0
-      : clamp((rawValue - mapping.inputMin) / inputSpan, 0, 1);
+    const normalized = inputSpan === 0 ? 0 : clamp((rawValue - mapping.inputMin) / inputSpan, 0, 1);
 
     let value;
     if (mapping.curve === "exp" && mapping.outputMin > 0 && mapping.outputMax > 0) {
-      value = mapping.outputMin * ((mapping.outputMax / mapping.outputMin) ** normalized);
+      value = mapping.outputMin * (mapping.outputMax / mapping.outputMin) ** normalized;
     } else {
       value = mapping.outputMin + (mapping.outputMax - mapping.outputMin) * normalized;
     }
@@ -70,9 +69,10 @@
     const outputHigh = Math.max(mapping.outputMin, mapping.outputMax);
 
     if (Array.isArray(mapping.values) && mapping.values.length > 0) {
-      const nearest = mapping.values.reduce((best, candidate) => (
-        Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
-      ), mapping.values[0]);
+      const nearest = mapping.values.reduce(
+        (best, candidate) => (Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best),
+        mapping.values[0]
+      );
       return clamp(nearest, outputLow, outputHigh);
     }
 
@@ -89,13 +89,14 @@
   }
 
   function finiteValues(values) {
-    return Array.isArray(values)
-      ? values.map(Number).filter((value) => Number.isFinite(value))
-      : [];
+    return Array.isArray(values) ? values.map(Number).filter((value) => Number.isFinite(value)) : [];
   }
 
-  global.MusicSpaceMapping = {
+  const api = {
     normalizeMappings,
+    valueFromMapping,
     valuesForMappings
   };
-})(window);
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else global.MusicSpaceMapping = api;
+})(globalThis);

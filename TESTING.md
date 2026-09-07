@@ -1,76 +1,71 @@
-# MusicSpace Testing
+# MusicSpace testing
 
-For a manual browser check, start the local server from the repository root and keep it running:
+## Setup
+
+The browser application needs only a static HTTP server. Development checks need Node.js 22.13 or later (or a newer supported LTS release), npm, Python 3, and Chromium:
 
 ```sh
+npm ci
+npx playwright install chromium
 npm run serve
 ```
 
-Then open <http://localhost:8000/musicspace.html>. Do not open the HTML file through a `file://` URL: browsers block the JSON fetches used to populate the built-in patch menu.
+Open <http://localhost:8000/musicspace.html>. JSON and audio fetches require HTTP; opening the HTML directly through `file://` is unsupported.
 
-Run the constraint-engine regression battery with:
+## Required checks
 
 ```sh
+npm run check
+npm run format:check
 npm test
-```
-
-The tests load `musicspace.js` in a mocked DOM/canvas sandbox, then drive patches directly through the engine. They assert propagation reports and residual measurements rather than relying on screenshots.
-
-Run the browser smoke test with:
-
-```sh
-npx playwright install chromium
 npm run smoke
 ```
 
-The smoke test starts a local HTTP server, loads `musicspace.html` in Chromium, checks for console/page errors, verifies that built-in patches populate, loads Cycloid Percussion, and exercises mover, sound, and reset controls.
+`check` runs ESLint, including syntax, undefined-name, unused-variable and recommended correctness rules. `format:check` checks JavaScript formatting; `npm run format` applies it. The browser suite starts its own loopback HTTP server when one is not already running.
 
-Refresh the README screenshots with:
+The GitHub workflow runs checks for pull requests and before publishing the main branch. Benchmarks are diagnostic artifacts, not timing-based pass/fail gates.
+
+## Test boundaries
+
+- `tests/model.test.js` drives the actual headless model: constraint propagation, conflicts, solver comparisons, release refinement and repeated trajectories.
+- `tests/model-roundtrip.test.js` verifies all built-in patch round trips, preserved aggregate targets, independent nested snapshots, graph invalidation, invalid-input rollback, and identical constrained scenes across display rates.
+- `tests/clock.test.js` tests elapsed-time accumulation, bounded catch-up and pause/reset behavior.
+- `tests/constraint-engine.test.js` retains inspector and interaction regressions using a mocked DOM and output clients. It is UI integration coverage, not evidence of actual audio playback.
+- `tests/reliability.test.js` covers undo, invalid patch imports and delayed audio cancellation.
+- `tests/output-lifecycle.test.js` uses the real output clients with deterministic audio/timer doubles to test concurrent decoding, shared starts, caching, retries, cancellation and resource cleanup.
+- `tests/sequence-parser.test.js` tests actual MIDI parsing, running status, tempo changes and malformed data.
+- `tests/browser-smoke.spec.js` covers real Chromium controls, invalid JSON edits, MusicXML chord and voice timing, stable parameter-monitor DOM rows all bundled audio backends, and delayed Faust startup cancellation.
+
+`examples/chord.musicxml` and `tests/fixtures/voices.musicxml` provide small inspectable notation fixtures. External MIDI hardware and subjective sound quality still require manual checks.
+
+## Benchmarks
 
 ```sh
+npm run benchmark
+npm run benchmark:browser
+node scripts/browser-benchmark.js --baseline=32c1a5fa
+```
+
+The Node benchmark warms up before reporting median, p95 and maximum movement times. It includes the mocked UI path for continuity with the initial review baseline, so it is not an isolated solver benchmark.
+
+The browser benchmark serves either the working tree or a supplied Git revision on an ephemeral loopback port. It uses the same Chromium runtime for both revisions, separates solver and drawing measurements, counts DOM allocations and propagation constraint visits, and checks final residual counts. Fixtures include Product + Limit, Granular Cloud, Rotating Partials and 100 independent fixed-distance links. The `--baseline` flag without a revision uses HEAD. It does not change the checkout.
+
+Recorded results live in `benchmarks/`. Browser timer precision and machine load limit comparisons for tiny solver steps. Prefer repeated measurements and work/allocation counts over a single elapsed-time threshold. The original Node baseline includes a VM-loaded engine; extraction changed that execution boundary, so do not interpret its timing reduction as browser speedup.
+
+Optional solver diagnostics:
+
+```sh
+MUSICSPACE_PRINT_SOLVER_COMPARISON=1 node --test --test-name-pattern "solver series" tests/model.test.js
+MUSICSPACE_PRINT_XPBD_SWEEP=1 node --test --test-name-pattern "xpbd iteration sweep" tests/model.test.js
+```
+
+## Examples and media
+
+```sh
+npm run example
 npm run capture:screenshot
-```
-
-Refresh the README demo videos with:
-
-```sh
 npm run capture:video
-```
-
-The video capture script records canvas motion in Chromium and uses the app's explicit Web Audio capture bus plus `ffmpeg` muxing for demos that generate sound.
-
-Export LinkedIn-friendly MP4 copies of the audio demo clips with:
-
-```sh
 npm run export:linkedin
 ```
 
-Current coverage:
-
-- Sum redistribution.
-- Sum/Product arity through patch validation and tool creation.
-- Shared Sum + Angle propagation through a common source.
-- Shift-style paused movement and resume retargeting.
-- Product + radial-limit backoff.
-- Radial-limit clamping.
-- Distance-ratio preservation.
-- Solid-link propagation.
-- Over-constrained residual diagnostics.
-- XPBD mode smoke tests for radial limits, fixed distance, product + limit, pin/limit conflict, rotator trajectories, and shuttle endpoint preservation.
-- Tool workflow tests for adding constraints in propagation and XPBD modes.
-- Solver comparison metrics across representative built-in patches.
-- XPBD repeated-trajectory stability checks over built-in trajectory patches.
-- XPBD iteration sweep and release-refinement regression tests.
-- Patch validation for object references, backend declarations, source bindings, parameter mappings, MIDI bindings, and every built-in patch listed in `patches/index.json`.
-- Source Inspector and source-audio coverage for output-mode-specific fields, source binding serialization, MIDI-file track binding edits/removal, source renaming across patch references, per-source mute state, keyboard mute/playback shortcuts, and the no-default-sound rule when a patch has no `sourceBindings`, `sourceGenerators`, `midiFile`, or `parameterMappings`.
-- Patch Inspector coverage for editing generic `parameterMappings` through the mapping editor and serializing the result back into patch JSON.
-- UI interaction regression coverage for canvas focus without page scrolling, the passive undo indicator, solver selector state, toolbar-independent keyboard workflows, and a real-browser smoke test for page loading and core controls.
-
-Optional diagnostic output:
-
-```sh
-MUSICSPACE_PRINT_SOLVER_COMPARISON=1 node --test --test-name-pattern "solver series" tests/constraint-engine.test.js
-MUSICSPACE_PRINT_XPBD_SWEEP=1 node --test --test-name-pattern "xpbd iteration sweep" tests/constraint-engine.test.js
-```
-
-Keep the engine tests focused on model behavior. Browser/UI rendering checks should stay in Playwright smoke or visual-regression tests.
+The headless example needs no browser or audio device. Capture scripts use Playwright; video muxing/export also needs `ffmpeg`. See `EXAMPLES.md` for guided manual exercises and `ARCHITECTURE.md` for model and output lifecycle contracts.

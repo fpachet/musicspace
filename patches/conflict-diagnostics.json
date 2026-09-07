@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "key": "conflict-diagnostics",
+  "name": "Conflict Diagnostics",
+  "description": "The pin holds A 200 pixels from the listener, outside its 100-pixel limit. Drag A to inspect the unavoidable residual.",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 200,
+      "y": 300
+    }
+  ],
+  "constraints": [
+    {
+      "type": "pin",
+      "target": "A",
+      "x": 200,
+      "y": 300
+    },
+    {
+      "type": "radialLimit",
+      "source": "A",
+      "minDistance": 80,
+      "maxDistance": 100
+    }
+  ]
+}

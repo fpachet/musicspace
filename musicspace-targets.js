@@ -49,6 +49,7 @@
     const onStatus = options.onStatus || (() => {});
     let runtime = null;
     let enabled = false;
+    let generation = 0;
     let values = defaultsFor(backend, targetSpec);
 
     return {
@@ -86,27 +87,38 @@
         backend.apply(runtime, values, enabled, Boolean(options.immediate), targetSpec);
       },
       async setEnabled(nextEnabled) {
+        const ticket = ++generation;
+        if (!nextEnabled && !runtime) return false;
         const nextRuntime = ensureRuntime(runtime, backend, targetSpec, onStatus);
-        if (!nextRuntime) {
-          return false;
-        }
-
+        if (!nextRuntime) return false;
         runtime = nextRuntime;
         enabled = Boolean(nextEnabled);
-
+        nextRuntime.desiredEnabled = enabled;
+        nextRuntime.generation = ticket;
+        if (!enabled) backend.apply(nextRuntime, values, false, true, targetSpec);
         try {
-          await backend.setEnabled(runtime, enabled, values, targetSpec);
+          await backend.setEnabled(nextRuntime, enabled, values, targetSpec);
         } catch (error) {
+          if (ticket !== generation) return false;
           enabled = false;
-          backend.apply(runtime, values, false, true, targetSpec);
+          nextRuntime.desiredEnabled = false;
+          backend.apply(nextRuntime, values, false, true, targetSpec);
           onStatus("The target backend could not be started.");
           return false;
         }
-
-        backend.apply(runtime, values, enabled, true, targetSpec);
+        if (ticket !== generation || runtime !== nextRuntime) return false;
+        backend.apply(nextRuntime, values, enabled, true, targetSpec);
         return enabled;
       },
+      stop() {
+        return this.setEnabled(false);
+      },
       dispose() {
+        generation += 1;
+        if (runtime) {
+          runtime.disposed = true;
+          runtime.desiredEnabled = false;
+        }
         backend.dispose(runtime, targetSpec);
         runtime = null;
         enabled = false;
@@ -149,6 +161,7 @@
   }
 
   function defaultDispose(runtime) {
+    global.MusicSpaceAudioCapture?.unregisterContext?.(runtime?.context);
     if (runtime?.context && runtime.context.state !== "closed") {
       runtime.context.close();
     }
@@ -277,10 +290,17 @@
       };
     },
     async setEnabled(runtime, enabled, values) {
+      const ticket = runtime.generation;
       runtime.getValues = () => values;
       if (enabled) {
         await runtime.context.resume();
-        startGranularScheduler(runtime, () => runtime.getValues(), () => runtime.enabled);
+        if (runtime.disposed || ticket !== runtime.generation || !runtime.desiredEnabled) return;
+        runtime.enabled = true;
+        startGranularScheduler(
+          runtime,
+          () => runtime.getValues(),
+          () => runtime.enabled
+        );
       } else {
         stopGranularScheduler(runtime);
         await runtime.context.suspend();
@@ -356,10 +376,13 @@
       };
     },
     async setEnabled(runtime, enabled, values, spec) {
+      const ticket = runtime.generation;
       runtime.values = { ...faustDefaultsForSpec(spec), ...values };
       if (enabled) {
         await runtime.context.resume();
+        if (runtime.disposed || ticket !== runtime.generation) return;
         await ensureFaustController(runtime, spec);
+        if (runtime.disposed || ticket !== runtime.generation || !runtime.desiredEnabled) return;
         connectFaustController(runtime);
         applyFaustValues(runtime, runtime.values);
       } else {
@@ -424,7 +447,8 @@
 
     for (let index = 0; index < length; index += 1) {
       const phase = index / context.sampleRate;
-      const harmonic = Math.sin(phase * Math.PI * 2 * 110) * 0.45 +
+      const harmonic =
+        Math.sin(phase * Math.PI * 2 * 110) * 0.45 +
         Math.sin(phase * Math.PI * 2 * 220) * 0.25 +
         Math.sin(phase * Math.PI * 2 * 330) * 0.15;
       const shimmer = (Math.random() * 2 - 1) * 0.18;
@@ -436,31 +460,35 @@
 
   function faustDefaultsForSpec(spec = {}) {
     const specs = faustParameterSpecs(spec);
-    return Object.fromEntries(Object.entries(specs).map(([path, config]) => [
-      path,
-      Number.isFinite(config.default) ? config.default : 0
-    ]));
+    return Object.fromEntries(
+      Object.entries(specs).map(([path, config]) => [
+        path,
+        Number.isFinite(config.default) ? config.default : 0
+      ])
+    );
   }
 
   function faustParameterSpecs(spec = {}) {
     const explicit = spec.parameters || spec.params || spec.defaults || {};
     if (Array.isArray(explicit)) {
-      return Object.fromEntries(explicit
-        .filter((parameter) => parameter && (parameter.path || parameter.address))
-        .map((parameter) => {
-          const path = parameter.path || parameter.address;
-          return [path, normalizeFaustParameterConfig(parameter)];
-        }));
+      return Object.fromEntries(
+        explicit
+          .filter((parameter) => parameter && (parameter.path || parameter.address))
+          .map((parameter) => {
+            const path = parameter.path || parameter.address;
+            return [path, normalizeFaustParameterConfig(parameter)];
+          })
+      );
     }
 
-    return Object.fromEntries(Object.entries(explicit)
-      .filter(([path]) => path)
-      .map(([path, config]) => [
-        path,
-        typeof config === "number"
-          ? { default: config }
-          : normalizeFaustParameterConfig(config)
-      ]));
+    return Object.fromEntries(
+      Object.entries(explicit)
+        .filter(([path]) => path)
+        .map(([path, config]) => [
+          path,
+          typeof config === "number" ? { default: config } : normalizeFaustParameterConfig(config)
+        ])
+    );
   }
 
   function normalizeFaustParameterConfig(config = {}) {
@@ -476,16 +504,23 @@
   }
 
   async function ensureFaustController(runtime, spec = {}) {
-    if (runtime.controller) {
-      return runtime.controller;
-    }
-
+    if (runtime.controller) return runtime.controller;
     if (!runtime.loading) {
-      runtime.loading = createFaustController(runtime, spec);
+      runtime.loading = createFaustController(runtime, spec).then((controller) => {
+        if (runtime.disposed) {
+          destroyFaustController(controller);
+          return null;
+        }
+        runtime.controller = controller;
+        return controller;
+      });
     }
-
-    runtime.controller = await runtime.loading;
-    return runtime.controller;
+    const pending = runtime.loading;
+    try {
+      return await pending;
+    } finally {
+      if (runtime.loading === pending) runtime.loading = null;
+    }
   }
 
   async function createFaustController(runtime, spec = {}) {
@@ -498,16 +533,20 @@
     const createFaustNode = adapterModule.createFaustNode || adapterModule.default;
 
     if (typeof createFaustNode !== "function") {
-      throw new Error("Faust adapter modules must export createFaustNode(context, target) or a default factory.");
+      throw new Error(
+        "Faust adapter modules must export createFaustNode(context, target) or a default factory."
+      );
     }
 
-    const controller = normalizeFaustController(await createFaustNode(runtime.context, {
-      ...spec,
-      module: moduleUrl,
-      wasm: spec.wasm ? new URL(spec.wasm, global.location.href).href : "",
-      json: spec.json ? new URL(spec.json, global.location.href).href : "",
-      metadata: spec.metadata ? new URL(spec.metadata, global.location.href).href : ""
-    }));
+    const controller = normalizeFaustController(
+      await createFaustNode(runtime.context, {
+        ...spec,
+        module: moduleUrl,
+        wasm: spec.wasm ? new URL(spec.wasm, global.location.href).href : "",
+        json: spec.json ? new URL(spec.json, global.location.href).href : "",
+        metadata: spec.metadata ? new URL(spec.metadata, global.location.href).href : ""
+      })
+    );
 
     if (!controller.node && !controller.output) {
       throw new Error("Faust adapter did not return an AudioNode or controller object.");
@@ -572,9 +611,7 @@
       return;
     }
 
-    const setterOwner = typeof controller.setParamValue === "function"
-      ? controller
-      : controller.node;
+    const setterOwner = typeof controller.setParamValue === "function" ? controller : controller.node;
     const setParamValue = setterOwner?.setParamValue;
 
     for (const [path, value] of Object.entries(values)) {
@@ -595,7 +632,8 @@
       return;
     }
 
-    const destroy = controller.destroy || controller.dispose || controller.node?.destroy || controller.node?.dispose;
+    const destroy =
+      controller.destroy || controller.dispose || controller.node?.destroy || controller.node?.dispose;
     if (typeof destroy === "function") {
       destroy.call(controller.destroy || controller.dispose ? controller : controller.node);
     }

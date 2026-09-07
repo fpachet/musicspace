@@ -1,0 +1,47 @@
+// Shared model units and bounded solver defaults.
+(function exposeConstants(global) {
+  const WIDTH = 800;
+  const HEIGHT = 600;
+  const LISTENER_MODE_RETARGET = "retarget";
+  const LISTENER_MODE_PRESERVE = "preserve";
+  const MIN_DISTANCE = 2;
+  const CONSTRAINT_EPSILON = 0.5;
+  const PRODUCT_EPSILON = 0.01;
+  const MAX_PROPAGATION_STEPS = 96;
+  const MAX_ENTITY_PROPAGATION_COUNT = 8;
+  const SOLVER_MODE_PROPAGATION = "propagation";
+  const SOLVER_MODE_XPBD = "xpbd";
+  const DEFAULT_SOLVER_MODE = SOLVER_MODE_PROPAGATION;
+  const XPBD_ITERATIONS_DRAG = 10;
+  const XPBD_ITERATIONS_RELEASE = 40;
+  const MAX_XPBD_COMPONENT_ENTITIES = 48;
+  const MAX_XPBD_COMPONENT_CONSTRAINTS = 96;
+  const ANGLE_EPSILON = 0.01;
+  const RATIO_EPSILON = 0.01;
+  const RELATIVE_PRODUCT_EPSILON = 0.001;
+  const FRAMES_PER_SECOND = 60;
+  const api = {
+    WIDTH,
+    HEIGHT,
+    LISTENER_MODE_RETARGET,
+    LISTENER_MODE_PRESERVE,
+    MIN_DISTANCE,
+    CONSTRAINT_EPSILON,
+    PRODUCT_EPSILON,
+    MAX_PROPAGATION_STEPS,
+    MAX_ENTITY_PROPAGATION_COUNT,
+    SOLVER_MODE_PROPAGATION,
+    SOLVER_MODE_XPBD,
+    DEFAULT_SOLVER_MODE,
+    XPBD_ITERATIONS_DRAG,
+    XPBD_ITERATIONS_RELEASE,
+    MAX_XPBD_COMPONENT_ENTITIES,
+    MAX_XPBD_COMPONENT_CONSTRAINTS,
+    ANGLE_EPSILON,
+    RATIO_EPSILON,
+    RELATIVE_PRODUCT_EPSILON,
+    FRAMES_PER_SECOND
+  };
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else global.MusicSpaceConstants = api;
+})(globalThis);

@@ -4,7 +4,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Near Term
 
-- Add an explicit pause/resume state for trajectory playback.
+- Consider a richer transport display now that mover stop/start preserves position and resets the elapsed-time clock.
 
 ## Interaction Model
 
@@ -23,7 +23,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Use `CONSTRAINTS.md` as the implementation backlog for paper-backed constraints, temporal trajectories, trace drawing, and output mappings.
 - Add more constraint types, such as alignment, barycenter, zone/region, grouping, symmetry, and handles.
 - Add examples that reproduce canonical MusicSpace/MidiSpace scenarios.
-- Move constraint propagation into a small testable model module once behavior stabilizes.
+- Extend the extracted headless model with explicit authoring commands where direct state editing becomes difficult to maintain.
 - Replace patch-level undo snapshots with operation-aware transactions once the engine is split from the UI.
 
 ## Temporal Trajectories
@@ -49,11 +49,11 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Project Hygiene
 
-- Add a simple formatter/linter before the next broad JavaScript refactor. Prefer a low-churn setup such as Prettier check-only first, then formatting in a dedicated commit.
+- Keep ESLint, Prettier, model/lifecycle tests and the browser suite passing for subsequent changes.
 - Keep the GitHub Pages workflow as the public-demo gate: run syntax, engine, and browser smoke tests before deployment; extend the smoke test as important UI workflows stabilize.
 - Keep the README focused on running, controls, built-in patches, and repository orientation. Move longer research notes or design rationale into dedicated docs when the background/features sections grow again.
 - Refresh the README screenshot gallery and demo videos when the source/mover visual language changes. The video capture script records canvas motion plus the explicit Web Audio capture bus for audio-producing demos.
-- Keep the app as a static prototype for now. Revisit packaging as a JavaScript module only when scene/model code is split from DOM/canvas UI and there is a clear embeddable API.
+- Keep the app as a static prototype. The headless CommonJS/browser model is available; stabilize its authoring API before publishing it as a package.
 
 ## Open Questions
 

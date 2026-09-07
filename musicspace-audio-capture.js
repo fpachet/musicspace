@@ -53,6 +53,14 @@
     }
   }
 
+  function unregisterContext(context) {
+    const entry = contextEntries.get(context);
+    if (!entry) return;
+    entry.mixerSource?.disconnect();
+    for (const track of entry.destination.stream.getTracks()) track.stop();
+    contextEntries.delete(context);
+  }
+
   function ensureMixer() {
     if (mixerContext && mixerDestination) {
       return mixerDestination;
@@ -88,15 +96,16 @@
   }
 
   function trackCount() {
-    return Array.from(contextEntries.values())
-      .filter((entry) => entry.destination.stream.getAudioTracks().length > 0)
-      .length;
+    return Array.from(contextEntries.values()).filter(
+      (entry) => entry.destination.stream.getAudioTracks().length > 0
+    ).length;
   }
 
   global.MusicSpaceAudioCapture = {
     connect,
     disconnect,
     registerContext,
+    unregisterContext,
     stream,
     trackCount
   };

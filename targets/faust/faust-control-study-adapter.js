@@ -44,10 +44,12 @@ export async function createFaustNode(context, target) {
 }
 
 function defaultsFromTarget(target) {
-  return Object.fromEntries(Object.entries(target.parameters || {}).map(([path, config]) => [
-    path,
-    Number(config.default ?? config.init ?? config.value ?? 0)
-  ]));
+  return Object.fromEntries(
+    Object.entries(target.parameters || {}).map(([path, config]) => [
+      path,
+      Number(config.default ?? config.init ?? config.value ?? 0)
+    ])
+  );
 }
 
 function setAudioParam(param, value, time) {

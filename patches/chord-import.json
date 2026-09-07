@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "key": "chord-import",
+  "name": "Chord Import Check",
+  "description": "C and E sound together; G follows one beat later. A small MusicXML import reference.",
+  "listener": {
+    "x": 400,
+    "y": 300
+  },
+  "sources": [
+    {
+      "name": "Chord",
+      "x": 280,
+      "y": 300
+    }
+  ],
+  "constraints": [],
+  "target": {
+    "type": "midi-file"
+  },
+  "midiFile": {
+    "name": "Chord timing",
+    "url": "examples/chord.musicxml",
+    "trackBindings": [
+      {
+        "source": "Chord",
+        "trackIndex": 1,
+        "channel": 1,
+        "program": 1
+      }
+    ]
+  }
+}

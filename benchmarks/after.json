@@ -1,0 +1,61 @@
+{
+  "node": "v24.3.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "results": [
+    {
+      "patch": "product-limit.json",
+      "mode": "propagation",
+      "samples": 200,
+      "medianMs": 0.0234,
+      "p95Ms": 0.0458,
+      "maxMs": 0.3559,
+      "residuals": 0
+    },
+    {
+      "patch": "product-limit.json",
+      "mode": "xpbd",
+      "samples": 200,
+      "medianMs": 0.0306,
+      "p95Ms": 0.051,
+      "maxMs": 0.2116,
+      "residuals": 0
+    },
+    {
+      "patch": "granular-cloud-study.json",
+      "mode": "propagation",
+      "samples": 200,
+      "medianMs": 1.3741,
+      "p95Ms": 1.6268,
+      "maxMs": 1.8493,
+      "residuals": 1
+    },
+    {
+      "patch": "granular-cloud-study.json",
+      "mode": "xpbd",
+      "samples": 200,
+      "medianMs": 1.3714,
+      "p95Ms": 1.5746,
+      "maxMs": 1.7765,
+      "residuals": 0
+    },
+    {
+      "patch": "rotating-partials.json",
+      "mode": "propagation",
+      "samples": 200,
+      "medianMs": 0.2967,
+      "p95Ms": 0.4064,
+      "maxMs": 2.767,
+      "residuals": 1
+    },
+    {
+      "patch": "rotating-partials.json",
+      "mode": "xpbd",
+      "samples": 200,
+      "medianMs": 0.25,
+      "p95Ms": 0.3387,
+      "maxMs": 0.8694,
+      "residuals": 32
+    }
+  ]
+}

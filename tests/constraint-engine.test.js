@@ -2,1363 +2,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const vm = require("node:vm");
 
 const ROOT = path.resolve(__dirname, "..");
 
-function createCanvasContext() {
-  const noop = () => {};
-  return {
-    arc: noop,
-    beginPath: noop,
-    clearRect: noop,
-    closePath: noop,
-    fill: noop,
-    fillRect: noop,
-    fillText: noop,
-    lineTo: noop,
-    moveTo: noop,
-    rect: noop,
-    restore: noop,
-    rotate: noop,
-    save: noop,
-    setTransform(a, b, c, d, e, f) {
-      this.lastTransform = [a, b, c, d, e, f];
-    },
-    setLineDash: noop,
-    stroke: noop,
-    translate: noop
-  };
-}
-
-function createElement(id = "") {
-  const listeners = new Map();
-  const classes = new Set();
-  const element = {
-    id,
-    attributes: new Map(),
-    children: [],
-    classList: {
-      add(name) {
-        classes.add(name);
-      },
-      remove(name) {
-        classes.delete(name);
-      },
-      toggle(name, force) {
-        const shouldAdd = force ?? !classes.has(name);
-        if (shouldAdd) {
-          classes.add(name);
-        } else {
-          classes.delete(name);
-        }
-        return shouldAdd;
-      }
-    },
-    dataset: {},
-    disabled: false,
-    files: [],
-    hidden: false,
-    options: [],
-    style: {},
-    textContent: "",
-    value: "",
-    addEventListener(type, listener) {
-      if (!listeners.has(type)) {
-        listeners.set(type, []);
-      }
-      listeners.get(type).push(listener);
-    },
-    append(...nextChildren) {
-      for (const child of nextChildren) {
-        this.children.push(child);
-        if (child && typeof child === "object") {
-          child.parentNode = this;
-        }
-        if (child && typeof child === "object" && "value" in child) {
-          this.options.push(child);
-        }
-      }
-    },
-    click() {
-      for (const listener of listeners.get("click") || []) {
-        listener({ target: this, preventDefault() {} });
-      }
-    },
-    dispatchEvent(event) {
-      const nextEvent = {
-        target: this,
-        preventDefault() {},
-        ...event
-      };
-      for (const listener of listeners.get(nextEvent.type) || []) {
-        listener(nextEvent);
-      }
-      return true;
-    },
-    focus(options) {
-      this.lastFocusOptions = options || null;
-    },
-    getBoundingClientRect() {
-      return this.rect || { height: 600, left: 0, top: 0, width: 800, x: 0, y: 0 };
-    },
-    getContext() {
-      return createCanvasContext();
-    },
-    releasePointerCapture() {},
-    replaceChildren(...children) {
-      this.children = children;
-      for (const child of children) {
-        if (child && typeof child === "object") {
-          child.parentNode = this;
-        }
-      }
-      this.options = children.filter((child) => child && typeof child === "object" && "value" in child);
-    },
-    querySelector(selector) {
-      return this.querySelectorAll(selector)[0] || null;
-    },
-    querySelectorAll(selector) {
-      const matches = [];
-      const visit = (child) => {
-        if (!child || typeof child !== "object") {
-          return;
-        }
-        if (matchesSelector(child, selector)) {
-          matches.push(child);
-        }
-        for (const grandchild of child.children || []) {
-          visit(grandchild);
-        }
-      };
-      for (const child of this.children) {
-        visit(child);
-      }
-      return matches;
-    },
-    remove() {
-      if (!this.parentNode) {
-        return;
-      }
-      this.parentNode.children = this.parentNode.children.filter((child) => child !== this);
-      this.parentNode.options = this.parentNode.options.filter((child) => child !== this);
-      this.parentNode = null;
-    },
-    scrollIntoView() {},
-    setAttribute(name, value) {
-      this.attributes.set(name, String(value));
-    },
-    setPointerCapture() {},
-    toDataURL() {
-      return "data:image/png;base64,";
-    }
-  };
-  Object.defineProperty(element, "className", {
-    get() {
-      return Array.from(classes).join(" ");
-    },
-    set(value) {
-      classes.clear();
-      for (const name of String(value).split(/\s+/).filter(Boolean)) {
-        classes.add(name);
-      }
-    }
-  });
-  Object.defineProperty(element, "lastElementChild", {
-    get() {
-      return this.children.filter((child) => child && typeof child === "object").at(-1) || null;
-    }
-  });
-  return element;
-}
-
-function matchesSelector(element, selector) {
-  if (selector.startsWith(".")) {
-    return element.className.split(/\s+/).includes(selector.slice(1));
-  }
-  const dataMatch = selector.match(/^\[data-([a-z0-9-]+)=['"]([^'"]+)['"]\]$/i);
-  if (dataMatch) {
-    const key = dataMatch[1].replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-    return element.dataset?.[key] === dataMatch[2];
-  }
-  return false;
-}
-
-function textContentDeep(node) {
-  if (!node || typeof node !== "object") {
-    return "";
-  }
-
-  return `${node.textContent || ""}${(node.children || []).map(textContentDeep).join("")}`;
-}
-
-function createDocument() {
-  const elements = new Map();
-  return {
-    createElement(tagName) {
-      const element = createElement();
-      element.tagName = tagName.toUpperCase();
-      return element;
-    },
-    createTextNode(text) {
-      return {
-        textContent: String(text),
-        nodeType: 3
-      };
-    },
-    getElementById(id) {
-      if (!elements.has(id)) {
-        elements.set(id, createElement(id));
-      }
-      return elements.get(id);
-    },
-    querySelectorAll() {
-      return [];
-    }
-  };
-}
-
-function createEngineHarness() {
-  const document = createDocument();
-  const sandbox = {
-    Blob,
-    URL,
-    console,
-    devicePixelRatio: 1,
-    document,
-    fetch: async () => {
-      throw new Error("fetch is disabled in constraint-engine tests");
-    },
-    FileReader: class {},
-    addEventListener() {},
-    MusicSpaceTargets: {
-      listTargetBackends() {
-        return [
-          { type: "subtractive", parameters: ["/osc/freq", "/filter/frequency", "/filter/q", "/output/gain"] },
-          { type: "granular", parameters: ["/grain/rate", "/grain/size", "/grain/pitch", "/grain/spread", "/filter/frequency", "/filter/q", "/output/gain"] },
-          { type: "midi-file", parameters: [] },
-          { type: "faust-wasm", parameters: [] }
-        ];
-      }
-    },
-    MusicSpaceMidiFileClient: {
-      createMidiFileClient() {
-        let midiFile = null;
-        let enabled = false;
-        return {
-          loadPatch(patch = {}) {
-            midiFile = patch.midiFile ? JSON.parse(JSON.stringify(patch.midiFile)) : null;
-            enabled = false;
-          },
-          renameSource(oldName, newName) {
-            if (!midiFile?.trackBindings) {
-              return;
-            }
-            midiFile.trackBindings = midiFile.trackBindings.map((binding) => (
-              binding.source === oldName ? { ...binding, source: newName } : binding
-            ));
-          },
-          serialize() {
-            return midiFile ? { midiFile: JSON.parse(JSON.stringify(midiFile)) } : {};
-          },
-          hasMidiFile() {
-            return Boolean(midiFile);
-          },
-          hasPlayableSequence() {
-            return Boolean(midiFile?.trackBindings?.length);
-          },
-          hasTrackBindingForSource(sourceName) {
-            return Boolean(midiFile?.trackBindings?.find((binding) => binding.source === sourceName));
-          },
-          bindingsForSource(sourceName) {
-            return (midiFile?.trackBindings || [])
-              .filter((binding) => binding.source === sourceName)
-              .map((binding) => ({ ...binding }));
-          },
-          updateTrackBinding(sourceName, updates = {}) {
-            if (!midiFile?.trackBindings) {
-              return null;
-            }
-            let updatedBinding = null;
-            midiFile.trackBindings = midiFile.trackBindings.map((binding) => {
-              if (binding.source !== sourceName) {
-                return binding;
-              }
-              updatedBinding = { ...binding, ...updates };
-              return updatedBinding;
-            });
-            return updatedBinding ? { ...updatedBinding } : null;
-          },
-          removeTrackBinding(sourceName) {
-            if (!midiFile?.trackBindings) {
-              return false;
-            }
-            const previousLength = midiFile.trackBindings.length;
-            midiFile.trackBindings = midiFile.trackBindings.filter((binding) => binding.source !== sourceName);
-            return midiFile.trackBindings.length !== previousLength;
-          },
-          isEnabled() {
-            return enabled;
-          },
-          async setEnabled(nextEnabled) {
-            enabled = Boolean(nextEnabled && midiFile?.trackBindings?.length);
-            return enabled;
-          },
-          stop() {
-            enabled = false;
-            return false;
-          },
-          updateSpatial() {}
-        };
-      }
-    },
-    MusicSpaceParameterClient: {
-      createParameterClient() {
-        let mappings = [];
-        return {
-          hasMappings() {
-            return mappings.length > 0;
-          },
-          mappings() {
-            return mappings.map((mapping) => ({ ...mapping }));
-          },
-          setMappings(nextMappings = []) {
-            mappings = nextMappings
-              .filter((mapping) => mapping?.source && mapping?.feature && mapping?.target)
-              .map((mapping) => ({ ...mapping }));
-            return mappings.map((mapping) => ({ ...mapping }));
-          },
-          loadPatch(patch = {}) {
-            mappings = Array.isArray(patch.parameterMappings)
-              ? patch.parameterMappings.map((mapping) => ({ ...mapping }))
-              : [];
-          },
-          mappedEntityNames() {
-            return Array.from(new Set(mappings.map((mapping) => mapping.source)));
-          },
-          renameSource(oldName, newName) {
-            mappings = mappings.map((mapping) => (
-              mapping.source === oldName ? { ...mapping, source: newName } : mapping
-            ));
-          },
-          serialize() {
-            return { parameterMappings: mappings.map((mapping) => ({ ...mapping })) };
-          },
-          targetSpec() {
-            return {
-              type: "subtractive",
-              parameters: {
-                "/osc/freq": { default: 220, min: 110, max: 880, unit: "Hz", digits: 0 },
-                "/filter/frequency": { default: 1600, min: 250, max: 4200, unit: "Hz", digits: 0 },
-                "/filter/q": { default: 2, min: 0.5, max: 18, digits: 2 },
-                "/output/gain": { default: 0.12, min: 0, max: 0.3, digits: 2 }
-              }
-            };
-          },
-          targetDefaults() {
-            return {
-              "/osc/freq": 220,
-              "/filter/frequency": 1600,
-              "/filter/q": 2,
-              "/output/gain": 0.12
-            };
-          },
-          targetMetadata() {
-            return {
-              parameters: ["/osc/freq", "/filter/frequency", "/filter/q", "/output/gain"]
-            };
-          },
-          targetParameterConfig(target) {
-            if (target === "/osc/freq" || target === "/filter/frequency") {
-              return { suffix: " Hz", digits: 0 };
-            }
-            return { suffix: "", digits: 2 };
-          },
-          isEnabled() {
-            return false;
-          },
-          async setEnabled() {
-            return false;
-          },
-          update() {}
-        };
-      }
-    },
-    MusicSpaceSourceAudioClient: {
-      createSourceAudioClient() {
-        let bindings = [];
-        let enabled = false;
-        return {
-          bindingsForSource(sourceName) {
-            return bindings.filter((binding) => binding.source === sourceName).map((binding) => ({ ...binding }));
-          },
-          hasBindings() {
-            return bindings.length > 0;
-          },
-          isSourceMuted(sourceName) {
-            return Boolean(bindings.find((binding) => binding.source === sourceName)?.muted);
-          },
-          isEnabled() {
-            return enabled;
-          },
-          loadPatch(patch = {}) {
-            bindings = Array.isArray(patch.sourceBindings)
-              ? patch.sourceBindings.map((binding) => ({ ...binding, muted: Boolean(binding.muted) }))
-              : [];
-          },
-          removeBinding(sourceName) {
-            bindings = bindings.filter((binding) => binding.source !== sourceName);
-          },
-          renameSource(oldName, newName) {
-            bindings = bindings.map((binding) => (
-              binding.source === oldName ? { ...binding, source: newName } : binding
-            ));
-          },
-          removeBindingsForMissingSources(sourceNames) {
-            const validNames = new Set(sourceNames);
-            bindings = bindings.filter((binding) => validNames.has(binding.source));
-          },
-          serialize() {
-            return { sourceBindings: bindings.map((binding) => ({ ...binding })) };
-          },
-          toggleSourceMuted(sourceName) {
-            const binding = bindings.find((candidate) => candidate.source === sourceName);
-            if (!binding) {
-              return null;
-            }
-            binding.muted = !binding.muted;
-            return { ...binding };
-          },
-          async setEnabled(nextEnabled) {
-            enabled = Boolean(nextEnabled && bindings.length > 0);
-            return enabled;
-          },
-          updateSpatial() {},
-          upsertBinding(binding) {
-            bindings = bindings.filter((candidate) => candidate.source !== binding.source);
-            const normalized = { ...binding, muted: Boolean(binding.muted) };
-            bindings.push(normalized);
-            return { ...normalized };
-          }
-        };
-      }
-    },
-    MusicSpaceGeneratorClient: {
-      createGeneratorClient() {
-        let generators = [];
-        let generatorMappings = [];
-        let enabled = false;
-        return {
-          loadPatch(patch = {}) {
-            generators = Array.isArray(patch.sourceGenerators)
-              ? patch.sourceGenerators.map((generator) => ({ ...generator }))
-              : [];
-            generatorMappings = Array.isArray(patch.sourceGeneratorMappings)
-              ? patch.sourceGeneratorMappings.map((mapping) => ({ ...mapping }))
-              : [];
-            enabled = false;
-          },
-          serialize() {
-            return {
-              ...(generators.length > 0 ? { sourceGenerators: generators.map((generator) => ({ ...generator })) } : {}),
-              ...(generatorMappings.length > 0 ? { sourceGeneratorMappings: generatorMappings.map((mapping) => ({ ...mapping })) } : {})
-            };
-          },
-          generatorsForSource(sourceName) {
-            return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
-          },
-          mappingsForSource(sourceName) {
-            return generatorMappings.filter((mapping) => mapping.source === sourceName).map((mapping) => ({ ...mapping }));
-          },
-          effectiveGeneratorsForSource(sourceName) {
-            return generators.filter((generator) => generator.source === sourceName).map((generator) => ({ ...generator }));
-          },
-          hasGenerators() {
-            return generators.length > 0;
-          },
-          hasGeneratorForSource(sourceName) {
-            return generators.some((generator) => generator.source === sourceName);
-          },
-          isSourceMuted(sourceName) {
-            const generator = generators.find((candidate) => candidate.source === sourceName);
-            return generator ? Boolean(generator.muted) : false;
-          },
-          isEnabled() {
-            return enabled;
-          },
-          upsertGenerator(generator) {
-            generators = generators.filter((candidate) => candidate.source !== generator.source);
-            const normalized = { ...generator, muted: Boolean(generator.muted) };
-            generators.push(normalized);
-            return { ...normalized };
-          },
-          setMappingsForSource(sourceName, mappings) {
-            generatorMappings = [
-              ...generatorMappings.filter((mapping) => mapping.source !== sourceName),
-              ...mappings.map((mapping) => ({ ...mapping, source: sourceName }))
-            ];
-            return generatorMappings.filter((mapping) => mapping.source === sourceName).map((mapping) => ({ ...mapping }));
-          },
-          toggleSourceMuted(sourceName) {
-            const generator = generators.find((candidate) => candidate.source === sourceName);
-            if (!generator) {
-              return null;
-            }
-            generator.muted = !generator.muted;
-            return { ...generator };
-          },
-          renameSource(oldName, newName) {
-            generators = generators.map((generator) => (
-              generator.source === oldName ? { ...generator, source: newName } : generator
-            ));
-            generatorMappings = generatorMappings.map((mapping) => (
-              mapping.source === oldName ? { ...mapping, source: newName } : mapping
-            ));
-          },
-          removeGenerator(sourceName) {
-            generators = generators.filter((generator) => generator.source !== sourceName);
-            generatorMappings = generatorMappings.filter((mapping) => mapping.source !== sourceName);
-          },
-          removeGeneratorsForMissingSources(sourceNames) {
-            const validNames = new Set(sourceNames);
-            generators = generators.filter((generator) => validNames.has(generator.source));
-            generatorMappings = generatorMappings.filter((mapping) => validNames.has(mapping.source));
-          },
-          async setEnabled(nextEnabled) {
-            enabled = Boolean(nextEnabled && generators.length > 0);
-            return enabled;
-          },
-          async availableMidiOutputs() {
-            return [
-              { id: "midi-out-a", name: "MIDI Out A" },
-              { id: "midi-out-b", name: "MIDI Out B" }
-            ];
-          },
-          updateSpatial() {}
-        };
-      }
-    },
-    window: {
-      location: { href: "http://127.0.0.1/musicspace.html" },
-      history: {
-        replaceState(_state, _title, href) {
-          sandbox.window.location.href = href;
-        }
-      }
-    },
-    cancelAnimationFrame() {},
-    requestAnimationFrame() {
-      return 1;
-    }
-  };
-  sandbox.globalThis = sandbox;
-  vm.createContext(sandbox);
-
-  const source = fs
-    .readFileSync(path.join(ROOT, "musicspace.js"), "utf8")
-    .replace(/\ninitializeApp\(\);\s*$/, "\n");
-  const exposedSource = `${source}
-globalThis.__musicspaceTestApi = {
-  applyConstraintEditor,
-  applySourceEditor,
-  enforceConstraints,
-  enforceConstraintsWithXpbd,
-  focusCanvasWithoutScrolling,
-  getLastPropagationReport,
-  getObjectByName,
-  getSolverMode,
-  getUiMode,
-  handleEntityDoubleClick,
-  handleToolButtonClick,
-  handleToolClick,
-  loadPatch,
-  measureConstraintResiduals,
-  moveEntity,
-  refineXpbdAfterDrag,
-  resumePropagationAfterPausedDrag,
-  setSolverMode,
-  setUiMode,
-  setActiveTool,
-  serializePatch,
-  sourceEmitterCapability,
-  stopAllDrawing,
-  validatePatch,
-  openConstraintEditorByIndex(index) {
-    const constraint = constraints[index];
-    if (!constraint) {
-      return false;
-    }
-    openConstraintEditor(constraint);
-    return true;
-  }
-};`;
-  vm.runInContext(exposedSource, sandbox, { filename: "musicspace.js" });
-
-  const api = sandbox.__musicspaceTestApi;
-  return {
-    api,
-    loadPatch(patch) {
-      api.loadPatch(JSON.parse(JSON.stringify(patch)), { clearUndo: true, preserveAsActive: true });
-    },
-    move(name, x, y, options) {
-      const entity = api.getObjectByName(name);
-      assert.ok(entity, `Expected entity ${name} to exist`);
-      api.moveEntity(entity, x, y, options);
-      return api.getLastPropagationReport();
-    },
-    moveWithXpbdIterations(name, x, y, iterations) {
-      const entity = api.getObjectByName(name);
-      assert.ok(entity, `Expected entity ${name} to exist`);
-      entity.x = x;
-      entity.y = y;
-      return api.enforceConstraintsWithXpbd(entity, { iterations });
-    },
-    refineXpbdAfterDrag(name) {
-      const entity = api.getObjectByName(name);
-      assert.ok(entity, `Expected entity ${name} to exist`);
-      api.refineXpbdAfterDrag(entity);
-      return api.getLastPropagationReport();
-    },
-    point(name) {
-      const entity = api.getObjectByName(name);
-      assert.ok(entity, `Expected entity ${name} to exist`);
-      return { x: entity.x, y: entity.y };
-    },
-    points(names) {
-      return Object.fromEntries(names.map((name) => [name, this.point(name)]));
-    },
-    report() {
-      return api.getLastPropagationReport();
-    },
-    resumePropagationAfterPausedDrag() {
-      api.resumePropagationAfterPausedDrag();
-    },
-    residuals() {
-      return api.measureConstraintResiduals().map(({ measurement }) => measurement);
-    },
-    setSolverMode(mode) {
-      api.setSolverMode(mode);
-    },
-    clickSolverMode(mode) {
-      const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
-      document.getElementById(id).click();
-    },
-    currentHref() {
-      return sandbox.window.location.href;
-    },
-    focusCanvasWithoutScrolling() {
-      api.focusCanvasWithoutScrolling();
-      return document.getElementById("canvas").lastFocusOptions;
-    },
-    setCanvasDisplaySize(width, height, pixelRatio = 1) {
-      sandbox.devicePixelRatio = pixelRatio;
-      const rect = { height, left: 0, top: 0, width, x: 0, y: 0 };
-      document.getElementById("canvas").rect = rect;
-      document.getElementById("trace").rect = rect;
-    },
-    canvasBackingSize() {
-      const canvas = document.getElementById("canvas");
-      const trace = document.getElementById("trace");
-      return {
-        width: canvas.width,
-        height: canvas.height,
-        traceWidth: trace.width,
-        traceHeight: trace.height
-      };
-    },
-    clickFullscreenToggle() {
-      document.getElementById("fullscreen-toggle").click();
-    },
-    fullscreenState() {
-      const button = document.getElementById("fullscreen-toggle");
-      const stage = document.getElementById("stage");
-      return {
-        pressed: button.attributes.get("aria-pressed"),
-        text: button.textContent,
-        stageClassName: stage.className
-      };
-    },
-    solverButtonPressed(mode) {
-      const id = mode === "xpbd" ? "solver-mode-xpbd" : "solver-mode-propagation";
-      return document.getElementById(id).attributes.get("aria-pressed");
-    },
-    solverMode() {
-      return api.getSolverMode();
-    },
-    uiMode() {
-      return api.getUiMode();
-    },
-    setUiMode(mode) {
-      api.setUiMode(mode);
-    },
-    soundButtonPressed() {
-      return document.getElementById("target-toggle").attributes.get("aria-pressed") || "false";
-    },
-    moversButtonPressed() {
-      return document.getElementById("animation-toggle").attributes.get("aria-pressed") || "false";
-    },
-    toolbarVisibility() {
-      return {
-        transportHidden: document.getElementById("transport-toolbar-group").hidden,
-        moversHidden: document.getElementById("animation-toggle").hidden,
-        moversDisabled: document.getElementById("animation-toggle").disabled,
-        soundHidden: document.getElementById("target-toggle").hidden,
-        soundDisabled: document.getElementById("target-toggle").disabled,
-        midiHidden: document.getElementById("midi-toolbar-group").hidden
-      };
-    },
-    patchInfoText() {
-      return textContentDeep(document.getElementById("patch-info"));
-    },
-    selectionSummaryText() {
-      return textContentDeep(document.getElementById("selection-summary"));
-    },
-    midiToolbarHidden() {
-      return document.getElementById("midi-toolbar-group").hidden;
-    },
-    undoStatus() {
-      const status = document.getElementById("undo-status");
-      return {
-        hidden: status.hidden,
-        text: status.textContent,
-        title: status.title
-      };
-    },
-    patchInspectorState() {
-      return {
-        hidden: document.getElementById("patch-inspector").hidden,
-        jsonHidden: document.getElementById("patch-json-editor").hidden,
-        toolbarPressed: document.getElementById("patch-inspector-toggle").attributes.get("aria-pressed"),
-        inlinePressed: document.getElementById("patch-inspector-inline-toggle").attributes.get("aria-pressed"),
-        jsonToolbarPressed: document.getElementById("patch-json-toggle").attributes.get("aria-pressed"),
-        jsonInlinePressed: document.getElementById("patch-json-inline-toggle").attributes.get("aria-pressed"),
-        mappingCount: document.getElementById("patch-mapping-list").querySelectorAll(".mapping-row").length,
-        mappingReadouts: Array.from(
-          document.getElementById("patch-mapping-list").querySelectorAll(".mapping-readout")
-        ).map((output) => output.textContent),
-        jsonText: document.getElementById("patch-json").value
-      };
-    },
-    addPatchMapping(values = {}) {
-      document.getElementById("patch-mapping-add").click();
-      const list = document.getElementById("patch-mapping-list");
-      const row = list.lastElementChild;
-      if (values.source !== undefined) {
-        row.querySelector("[data-mapping-field='source']").value = values.source;
-      }
-      if (values.feature !== undefined) {
-        row.querySelector("[data-mapping-field='feature']").value = values.feature;
-      }
-      if (values.target !== undefined) {
-        row.querySelector("[data-mapping-field='target']").value = values.target;
-      }
-      if (values.inputMin !== undefined) {
-        row.querySelector("[data-mapping-field='input-min']").value = String(values.inputMin);
-      }
-      if (values.inputMax !== undefined) {
-        row.querySelector("[data-mapping-field='input-max']").value = String(values.inputMax);
-      }
-      if (values.outputMin !== undefined) {
-        row.querySelector("[data-mapping-field='output-min']").value = String(values.outputMin);
-      }
-      if (values.outputMax !== undefined) {
-        row.querySelector("[data-mapping-field='output-max']").value = String(values.outputMax);
-      }
-      if (values.curve !== undefined) {
-        row.querySelector("[data-mapping-field='curve']").value = values.curve;
-      }
-      if (values.quantize !== undefined) {
-        row.querySelector("[data-mapping-field='quantize']").value = String(values.quantize);
-      }
-      if (values.values !== undefined) {
-        row.querySelector("[data-mapping-field='values']").value = values.values.join(",");
-      }
-      return textContentDeep(row);
-    },
-    applyPatchMappings() {
-      document.getElementById("patch-mapping-apply").click();
-      return api.serializePatch();
-    },
-    clickInlinePatchInspector() {
-      document.getElementById("patch-inspector-inline-toggle").click();
-    },
-    clickInlinePatchJson() {
-      document.getElementById("patch-json-inline-toggle").click();
-    },
-    closePatchInspectorForTest() {
-      document.getElementById("patch-inspector").hidden = true;
-      document.getElementById("patch-json-editor").hidden = true;
-      document.getElementById("patch-inspector-toggle").setAttribute("aria-pressed", "false");
-      document.getElementById("patch-inspector-inline-toggle").setAttribute("aria-pressed", "false");
-      document.getElementById("patch-json-toggle").setAttribute("aria-pressed", "false");
-      document.getElementById("patch-json-inline-toggle").setAttribute("aria-pressed", "false");
-    },
-    openSourceInspector(name) {
-      const entity = api.getObjectByName(name);
-      assert.ok(entity, `Expected entity ${name} to exist`);
-      return api.handleEntityDoubleClick(entity);
-    },
-    openListenerInspector() {
-      const entity = api.getObjectByName("Listener");
-      assert.ok(entity, "Expected listener to exist");
-      return api.handleEntityDoubleClick(entity);
-    },
-    listenerInspectorState() {
-      return {
-        hidden: document.getElementById("listener-editor").hidden,
-        x: document.getElementById("listener-x").value,
-        y: document.getElementById("listener-y").value,
-        drawTrace: Boolean(document.getElementById("listener-draw-trace").checked),
-        retargetPressed: document.getElementById("listener-mode-retarget").attributes.get("aria-pressed"),
-        preservePressed: document.getElementById("listener-mode-preserve").attributes.get("aria-pressed")
-      };
-    },
-    applyOpenListener(values) {
-      if (values.x !== undefined) {
-        document.getElementById("listener-x").value = String(values.x);
-      }
-      if (values.y !== undefined) {
-        document.getElementById("listener-y").value = String(values.y);
-      }
-      if (values.drawTrace !== undefined) {
-        document.getElementById("listener-draw-trace").checked = Boolean(values.drawTrace);
-      }
-      document.getElementById("listener-apply").click();
-      return api.serializePatch();
-    },
-    clickListenerMode(mode) {
-      const id = mode === "preserve" ? "listener-mode-preserve" : "listener-mode-retarget";
-      document.getElementById(id).click();
-    },
-    sourceInspectorState() {
-      return {
-        hidden: document.getElementById("source-editor").hidden,
-        name: document.getElementById("source-name").value,
-        outputType: document.getElementById("source-output-type").value,
-        outputTypeDisabled: Boolean(document.getElementById("source-output-type").disabled),
-        loop: Boolean(document.getElementById("source-loop").checked),
-        loopDisabled: Boolean(document.getElementById("source-loop").disabled),
-        muted: Boolean(document.getElementById("source-muted").checked),
-        mutedHidden: Boolean(document.getElementById("source-muted-row").hidden),
-        mutedDisabled: Boolean(document.getElementById("source-muted").disabled),
-        generatorPitch: document.getElementById("source-generator-pitch").value,
-        generatorPitchDisabled: Boolean(document.getElementById("source-generator-pitch").disabled),
-        generatorPeriod: document.getElementById("source-generator-period").value,
-        generatorDuration: document.getElementById("source-generator-duration").value,
-        generatorVelocity: document.getElementById("source-generator-velocity").value,
-        generatorWaveform: document.getElementById("source-generator-waveform").value,
-        generatorOutputMode: document.getElementById("source-generator-output-mode").value,
-        generatorOutputId: document.getElementById("source-generator-output").value,
-        generatorChannel: document.getElementById("source-generator-channel").value,
-        generatorChannelDisabled: Boolean(document.getElementById("source-generator-channel").disabled),
-        midiTrack: document.getElementById("source-midi-track").value,
-        midiChannel: document.getElementById("source-midi-channel").value,
-        midiChannelDisabled: Boolean(document.getElementById("source-midi-channel").disabled),
-        midiProgram: document.getElementById("source-midi-program").value,
-        midiDrums: Boolean(document.getElementById("source-midi-drums").checked),
-        removeHidden: Boolean(document.getElementById("source-remove-binding").hidden),
-        removeDisabled: Boolean(document.getElementById("source-remove-binding").disabled),
-        generatorMappingCount: document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-row").length,
-        generatorMappingReadouts: Array.from(
-          document.getElementById("source-generator-mapping-list").querySelectorAll(".mapping-readout")
-        ).map((output) => output.textContent),
-        fileLabel: document.getElementById("source-audio-file-name").textContent
-      };
-    },
-    openConstraintInspector(index = 0) {
-      return api.openConstraintEditorByIndex(index);
-    },
-    constraintInspectorState() {
-      return {
-        hidden: document.getElementById("constraint-editor").hidden,
-        summary: document.getElementById("constraint-editor-summary").textContent,
-        manualNode: Boolean(document.getElementById("constraint-node-manual").checked),
-        nodeX: document.getElementById("constraint-node-x").value,
-        nodeY: document.getElementById("constraint-node-y").value,
-        labelA: document.getElementById("constraint-value-a-label").textContent,
-        valueA: document.getElementById("constraint-value-a").value,
-        hiddenA: document.getElementById("constraint-value-a-row").hidden,
-        labelB: document.getElementById("constraint-value-b-label").textContent,
-        valueB: document.getElementById("constraint-value-b").value,
-        hiddenB: document.getElementById("constraint-value-b-row").hidden
-      };
-    },
-    applyOpenConstraint(values) {
-      if (values.manualNode !== undefined) {
-        document.getElementById("constraint-node-manual").checked = Boolean(values.manualNode);
-      }
-      if (values.nodeX !== undefined) {
-        document.getElementById("constraint-node-x").value = String(values.nodeX);
-      }
-      if (values.nodeY !== undefined) {
-        document.getElementById("constraint-node-y").value = String(values.nodeY);
-      }
-      if (values.valueA !== undefined) {
-        document.getElementById("constraint-value-a").value = String(values.valueA);
-      }
-      if (values.valueB !== undefined) {
-        document.getElementById("constraint-value-b").value = String(values.valueB);
-      }
-      api.applyConstraintEditor();
-      return api.serializePatch();
-    },
-    clickInspectorNext() {
-      const buttons = [
-        "listener-next",
-        "source-next",
-        "rotation-next",
-        "shuttle-next",
-        "constraint-next"
-      ].map((id) => document.getElementById(id));
-      const button = buttons.find((candidate) => !candidate.disabled);
-      assert.ok(button, "Expected an enabled next inspector button");
-      button.click();
-    },
-    clickInspectorPrevious() {
-      const buttons = [
-        "listener-prev",
-        "source-prev",
-        "rotation-prev",
-        "shuttle-prev",
-        "constraint-prev"
-      ].map((id) => document.getElementById(id));
-      const button = buttons.find((candidate) => !candidate.disabled);
-      assert.ok(button, "Expected an enabled previous inspector button");
-      button.click();
-    },
-    sourceEmitterCapability(name) {
-      return api.sourceEmitterCapability(name);
-    },
-    pressCanvasKey(key, options = {}) {
-      document.getElementById("canvas").dispatchEvent({ type: "keydown", key, ...options });
-    },
-    async pressCanvasKeyAndSettle(key) {
-      this.pressCanvasKey(key);
-      await Promise.resolve();
-      await Promise.resolve();
-      await new Promise((resolve) => setImmediate(resolve));
-    },
-    renameOpenSource(name) {
-      document.getElementById("source-name").value = name;
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceLoop(loop) {
-      document.getElementById("source-loop").checked = Boolean(loop);
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceOutputType(type) {
-      document.getElementById("source-output-type").value = type;
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceGenerator(values) {
-      document.getElementById("source-output-type").value = "midi-ostinato";
-      document.getElementById("source-generator-pitch").value = String(values.pitch ?? 60);
-      document.getElementById("source-generator-period").value = String(values.periodMs ?? 1000);
-      document.getElementById("source-generator-duration").value = String(values.durationMs ?? 160);
-      document.getElementById("source-generator-velocity").value = String(values.velocity ?? 80);
-      document.getElementById("source-generator-waveform").value = values.waveform || "triangle";
-      document.getElementById("source-generator-output-mode").value = values.outputMode || "internal";
-      document.getElementById("source-generator-output").value = values.outputId || "";
-      document.getElementById("source-generator-channel").value = String(values.channel ?? 1);
-      document.getElementById("source-spatialization").value = values.spatialization || "pan-distance";
-      document.getElementById("source-muted").checked = Boolean(values.muted);
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceAdditiveGenerator(values) {
-      document.getElementById("source-output-type").value = "additive-synth";
-      document.getElementById("source-generator-pitch").value = String(values.pitch ?? 60);
-      document.getElementById("source-generator-velocity").value = String(values.velocity ?? 80);
-      document.getElementById("source-spatialization").value = values.spatialization || "pan-distance";
-      document.getElementById("source-muted").checked = Boolean(values.muted);
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceGeneratorMappings(mappings) {
-      const list = document.getElementById("source-generator-mapping-list");
-      list.replaceChildren();
-      for (const mapping of mappings) {
-        document.getElementById("source-generator-mapping-add").click();
-        const row = list.lastElementChild;
-        row.querySelector("[data-mapping-field='feature']").value = mapping.feature;
-        row.querySelector("[data-mapping-field='parameter']").value = mapping.parameter;
-        row.querySelector("[data-mapping-field='input-min']").value = String(mapping.inputMin);
-        row.querySelector("[data-mapping-field='input-max']").value = String(mapping.inputMax);
-        row.querySelector("[data-mapping-field='output-min']").value = String(mapping.outputMin);
-        row.querySelector("[data-mapping-field='output-max']").value = String(mapping.outputMax);
-        row.querySelector("[data-mapping-field='curve']").value = mapping.curve || "linear";
-        row.querySelector("[data-mapping-field='quantize']").value = mapping.quantize ? String(mapping.quantize) : "";
-        row.querySelector("[data-mapping-field='values']").value = Array.isArray(mapping.values) ? mapping.values.join(",") : "";
-      }
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    setOpenSourceMidiTrack(values) {
-      if (values.channel !== undefined) {
-        document.getElementById("source-midi-channel").value = String(values.channel);
-      }
-      if (values.program !== undefined) {
-        document.getElementById("source-midi-program").value = String(values.program);
-      }
-      if (values.isDrums !== undefined) {
-        document.getElementById("source-midi-drums").checked = Boolean(values.isDrums);
-      }
-      api.applySourceEditor();
-      return api.serializePatch();
-    },
-    createConstraintWithTool(tool, names) {
-      api.handleToolButtonClick(tool);
-      let handled = false;
-      for (const name of names) {
-        const entity = api.getObjectByName(name);
-        assert.ok(entity, `Expected entity ${name} to exist`);
-        handled = api.handleToolClick(entity.x, entity.y, entity);
-      }
-      if (tool === "sum" || tool === "product") {
-        api.handleToolButtonClick(tool);
-      }
-      return {
-        handled,
-        patch: api.serializePatch()
-      };
-    },
-    stopAllDrawing() {
-      api.stopAllDrawing();
-      return api.serializePatch();
-    },
-    tickMover(name) {
-      const mover = api.getObjectByName(name);
-      assert.ok(mover, `Expected mover ${name} to exist`);
-      const moved = mover.tick();
-      if (moved) {
-        api.enforceConstraints(mover, { preserveTrajectoryFrame: true });
-      }
-      return api.getLastPropagationReport();
-    },
-    tickMovers(names, count = 1) {
-      let report = null;
-      for (let step = 0; step < count; step += 1) {
-        for (const name of names) {
-          report = this.tickMover(name);
-        }
-      }
-      return report;
-    }
-  };
-}
-
-function distance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function loadFixturePatch(fileName) {
-  return JSON.parse(fs.readFileSync(path.join(ROOT, "patches", fileName), "utf8"));
-}
-
-function assertFinitePoint(point, label) {
-  assert.ok(Number.isFinite(point.x), `${label}.x should be finite`);
-  assert.ok(Number.isFinite(point.y), `${label}.y should be finite`);
-}
-
-function assertFiniteReport(report) {
-  assert.ok(report, "expected a propagation report");
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-}
-
-function runBrowserScript(fileName, sandbox) {
-  const context = {
-    console,
-    window: null,
-    ...sandbox
-  };
-  context.window = context.window || context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, fileName), "utf8"), context, { filename: fileName });
-  return context;
-}
-
-function runScenarioInMode(mode, patch, scenario) {
-  const engine = createEngineHarness();
-  engine.setSolverMode(mode);
-  engine.loadPatch(patch);
-  const report = scenario(engine);
-  return { engine, report };
-}
-
-function compareSolvers(patch, scenario, watchedNames) {
-  const results = {};
-
-  for (const mode of ["propagation", "xpbd"]) {
-    const engine = createEngineHarness();
-    engine.setSolverMode(mode);
-    engine.loadPatch(patch);
-    const before = engine.points(watchedNames);
-    const start = process.hrtime.bigint();
-    const report = scenario(engine);
-    const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
-    const after = engine.points(watchedNames);
-    const displacements = watchedNames.map((name) => distance(before[name], after[name]));
-    const residualErrors = report.residuals.map((residual) => residual.error);
-
-    results[mode] = {
-      elapsedMs,
-      hitEntityCap: report.hitEntityCap,
-      hitStepCap: report.hitStepCap,
-      movedCount: report.movedEntities.length,
-      residualCount: report.residuals.length,
-      satisfied: report.satisfied,
-      totalDisplacement: displacements.reduce((sum, value) => sum + value, 0),
-      worstResidual: residualErrors.length > 0 ? Math.max(...residualErrors) : 0
-    };
-  }
-
-  return results;
-}
-
-function compareSolverMoveSeries(patch, moves, watchedNames) {
-  const results = {};
-
-  for (const mode of ["propagation", "xpbd"]) {
-    const engine = createEngineHarness();
-    engine.setSolverMode(mode);
-    engine.loadPatch(patch);
-    const before = engine.points(watchedNames);
-    let previous = before;
-    const cumulativePathBySource = Object.fromEntries(watchedNames.map((name) => [name, 0]));
-    const stepTimes = [];
-    const reports = [];
-
-    for (const move of moves) {
-      const start = process.hrtime.bigint();
-      const report = engine.move(move.name, move.x, move.y);
-      stepTimes.push(Number(process.hrtime.bigint() - start) / 1e6);
-      reports.push(report);
-      const current = engine.points(watchedNames);
-      for (const name of watchedNames) {
-        cumulativePathBySource[name] += distance(previous[name], current[name]);
-      }
-      previous = current;
-    }
-
-    const after = engine.points(watchedNames);
-    const displacementBySource = Object.fromEntries(watchedNames.map((name) => [
-      name,
-      distance(before[name], after[name])
-    ]));
-    const residualErrors = reports.flatMap((report) => report.residuals.map((residual) => residual.error));
-
-    results[mode] = {
-      after,
-      cumulativePathBySource,
-      displacementBySource,
-      elapsedMs: stepTimes.reduce((sum, value) => sum + value, 0),
-      maxStepMs: Math.max(...stepTimes),
-      meanStepMs: stepTimes.reduce((sum, value) => sum + value, 0) / stepTimes.length,
-      moveCount: moves.length,
-      residualCount: reports.at(-1)?.residuals.length || 0,
-      hitEntityCapCount: reports.filter((report) => report.hitEntityCap).length,
-      hitStepCapCount: reports.filter((report) => report.hitStepCap).length,
-      worstResidual: residualErrors.length > 0 ? Math.max(...residualErrors) : 0
-    };
-  }
-
-  results.finalDistanceBetweenModes = Object.fromEntries(watchedNames.map((name) => [
-    name,
-    distance(results.propagation.after[name], results.xpbd.after[name])
-  ]));
-
-  return results;
-}
-
-function residualErrorValue(residual) {
-  return residual?.measurement?.error ?? residual?.error;
-}
-
-function worstResidual(report) {
-  const errors = report.residuals.map(residualErrorValue).filter(Number.isFinite);
-  return errors.length > 0 ? Math.max(...errors) : 0;
-}
-
-function sweepXpbdIterations(patch, move, watchedNames, iterationCounts) {
-  return iterationCounts.map((iterations) => {
-    const engine = createEngineHarness();
-    engine.setSolverMode("xpbd");
-    engine.loadPatch(patch);
-    const before = engine.points(watchedNames);
-    const start = process.hrtime.bigint();
-    const report = engine.moveWithXpbdIterations(move.name, move.x, move.y, iterations);
-    const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
-    const after = engine.points(watchedNames);
-    const displacementBySource = Object.fromEntries(watchedNames.map((name) => [
-      name,
-      distance(before[name], after[name])
-    ]));
-    const residualErrors = report.residuals.map(residualErrorValue);
-    const finiteResidualErrors = residualErrors.filter(Number.isFinite);
-
-    return {
-      iterations,
-      elapsedMs,
-      maxDisplacement: Math.max(...Object.values(displacementBySource)),
-      nonFiniteResidualCount: residualErrors.length - finiteResidualErrors.length,
-      residualCount: report.residuals.length,
-      worstResidual: finiteResidualErrors.length > 0 ? Math.max(...finiteResidualErrors) : 0,
-      displacementBySource
-    };
-  });
-}
-
-test("sum constraint redistributes distance and reports no residuals", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Sum smoke",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 100, y: 0 },
-      { name: "B", x: 0, y: 100 },
-      { name: "C", x: -100, y: 0 }
-    ],
-    constraints: [{ type: "sum", sources: ["A", "B", "C"] }]
-  });
-
-  const report = engine.move("A", 130, 0);
-  const listener = engine.point("Listener");
-  const total = ["A", "B", "C"]
-    .map((name) => distance(engine.point(name), listener))
-    .reduce((sum, value) => sum + value, 0);
-
-  assert.equal(report.satisfied, true);
-  assert.equal(report.residuals.length, 0);
-  assert.ok(Math.abs(total - 300) <= 0.5);
-});
-
-test("shared sum and angle graph propagates through the shared source", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch(loadFixturePatch("angle-balance.json"));
-  const beforeB = engine.point("B");
-  const beforeC = engine.point("C");
-
-  const report = engine.move("D", 165, 147);
-  const afterB = engine.point("B");
-  const afterC = engine.point("C");
-
-  assert.equal(report.hitStepCap, false);
-  assert.ok(report.movedEntities.includes("A"), "shared source A should be propagated");
-  assert.ok(distance(beforeB, afterB) > 1, "B should move after D pulls on shared A");
-  assert.ok(distance(beforeC, afterC) > 1, "C should move after D pulls on shared A");
-});
-
-test("shift-style paused movement skips propagation and reports residuals", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch(loadFixturePatch("angle-balance.json"));
-  const beforeB = engine.point("B");
-  const beforeC = engine.point("C");
-
-  const report = engine.move("D", 165, 147, { skipPropagation: true });
-  const afterB = engine.point("B");
-  const afterC = engine.point("C");
-
-  assert.equal(report.propagationPaused, true);
-  assert.equal(report.satisfied, false);
-  assert.equal(report.propagationSteps, 0);
-  assert.ok(report.residuals.length > 0);
-  assert.deepEqual(afterB, beforeB);
-  assert.deepEqual(afterC, beforeC);
-});
-
-test("resuming after paused movement retargets constraints before normal propagation", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch(loadFixturePatch("angle-balance.json"));
-
-  engine.move("D", 165, 147, { skipPropagation: true });
-  const shiftedB = engine.point("B");
-  const shiftedC = engine.point("C");
-  engine.resumePropagationAfterPausedDrag();
-
-  const report = engine.move("D", 166, 148);
-  const afterB = engine.point("B");
-  const afterC = engine.point("C");
-
-  assert.equal(report.propagationPaused, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(distance(shiftedB, afterB) < 8, "B should not jump back to the pre-pause constraint state");
-  assert.ok(distance(shiftedC, afterC) < 8, "C should not jump back to the pre-pause constraint state");
-});
-
-test("product constraint and radial limits can back off without residuals", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch(loadFixturePatch("product-limit.json"));
-
-  const report = engine.move("A", 200, 300);
-
-  assert.equal(report.hitStepCap, false);
-  assert.equal(report.residuals.length, 0);
-  assert.equal(report.satisfied, true);
-});
-
-test("radial limits clamp an out-of-range source", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Radial limit smoke",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [{ name: "A", x: 100, y: 0 }],
-    constraints: [{ type: "radialLimit", source: "A", minDistance: 50, maxDistance: 150 }]
-  });
-
-  const report = engine.move("A", 300, 0);
-  const radius = distance(engine.point("A"), engine.point("Listener"));
-
-  assert.equal(report.residuals.length, 0);
-  assert.ok(Math.abs(radius - 150) <= 0.5);
-});
-
-test("distance ratio propagation preserves listener-relative ratio", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Ratio smoke",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 100, y: 0 },
-      { name: "B", x: 50, y: 0 }
-    ],
-    constraints: [{ type: "distanceRatio", sources: ["A", "B"], ratio: 2 }]
-  });
-
-  const report = engine.move("B", 70, 0);
-  const listener = engine.point("Listener");
-  const ratio = distance(engine.point("A"), listener) / distance(engine.point("B"), listener);
-
-  assert.equal(report.residuals.length, 0);
-  assert.ok(Math.abs(ratio - 2) <= 0.01);
-});
-
-test("solid link carries the attached object with its carrier", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Solid link smoke",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 100, y: 0 },
-      { name: "B", x: 150, y: 20 }
-    ],
-    constraints: [{ type: "solid", carrier: "A", attached: "B", offsetX: 50, offsetY: 20 }]
-  });
-
-  const report = engine.move("A", 130, 10);
-  const b = engine.point("B");
-
-  assert.equal(report.residuals.length, 0);
-  assert.ok(Math.abs(b.x - 180) <= 0.5);
-  assert.ok(Math.abs(b.y - 30) <= 0.5);
-});
+const { createEngineHarness, loadFixturePatch, runBrowserScript } = require("./helpers/engine-harness");
 
 test("patch validation accepts coherent patch JSON", () => {
   const engine = createEngineHarness();
@@ -1376,7 +23,11 @@ test("patch validation accepts every built-in patch", () => {
     const findings = engine.api.validatePatch(loadFixturePatch(entry.file));
     const problems = findings.filter((finding) => finding.level !== "ok");
 
-    assert.equal(problems.length, 0, `${entry.file}: ${problems.map((finding) => finding.message).join("; ")}`);
+    assert.equal(
+      problems.length,
+      0,
+      `${entry.file}: ${problems.map((finding) => finding.message).join("; ")}`
+    );
   }
 });
 
@@ -1409,10 +60,12 @@ test("generic parameter mappings can snap continuous features", () => {
     mappings,
     defaults: { "/mod/ratio": 1, "/integer/control": 0 },
     getEntity(name) {
-      return {
-        Ratio: { distance: 220 },
-        Step: { x: 230 }
-      }[name] || null;
+      return (
+        {
+          Ratio: { distance: 220 },
+          Step: { x: 230 }
+        }[name] || null
+      );
     },
     getFeature(feature, entity) {
       return entity[feature];
@@ -1726,8 +379,23 @@ test("additive source generators serialize and map frequency/gain", () => {
         frequencyHz: 220,
         gain: 0.16,
         partials: [
-          { ratio: 1, amplitude: 1, amplitudeLfoHz: 0.05, amplitudeLfoDepth: 0.1, swellHz: 0.04, swellDepth: 0.25, swellShape: 2.5 },
-          { ratio: 2.01, amplitude: 0.35, detuneCents: 4, detuneLfoHz: 0.07, detuneLfoCents: 6, lfoPhase: 1.2 },
+          {
+            ratio: 1,
+            amplitude: 1,
+            amplitudeLfoHz: 0.05,
+            amplitudeLfoDepth: 0.1,
+            swellHz: 0.04,
+            swellDepth: 0.25,
+            swellShape: 2.5
+          },
+          {
+            ratio: 2.01,
+            amplitude: 0.35,
+            detuneCents: 4,
+            detuneLfoHz: 0.07,
+            detuneLfoCents: 6,
+            lfoPhase: 1.2
+          },
           { ratio: 3, amplitude: 0.18 }
         ]
       }
@@ -2193,6 +861,7 @@ test("spacebar toggles MIDI sequence playback through Play Sound", async () => {
     sources: [{ name: "Lead", x: 250, y: 300 }],
     midiFile: {
       name: "lead.mid",
+      url: "lead.mid",
       preferredMode: "internal",
       trackBindings: [{ source: "Lead", track: "Lead", trackIndex: 0, channel: 1 }]
     },
@@ -2560,18 +1229,21 @@ test("patch inspector edits generic parameter mappings", () => {
 
   const patch = engine.applyPatchMappings();
   assert.equal(patch.parameterMappings.length, 1);
-  assert.equal(JSON.stringify(patch.parameterMappings[0]), JSON.stringify({
-    source: "A",
-    feature: "distance",
-    target: "/filter/frequency",
-    inputMin: 0,
-    inputMax: 400,
-    outputMin: 300,
-    outputMax: 3000,
-    curve: "exp",
-    quantize: 100,
-    values: [300, 600, 1200, 2400]
-  }));
+  assert.equal(
+    JSON.stringify(patch.parameterMappings[0]),
+    JSON.stringify({
+      source: "A",
+      feature: "distance",
+      target: "/filter/frequency",
+      inputMin: 0,
+      inputMax: 400,
+      outputMin: 300,
+      outputMax: 3000,
+      curve: "exp",
+      quantize: 100,
+      values: [300, 600, 1200, 2400]
+    })
+  );
   assert.equal(engine.patchInspectorState().mappingCount, 1);
   assert.match(engine.patchInspectorState().mappingReadouts[0], /\/filter\/frequency/);
 });
@@ -2701,9 +1373,7 @@ test("constraint inspector edits radial limit distances", () => {
     version: 1,
     listener: { x: 400, y: 300 },
     sources: [{ name: "A", x: 250, y: 300 }],
-    constraints: [
-      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }
-    ]
+    constraints: [{ type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }]
   });
 
   assert.equal(engine.openConstraintInspector(0), true);
@@ -2714,7 +1384,13 @@ test("constraint inspector edits radial limit distances", () => {
   assert.equal(state.labelB, "Maximum distance");
   assert.equal(state.valueB, "250");
 
-  const patch = engine.applyOpenConstraint({ valueA: 80, valueB: 180, manualNode: true, nodeX: 360, nodeY: 220 });
+  const patch = engine.applyOpenConstraint({
+    valueA: 80,
+    valueB: 180,
+    manualNode: true,
+    nodeX: 360,
+    nodeY: 220
+  });
   assert.equal(patch.constraints[0].minDistance, 80);
   assert.equal(patch.constraints[0].maxDistance, 180);
   assert.equal(patch.constraints[0].node.isManual, true);
@@ -2729,9 +1405,7 @@ test("constraint inspector edits angle sector degrees", () => {
     version: 1,
     listener: { x: 400, y: 300 },
     sources: [{ name: "A", x: 500, y: 300 }],
-    constraints: [
-      { type: "angleSector", source: "A", centerAngle: 0, width: Math.PI / 2 }
-    ]
+    constraints: [{ type: "angleSector", source: "A", centerAngle: 0, width: Math.PI / 2 }]
   });
 
   assert.equal(engine.openConstraintInspector(0), true);
@@ -2756,9 +1430,7 @@ test("inspector arrows navigate sources and constraint nodes in order", () => {
       { name: "A", x: 250, y: 300 },
       { name: "B", x: 500, y: 300 }
     ],
-    constraints: [
-      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }
-    ]
+    constraints: [{ type: "radialLimit", source: "A", minDistance: 50, maxDistance: 250 }]
   });
 
   assert.equal(engine.openSourceInspector("A"), true);
@@ -2858,7 +1530,10 @@ test("source inspector rename updates patch references", () => {
 
   assert.ok(engine.api.getObjectByName("Lead"));
   assert.equal(engine.api.getObjectByName("A"), null);
-  assert.deepEqual(patch.sources.map((source) => source.name), ["Lead", "B"]);
+  assert.deepEqual(
+    patch.sources.map((source) => source.name),
+    ["Lead", "B"]
+  );
   assert.equal(patch.constraints.find((constraint) => constraint.type === "radialLimit").source, "Lead");
   assert.equal(patch.constraints.find((constraint) => constraint.type === "solid").attached, "Lead");
   assert.equal(patch.sourceBindings[0].source, "Lead");
@@ -2896,9 +1571,25 @@ test("patch validation checks source generators", () => {
     listener: { x: 400, y: 300 },
     sources: [{ name: "A", x: 250, y: 300 }],
     sourceGenerators: [
-      { source: "Missing", type: "midi-ostinato", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
+      {
+        source: "Missing",
+        type: "midi-ostinato",
+        pitch: 60,
+        periodMs: 1200,
+        durationMs: 180,
+        velocity: 80,
+        channel: 1
+      },
       { source: "A", type: "loop", pitch: 60, periodMs: 1200, durationMs: 180, velocity: 80, channel: 1 },
-      { source: "A", type: "midi-ostinato", pitch: 140, periodMs: -1, durationMs: 0, velocity: 200, channel: 20 },
+      {
+        source: "A",
+        type: "midi-ostinato",
+        pitch: 140,
+        periodMs: -1,
+        durationMs: 0,
+        velocity: 200,
+        channel: 20
+      },
       {
         source: "A",
         type: "additive-synth",
@@ -2911,10 +1602,43 @@ test("patch validation checks source generators", () => {
       }
     ],
     sourceGeneratorMappings: [
-      { source: "Missing", feature: "distance", parameter: "pitch", inputMin: 0, inputMax: 400, outputMin: 48, outputMax: 72 },
-      { source: "A", feature: "speed", parameter: "pitch", inputMin: 0, inputMax: 400, outputMin: 48, outputMax: 72 },
-      { source: "A", feature: "distance", parameter: "program", inputMin: 0, inputMax: 400, outputMin: 1, outputMax: 8 },
-      { source: "A", feature: "distance", parameter: "periodMs", inputMin: 0, inputMax: 400, outputMin: 0, outputMax: 1000, curve: "exp" }
+      {
+        source: "Missing",
+        feature: "distance",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      },
+      {
+        source: "A",
+        feature: "speed",
+        parameter: "pitch",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 48,
+        outputMax: 72
+      },
+      {
+        source: "A",
+        feature: "distance",
+        parameter: "program",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 1,
+        outputMax: 8
+      },
+      {
+        source: "A",
+        feature: "distance",
+        parameter: "periodMs",
+        inputMin: 0,
+        inputMax: 400,
+        outputMin: 0,
+        outputMax: 1000,
+        curve: "exp"
+      }
     ],
     constraints: []
   });
@@ -2934,381 +1658,13 @@ test("patch validation checks source generators", () => {
   assert.ok(findings.some((finding) => finding.message.includes("swellHz")));
   assert.ok(findings.some((finding) => finding.message.includes("swellDepth")));
   assert.ok(findings.some((finding) => finding.message.includes("swellShape")));
-  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping feature")));
-  assert.ok(findings.some((finding) => finding.message.includes("Unsupported source generator mapping parameter")));
-  assert.ok(findings.some((finding) => finding.message.includes("Exponential source generator mapping")));
-});
-
-test("over-constrained graphs expose residual diagnostics", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Conflict smoke",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [{ name: "A", x: 100, y: 0 }],
-    constraints: [
-      { type: "pin", target: "A", x: 100, y: 0 },
-      { type: "radialLimit", source: "A", minDistance: 200, maxDistance: 250 }
-    ]
-  });
-
-  const report = engine.move("A", 120, 0);
-
-  assert.equal(report.satisfied, false);
-  assert.ok(report.residuals.length >= 1);
-  assert.ok(report.residuals.some((residual) => residual.label === "Pin" || residual.label === "Limit"));
-});
-
-test("infeasible product with radial limits reports conflict diagnostics", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Product limit conflict",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 100, y: 0 },
-      { name: "B", x: 0, y: 100 },
-      { name: "C", x: -100, y: 0 }
-    ],
-    constraints: [
-      { type: "pin", target: "A", x: 300, y: 0 },
-      { type: "radialLimit", source: "B", minDistance: 10, maxDistance: 50 },
-      { type: "radialLimit", source: "C", minDistance: 10, maxDistance: 50 },
-      { type: "product", sources: ["A", "B", "C"] }
-    ]
-  });
-
-  const report = engine.move("A", 300, 0);
-  const listener = engine.point("Listener");
-  const diagnosticLabels = new Set(report.residuals.map((residual) => residual.label));
-  const diagnosticText = report.messages.join(" ");
-
-  assert.equal(report.satisfied, false);
   assert.ok(
-    diagnosticLabels.has("Product") ||
-      diagnosticLabels.has("Pin") ||
-      diagnosticLabels.has("Limit") ||
-      diagnosticText.includes("Product constraint has no solution")
+    findings.some((finding) => finding.message.includes("Unsupported source generator mapping feature"))
   );
-  assert.ok(distance(engine.point("B"), listener) <= 50.5);
-  assert.ok(distance(engine.point("C"), listener) <= 50.5);
-});
-
-test("ratio and radial limit conflict stays bounded and reports diagnostics", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Ratio limit conflict",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 100, y: 0 },
-      { name: "B", x: 100, y: 0 }
-    ],
-    constraints: [
-      { type: "pin", target: "B", x: 100, y: 0 },
-      { type: "radialLimit", source: "A", minDistance: 50, maxDistance: 120 },
-      { type: "distanceRatio", sources: ["A", "B"], ratio: 4 }
-    ]
-  });
-
-  const report = engine.move("B", 100, 0);
-  const listener = engine.point("Listener");
-  const diagnosticLabels = new Set(report.residuals.map((residual) => residual.label));
-
-  assert.equal(report.satisfied, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(diagnosticLabels.has("Ratio") || diagnosticLabels.has("Limit") || diagnosticLabels.has("Pin"));
-  assert.ok(distance(engine.point("A"), listener) <= 120.5);
-});
-
-test("pin versus radial limit conflict reports a hard-constraint residual", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Pin limit conflict",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [{ name: "A", x: 100, y: 0 }],
-    constraints: [
-      { type: "pin", target: "A", x: 100, y: 0 },
-      { type: "radialLimit", source: "A", minDistance: 200, maxDistance: 250 }
-    ]
-  });
-
-  const report = engine.move("A", 240, 0);
-  const residualLabels = report.residuals.map((residual) => residual.label);
-
-  assert.equal(report.satisfied, false);
-  assert.ok(residualLabels.includes("Pin") || residualLabels.includes("Limit"));
-});
-
-test("impossible fixed-distance triangle exposes residuals without unbounded propagation", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Impossible triangle",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 0, y: 0 },
-      { name: "B", x: 100, y: 0 },
-      { name: "C", x: 50, y: 86.6025 }
-    ],
-    constraints: [
-      { type: "pin", target: "A", x: 0, y: 0 },
-      { type: "pin", target: "B", x: 100, y: 0 },
-      { type: "fixedDistance", anchor: "A", target: "C", distance: 60 },
-      { type: "fixedDistance", anchor: "B", target: "C", distance: 60 },
-      { type: "fixedDistance", anchor: "A", target: "B", distance: 150 }
-    ]
-  });
-
-  const report = engine.move("C", 50, 20);
-  const residualLabels = report.residuals.map((residual) => residual.label);
-
-  assert.equal(report.satisfied, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(residualLabels.includes("Distance") || residualLabels.includes("Pin"));
-});
-
-test("solid-link chain dragged into a radial boundary remains bounded", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Link chain limit",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 80, y: 0 },
-      { name: "B", x: 130, y: 0 },
-      { name: "C", x: 180, y: 0 }
-    ],
-    constraints: [
-      { type: "solid", carrier: "A", attached: "B", offsetX: 50, offsetY: 0 },
-      { type: "solid", carrier: "B", attached: "C", offsetX: 50, offsetY: 0 },
-      { type: "radialLimit", source: "C", minDistance: 40, maxDistance: 160 }
-    ]
-  });
-
-  const report = engine.move("A", 140, 0);
-  const listener = engine.point("Listener");
-
-  assert.equal(report.hitStepCap, false);
-  assert.ok(distance(engine.point("C"), listener) <= 160.5);
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-});
-
-test("trajectory-style repeated pushes through a radial limit stay finite", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch({
-    name: "Repeated trajectory pressure",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "Driver", x: 60, y: 0 },
-      { name: "Q", x: 100, y: 0 }
-    ],
-    constraints: [
-      { type: "solid", carrier: "Driver", attached: "Q", offsetX: 40, offsetY: 0 },
-      { type: "radialLimit", source: "Q", minDistance: 40, maxDistance: 120 }
-    ]
-  });
-
-  let report;
-  for (let step = 0; step < 24; step += 1) {
-    report = engine.move("Driver", 80 + step * 5, 0);
-  }
-
-  const listener = engine.point("Listener");
-  assert.ok(report);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(distance(engine.point("Q"), listener) <= 120.5);
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-});
-
-test("large synthetic component respects the bounded propagation budget", () => {
-  const engine = createEngineHarness();
-  const sources = Array.from({ length: 24 }, (_, index) => ({
-    name: `S${index}`,
-    x: 120 + index * 8,
-    y: index % 2 === 0 ? 40 : -40
-  }));
-  const constraints = [];
-
-  for (let index = 0; index < sources.length - 1; index += 1) {
-    constraints.push({
-      type: "fixedDistance",
-      anchor: `S${index}`,
-      target: `S${index + 1}`,
-      distance: 60
-    });
-  }
-  constraints.push({ type: "sum", sources: sources.map((source) => source.name) });
-
-  engine.loadPatch({
-    name: "Large bounded component",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources,
-    constraints
-  });
-
-  const start = process.hrtime.bigint();
-  const report = engine.move("S0", 200, 80);
-  const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
-
-  assert.ok(report.propagationSteps <= 96);
-  assert.ok(elapsedMs < 50, `large component solve took ${elapsedMs.toFixed(2)}ms`);
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-});
-
-test("tiny repeated moves keep the constrained solution continuous", () => {
-  const engine = createEngineHarness();
-  engine.loadPatch(loadFixturePatch("angle-balance.json"));
-
-  let previousB = engine.point("B");
-  let previousC = engine.point("C");
-
-  for (let step = 0; step < 20; step += 1) {
-    const report = engine.move("D", 160 + step, 145 + step * 0.5);
-    const nextB = engine.point("B");
-    const nextC = engine.point("C");
-
-    assert.equal(report.hitStepCap, false);
-    assert.ok(distance(previousB, nextB) < 35, `B jumped on step ${step}`);
-    assert.ok(distance(previousC, nextC) < 35, `C jumped on step ${step}`);
-    previousB = nextB;
-    previousC = nextC;
-  }
-});
-
-test("xpbd mode clamps radial limits without propagation caps", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch({
-    name: "XPBD radial clamp",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [{ name: "A", x: 100, y: 0 }],
-    constraints: [{ type: "radialLimit", source: "A", minDistance: 50, maxDistance: 150 }]
-  });
-
-  const report = engine.move("A", 300, 0);
-  const radius = distance(engine.point("A"), engine.point("Listener"));
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(report.hitEntityCap, false);
-  assert.equal(report.hitStepCap, false);
-  assert.equal(report.residuals.length, 0);
-  assert.ok(Math.abs(radius - 150) <= 0.5);
-});
-
-test("xpbd mode satisfies simple fixed-distance constraints", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch({
-    name: "XPBD distance",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [
-      { name: "A", x: 0, y: 0 },
-      { name: "B", x: 100, y: 0 }
-    ],
-    constraints: [{ type: "fixedDistance", anchor: "A", target: "B", distance: 100 }]
-  });
-
-  const report = engine.move("A", 50, 0);
-  const currentDistance = distance(engine.point("A"), engine.point("B"));
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(report.hitEntityCap, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(Math.abs(currentDistance - 100) <= 0.5);
-});
-
-test("xpbd mode keeps product plus radial limit bounded", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch(loadFixturePatch("product-limit.json"));
-
-  const report = engine.move("A", 200, 300);
-  const listener = engine.point("Listener");
-  const bRadius = distance(engine.point("B"), listener);
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(report.hitEntityCap, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(bRadius >= 59.5 && bRadius <= 130.5);
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-});
-
-test("xpbd mode reports best-fit diagnostics for pin and limit conflict", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch({
-    name: "XPBD hard conflict",
-    version: 1,
-    listener: { x: 0, y: 0 },
-    sources: [{ name: "A", x: 100, y: 0 }],
-    constraints: [
-      { type: "pin", target: "A", x: 100, y: 0 },
-      { type: "radialLimit", source: "A", minDistance: 200, maxDistance: 250 }
-    ]
-  });
-
-  const report = engine.move("A", 240, 0);
-  const residualLabels = report.residuals.map((residual) => residual.label);
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(report.satisfied, false);
-  assert.equal(report.hitEntityCap, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(residualLabels.includes("Pin") || residualLabels.includes("Limit"));
-});
-
-test("xpbd mode rotates solid attachments on rotator trajectory ticks", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch(loadFixturePatch("simple-rotator.json"));
-
-  const before = engine.point("S1");
-  const report = engine.tickMover("Spin");
-  const after = engine.point("S1");
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(report.hitEntityCap, false);
-  assert.equal(report.hitStepCap, false);
-  assert.ok(distance(before, after) > 0.5, "rotator-attached source should move after a rotator tick");
-  assert.ok(report.residuals.every((residual) => Number.isFinite(residual.error)));
-});
-
-test("xpbd mode preserves object-referenced shuttle endpoints during trajectory ticks", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch(loadFixturePatch("shuttle-spin.json"));
-
-  const lift = engine.api.getObjectByName("Lift");
-  const before = {
-    ax: lift.trajectory.ax,
-    ay: lift.trajectory.ay,
-    bx: lift.trajectory.bx,
-    by: lift.trajectory.by,
-    start: { ...lift.trajectory.start },
-    end: { ...lift.trajectory.end }
-  };
-
-  const report = engine.tickMover("Lift");
-
-  assert.equal(report.solverMode, "xpbd");
-  assert.equal(lift.trajectory.ax, before.ax);
-  assert.equal(lift.trajectory.ay, before.ay);
-  assert.equal(lift.trajectory.bx, before.bx);
-  assert.equal(lift.trajectory.by, before.by);
-  assert.equal(lift.trajectory.start.type, before.start.type);
-  assert.equal(lift.trajectory.start.name, before.start.name);
-  assert.equal(lift.trajectory.start.x, before.start.x);
-  assert.equal(lift.trajectory.start.y, before.start.y);
-  assert.equal(lift.trajectory.end.type, before.end.type);
-  assert.equal(lift.trajectory.end.name, before.end.name);
-  assert.equal(lift.trajectory.end.x, before.end.x);
-  assert.equal(lift.trajectory.end.y, before.end.y);
+  assert.ok(
+    findings.some((finding) => finding.message.includes("Unsupported source generator mapping parameter"))
+  );
+  assert.ok(findings.some((finding) => finding.message.includes("Exponential source generator mapping")));
 });
 
 test("tool workflow can add constraints in propagation mode", () => {
@@ -3381,9 +1737,7 @@ test("stop all drawing clears every trace flag without selecting objects one by 
       { name: "A", x: 100, y: 0, drawTrace: true },
       { name: "B", x: 0, y: 100, drawTrace: false }
     ],
-    movingObjects: [
-      { name: "M1", x: 50, y: 50, drawTrace: true, trajectory: { type: "free" } }
-    ],
+    movingObjects: [{ name: "M1", x: 50, y: 50, drawTrace: true, trajectory: { type: "free" } }],
     constraints: [
       {
         type: "fixedDistance",
@@ -3419,167 +1773,6 @@ test("patch validation rejects one-source sum and product constraints", () => {
   assert.equal(findings.filter((finding) => finding.message.includes("at least 2")).length, 2);
 });
 
-test("propagation and xpbd both keep representative edit scenarios finite", () => {
-  const scenarios = [
-    {
-      file: "product-limit.json",
-      moved: "A",
-      x: 200,
-      y: 300,
-      check(engine) {
-        const listener = engine.point("Listener");
-        const bRadius = distance(engine.point("B"), listener);
-        assert.ok(bRadius >= 59.5 && bRadius <= 130.5);
-      }
-    },
-    {
-      file: "angle-balance.json",
-      moved: "D",
-      x: 165,
-      y: 147,
-      check(engine) {
-        assertFinitePoint(engine.point("B"), "B");
-        assertFinitePoint(engine.point("C"), "C");
-      }
-    },
-    {
-      file: "faust-control-study.json",
-      moved: "Q",
-      x: 610,
-      y: 455,
-      check(engine) {
-        assertFinitePoint(engine.point("Q"), "Q");
-        assertFinitePoint(engine.point("Cutoff"), "Cutoff");
-      }
-    },
-    {
-      file: "granular-cloud-study.json",
-      moved: "Spray",
-      x: 665,
-      y: 430,
-      check(engine) {
-        const listener = engine.point("Listener");
-        const sprayRadius = distance(engine.point("Spray"), listener);
-        assert.ok(sprayRadius >= 79.5 && sprayRadius <= 210.5);
-      }
-    }
-  ];
-
-  for (const scenario of scenarios) {
-    const patch = loadFixturePatch(scenario.file);
-    for (const mode of ["propagation", "xpbd"]) {
-      const { engine, report } = runScenarioInMode(mode, patch, (candidate) =>
-        candidate.move(scenario.moved, scenario.x, scenario.y)
-      );
-
-      assertFiniteReport(report);
-      assert.equal(report.hitStepCap, false, `${mode} hit step cap in ${scenario.file}`);
-      if (mode === "xpbd") {
-        assert.equal(report.hitEntityCap, false, `xpbd hit entity cap in ${scenario.file}`);
-      }
-      scenario.check(engine, report, mode);
-    }
-  }
-});
-
-test("xpbd trajectory patches stay finite and preserve authored frames over repeated ticks", () => {
-  const scenarios = [
-    {
-      file: "simple-rotator.json",
-      movers: ["Spin"],
-      watched: ["S1", "S2", "S3", "S4"],
-      ticks: 24
-    },
-    {
-      file: "nested-rotators.json",
-      movers: ["Parent", "Child"],
-      watched: ["Lead", "Echo", "Pad"],
-      ticks: 20
-    },
-    {
-      file: "cycloid-rotator.json",
-      movers: ["Orbit", "Spin"],
-      watched: ["A", "B", "C"],
-      ticks: 20
-    },
-    {
-      file: "shuttle-spin.json",
-      movers: ["Lift", "Spin"],
-      watched: ["Vox", "Beat", "Bass"],
-      ticks: 20,
-      preserveShuttle: "Lift"
-    },
-    {
-      file: "bouncing-constellation.json",
-      movers: ["Bounce", "Spin"],
-      watched: ["One", "Two", "Three"],
-      ticks: 20
-    }
-  ];
-
-  for (const scenario of scenarios) {
-    const engine = createEngineHarness();
-    engine.setSolverMode("xpbd");
-    engine.loadPatch(loadFixturePatch(scenario.file));
-    const before = engine.points(scenario.watched);
-    const shuttle = scenario.preserveShuttle ? engine.api.getObjectByName(scenario.preserveShuttle) : null;
-    const shuttleFrame = shuttle ? {
-      ax: shuttle.trajectory.ax,
-      ay: shuttle.trajectory.ay,
-      bx: shuttle.trajectory.bx,
-      by: shuttle.trajectory.by,
-      startName: shuttle.trajectory.start?.name,
-      endName: shuttle.trajectory.end?.name
-    } : null;
-
-    const report = engine.tickMovers(scenario.movers, scenario.ticks);
-    const after = engine.points(scenario.watched);
-
-    assertFiniteReport(report);
-    assert.equal(report.hitStepCap, false, `xpbd hit step cap in ${scenario.file}`);
-    assert.equal(report.hitEntityCap, false, `xpbd hit entity cap in ${scenario.file}`);
-
-    for (const [name, point] of Object.entries(after)) {
-      assertFinitePoint(point, `${scenario.file}:${name}`);
-      assert.ok(distance(before[name], point) < 600, `${scenario.file}:${name} moved implausibly far`);
-    }
-
-    if (shuttleFrame) {
-      assert.equal(shuttle.trajectory.ax, shuttleFrame.ax);
-      assert.equal(shuttle.trajectory.ay, shuttleFrame.ay);
-      assert.equal(shuttle.trajectory.bx, shuttleFrame.bx);
-      assert.equal(shuttle.trajectory.by, shuttleFrame.by);
-      assert.equal(shuttle.trajectory.start?.name, shuttleFrame.startName);
-      assert.equal(shuttle.trajectory.end?.name, shuttleFrame.endName);
-    }
-  }
-});
-
-test("solver comparison metrics summarize propagation and xpbd behavior", () => {
-  const metrics = compareSolvers(
-    loadFixturePatch("product-limit.json"),
-    (engine) => engine.move("A", 200, 300),
-    ["A", "B", "C"]
-  );
-
-  for (const mode of ["propagation", "xpbd"]) {
-    assert.equal(typeof metrics[mode].elapsedMs, "number");
-    assert.equal(typeof metrics[mode].hitEntityCap, "boolean");
-    assert.equal(typeof metrics[mode].hitStepCap, "boolean");
-    assert.equal(typeof metrics[mode].movedCount, "number");
-    assert.equal(typeof metrics[mode].residualCount, "number");
-    assert.equal(typeof metrics[mode].satisfied, "boolean");
-    assert.equal(typeof metrics[mode].totalDisplacement, "number");
-    assert.equal(typeof metrics[mode].worstResidual, "number");
-    assert.ok(Number.isFinite(metrics[mode].elapsedMs));
-    assert.ok(Number.isFinite(metrics[mode].totalDisplacement));
-    assert.ok(Number.isFinite(metrics[mode].worstResidual));
-  }
-
-  assert.equal(metrics.xpbd.hitEntityCap, false);
-  assert.equal(metrics.xpbd.hitStepCap, false);
-});
-
 test("solver selector reflects the active solver mode", () => {
   const engine = createEngineHarness();
 
@@ -3601,136 +1794,4 @@ test("solver selector reflects the active solver mode", () => {
   assert.equal(engine.solverButtonPressed("propagation"), "false");
   assert.equal(engine.solverButtonPressed("xpbd"), "true");
   assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html?solver=xpbd");
-});
-
-test("solver series comparison tracks propagated sources and cpu", () => {
-  const scenarios = [
-    {
-      name: "product-limit/A radial sweep",
-      patch: loadFixturePatch("product-limit.json"),
-      watched: ["A", "B", "C"],
-      moves: [
-        { name: "A", x: 260, y: 300 },
-        { name: "A", x: 230, y: 330 },
-        { name: "A", x: 200, y: 300 },
-        { name: "A", x: 235, y: 260 },
-        { name: "A", x: 300, y: 300 }
-      ]
-    },
-    {
-      name: "angle-balance/D diagonal",
-      patch: loadFixturePatch("angle-balance.json"),
-      watched: ["A", "B", "C", "D"],
-      moves: Array.from({ length: 8 }, (_, index) => ({
-        name: "D",
-        x: 150 + index * 5,
-        y: 140 + index * 4
-      }))
-    },
-    {
-      name: "granular-cloud/Spray limit pressure",
-      patch: loadFixturePatch("granular-cloud-study.json"),
-      watched: ["Rate", "Size", "Pitch", "Spray", "Tone", "Level"],
-      moves: [
-        { name: "Spray", x: 620, y: 390 },
-        { name: "Spray", x: 650, y: 430 },
-        { name: "Spray", x: 690, y: 455 },
-        { name: "Spray", x: 580, y: 370 },
-        { name: "Spray", x: 540, y: 330 }
-      ]
-    }
-  ];
-  const summaries = {};
-
-  for (const scenario of scenarios) {
-    const comparison = compareSolverMoveSeries(scenario.patch, scenario.moves, scenario.watched);
-    summaries[scenario.name] = {
-      propagation: {
-        elapsedMs: Number(comparison.propagation.elapsedMs.toFixed(3)),
-        maxStepMs: Number(comparison.propagation.maxStepMs.toFixed(3)),
-        residualCount: comparison.propagation.residualCount,
-        hitEntityCapCount: comparison.propagation.hitEntityCapCount,
-        hitStepCapCount: comparison.propagation.hitStepCapCount,
-        cumulativePathBySource: Object.fromEntries(Object.entries(comparison.propagation.cumulativePathBySource)
-          .map(([name, value]) => [name, Number(value.toFixed(3))])),
-        displacementBySource: Object.fromEntries(Object.entries(comparison.propagation.displacementBySource)
-          .map(([name, value]) => [name, Number(value.toFixed(3))]))
-      },
-      xpbd: {
-        elapsedMs: Number(comparison.xpbd.elapsedMs.toFixed(3)),
-        maxStepMs: Number(comparison.xpbd.maxStepMs.toFixed(3)),
-        residualCount: comparison.xpbd.residualCount,
-        hitEntityCapCount: comparison.xpbd.hitEntityCapCount,
-        hitStepCapCount: comparison.xpbd.hitStepCapCount,
-        cumulativePathBySource: Object.fromEntries(Object.entries(comparison.xpbd.cumulativePathBySource)
-          .map(([name, value]) => [name, Number(value.toFixed(3))])),
-        displacementBySource: Object.fromEntries(Object.entries(comparison.xpbd.displacementBySource)
-          .map(([name, value]) => [name, Number(value.toFixed(3))]))
-      },
-      finalDistanceBetweenModes: Object.fromEntries(Object.entries(comparison.finalDistanceBetweenModes)
-        .map(([name, value]) => [name, Number(value.toFixed(3))]))
-    };
-
-    for (const mode of ["propagation", "xpbd"]) {
-      assert.equal(comparison[mode].hitStepCapCount, 0, `${scenario.name} ${mode} hit step caps`);
-      assert.ok(comparison[mode].maxStepMs < 20, `${scenario.name} ${mode} max step too slow`);
-      assert.ok(Number.isFinite(comparison[mode].worstResidual));
-      for (const point of Object.values(comparison[mode].after)) {
-        assertFinitePoint(point, `${scenario.name}:${mode}`);
-      }
-    }
-
-    assert.equal(comparison.xpbd.hitEntityCapCount, 0, `${scenario.name} xpbd hit entity caps`);
-  }
-
-  if (process.env.MUSICSPACE_PRINT_SOLVER_COMPARISON === "1") {
-    console.log(JSON.stringify(summaries, null, 2));
-  }
-});
-
-test("xpbd iteration sweep reports convergence and cpu tradeoffs", () => {
-  const sweep = sweepXpbdIterations(
-    loadFixturePatch("granular-cloud-study.json"),
-    { name: "Spray", x: 690, y: 455 },
-    ["Rate", "Size", "Pitch", "Spray", "Tone", "Level"],
-    [4, 6, 8, 10, 16, 24, 40]
-  );
-
-  for (const row of sweep) {
-    assert.ok(Number.isFinite(row.elapsedMs));
-    assert.ok(Number.isFinite(row.worstResidual));
-    assert.ok(Number.isFinite(row.maxDisplacement));
-    assert.ok(Number.isFinite(row.nonFiniteResidualCount));
-    assert.ok(row.elapsedMs < 20, `${row.iterations} iterations took ${row.elapsedMs.toFixed(3)}ms`);
-  }
-
-  assert.equal(sweep.at(-1).nonFiniteResidualCount, 0);
-
-  if (process.env.MUSICSPACE_PRINT_XPBD_SWEEP === "1") {
-    console.log(JSON.stringify(sweep.map((row) => ({
-      iterations: row.iterations,
-      elapsedMs: Number(row.elapsedMs.toFixed(3)),
-      nonFiniteResidualCount: row.nonFiniteResidualCount,
-      residualCount: row.residualCount,
-      worstResidual: Number(row.worstResidual.toFixed(3)),
-      maxDisplacement: Number(row.maxDisplacement.toFixed(3)),
-      displacementBySource: Object.fromEntries(Object.entries(row.displacementBySource)
-        .map(([name, value]) => [name, Number(value.toFixed(3))]))
-    })), null, 2));
-  }
-});
-
-test("xpbd release refinement improves residuals after drag-budget solve", () => {
-  const engine = createEngineHarness();
-  engine.setSolverMode("xpbd");
-  engine.loadPatch(loadFixturePatch("granular-cloud-study.json"));
-
-  const dragReport = engine.moveWithXpbdIterations("Spray", 690, 455, 10);
-  const releaseReport = engine.refineXpbdAfterDrag("Spray");
-
-  assert.ok(dragReport.residuals.length > 0);
-  assert.equal(releaseReport.hitEntityCap, false);
-  assert.equal(releaseReport.hitStepCap, false);
-  assert.ok(releaseReport.residuals.length <= dragReport.residuals.length);
-  assert.ok(worstResidual(releaseReport) <= worstResidual(dragReport));
 });
