@@ -1795,3 +1795,26 @@ test("solver selector reflects the active solver mode", () => {
   assert.equal(engine.solverButtonPressed("xpbd"), "true");
   assert.equal(engine.currentHref(), "http://127.0.0.1/musicspace.html?solver=xpbd");
 });
+
+test("spring tool and inspector use normal constraint editing and serialization", () => {
+  const engine = createEngineHarness();
+  engine.loadPatch(loadFixturePatch("open-trio.json"));
+  const result = engine.createConstraintWithTool("spring", ["Voice", "Bass"]);
+  assert.equal(result.handled, true);
+  assert.equal(result.patch.constraints.at(-1).type, "spring");
+  assert.equal(engine.openConstraintInspector(result.patch.constraints.length - 1), true);
+  const inspector = engine.constraintInspectorState();
+  assert.equal(inspector.labelA, "Rest length");
+  assert.equal(inspector.labelB, "Stiffness");
+  assert.equal(inspector.labelC, "Damping");
+  assert.equal(inspector.hiddenC, false);
+  const patch = engine.applyOpenConstraint({ valueA: 120, valueB: 80, valueC: 3.5 });
+  const spring = patch.constraints.at(-1);
+  assert.equal(spring.restLength, 120);
+  assert.equal(spring.stiffness, 80);
+  assert.equal(spring.damping, 3.5);
+  const invalid = engine.applyOpenConstraint({ valueC: -1 });
+  assert.equal(invalid.constraints.at(-1).damping, 3.5);
+  engine.openConstraintInspector(0);
+  assert.equal(engine.constraintInspectorState().hiddenC, true);
+});

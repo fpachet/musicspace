@@ -1,0 +1,74 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "coupled-springs",
+  "name": "Coupled Springs",
+  "listener": {
+    "x": 400,
+    "y": 520
+  },
+  "sources": [
+    {
+      "name": "Left anchor",
+      "x": 250,
+      "y": 120
+    },
+    {
+      "name": "Right anchor",
+      "x": 550,
+      "y": 120
+    },
+    {
+      "name": "A",
+      "x": 250,
+      "y": 300,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "B",
+      "x": 550,
+      "y": 300,
+      "dynamics": {
+        "mass": 1.5
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "pin",
+      "target": "Left anchor",
+      "x": 250,
+      "y": 120
+    },
+    {
+      "type": "pin",
+      "target": "Right anchor",
+      "x": 550,
+      "y": 120
+    },
+    {
+      "type": "spring",
+      "anchor": "Left anchor",
+      "target": "A",
+      "restLength": 180,
+      "stiffness": 40,
+      "damping": 1
+    },
+    {
+      "type": "spring",
+      "anchor": "Right anchor",
+      "target": "B",
+      "restLength": 180,
+      "stiffness": 55,
+      "damping": 1
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "A",
+      "target": "B",
+      "distance": 300
+    }
+  ]
+}

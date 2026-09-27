@@ -919,7 +919,10 @@ globalThis.__musicspaceTestApi = {
         hiddenA: document.getElementById("constraint-value-a-row").hidden,
         labelB: document.getElementById("constraint-value-b-label").textContent,
         valueB: document.getElementById("constraint-value-b").value,
-        hiddenB: document.getElementById("constraint-value-b-row").hidden
+        hiddenB: document.getElementById("constraint-value-b-row").hidden,
+        labelC: document.getElementById("constraint-value-c-label").textContent,
+        valueC: document.getElementById("constraint-value-c").value,
+        hiddenC: document.getElementById("constraint-value-c-row").hidden
       };
     },
     applyOpenConstraint(values) {
@@ -938,6 +941,8 @@ globalThis.__musicspaceTestApi = {
       if (values.valueB !== undefined) {
         document.getElementById("constraint-value-b").value = String(values.valueB);
       }
+      if (values.valueC !== undefined)
+        document.getElementById("constraint-value-c").value = String(values.valueC);
       api.applyConstraintEditor();
       return api.serializePatch();
     },

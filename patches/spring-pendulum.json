@@ -1,0 +1,92 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "spring-pendulum",
+  "name": "Spring Pendulum",
+  "listener": {
+    "x": 400,
+    "y": 520
+  },
+  "sources": [
+    {
+      "name": "Left anchor",
+      "x": 240,
+      "y": 100
+    },
+    {
+      "name": "Right anchor",
+      "x": 560,
+      "y": 100
+    },
+    {
+      "name": "A",
+      "x": 240,
+      "y": 240,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "B",
+      "x": 560,
+      "y": 240,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "Bob",
+      "x": 330,
+      "y": 370,
+      "dynamics": {
+        "mass": 1.5
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "pin",
+      "target": "Left anchor",
+      "x": 240,
+      "y": 100
+    },
+    {
+      "type": "pin",
+      "target": "Right anchor",
+      "x": 560,
+      "y": 100
+    },
+    {
+      "type": "spring",
+      "anchor": "Left anchor",
+      "target": "A",
+      "restLength": 140,
+      "stiffness": 45,
+      "damping": 1.8
+    },
+    {
+      "type": "spring",
+      "anchor": "Right anchor",
+      "target": "B",
+      "restLength": 140,
+      "stiffness": 45,
+      "damping": 1.8
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "A",
+      "target": "B",
+      "distance": 320
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "A",
+      "target": "Bob",
+      "distance": 158.11388300841898
+    }
+  ],
+  "gravity": {
+    "x": 0,
+    "y": 180
+  }
+}

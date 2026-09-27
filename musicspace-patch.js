@@ -28,6 +28,8 @@
 
       if (patch.version !== undefined && patch.version !== 1)
         add("error", "Unsupported patch version; expected 1.");
+      if (patch.gravity !== undefined && !isFinitePoint(patch.gravity))
+        add("error", "Gravity needs finite x/y coordinates.");
       const scene = validateSceneObjects(patch, add);
       validateTrajectories(patch.movingObjects, scene.names, add);
       validateConstraintSpecs(patch.constraints || [], scene.names, add);
@@ -127,6 +129,18 @@
         if (!isFinitePoint(object)) {
           add("error", `${capitalize(label)} ${object.name} needs finite x/y coordinates.`);
         }
+        if (object.dynamics !== undefined) {
+          const body = object.dynamics;
+          if (!body || typeof body !== "object" || Array.isArray(body))
+            add("error", "Object dynamics must be an object.");
+          else {
+            if (body.mass !== undefined && (!Number.isFinite(body.mass) || body.mass <= 0))
+              add("error", "Dynamics mass must be finite and positive.");
+            for (const field of ["vx", "vy"])
+              if (body[field] !== undefined && !Number.isFinite(body[field]))
+                add("error", `Dynamics ${field} must be finite.`);
+          }
+        }
         seen.add(object.name);
         names.add(object.name);
       }
@@ -156,6 +170,14 @@
         } else if (spec.type === "radialLimit") {
           validateReference(spec.source, "radialLimit.source", names, add);
           validateMinMax(spec.minDistance, spec.maxDistance, "radialLimit distance", add);
+        } else if (spec.type === "spring") {
+          validateReference(spec.anchor, "spring.anchor", names, add);
+          validateReference(spec.target, "spring.target", names, add);
+          if (spec.anchor === spec.target) add("error", "Spring endpoints must be different objects.");
+          for (const field of ["restLength", "stiffness", "damping"]) {
+            if (spec[field] !== undefined && (!Number.isFinite(spec[field]) || spec[field] < 0))
+              add("error", `spring.${field} must be finite and nonnegative.`);
+          }
         } else if (spec.type === "fixedDistance") {
           validateReference(spec.anchor, "fixedDistance.anchor", names, add);
           validateReference(spec.target, "fixedDistance.target", names, add);

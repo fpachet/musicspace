@@ -322,3 +322,38 @@ Angle, Sum and Product constraints may include optional `angle` (radians), `tota
 Version 1 trajectory velocities, orbital `angularSpeed`, and shuttle `speed` are per 1/60-second simulation step. `periodSeconds` is a real duration; display refresh rate does not change it. See `ARCHITECTURE.md` for pause and catch-up behavior.
 
 MIDI track `program` is 1–128, matching the Source Inspector and renderer; conversion to MIDI's 0–127 byte representation happens at the output boundary.
+
+## Spring systems
+
+Spring systems use the existing version-1 patch format. A minimal anchored spring is:
+
+```json
+{
+  "version": 1,
+  "name": "Spring",
+  "listener": { "x": 400, "y": 520 },
+  "gravity": { "x": 0, "y": 0 },
+  "sources": [
+    { "name": "Anchor", "x": 400, "y": 140 },
+    { "name": "Mass", "x": 400, "y": 300, "dynamics": { "mass": 1 } }
+  ],
+  "constraints": [
+    { "type": "pin", "target": "Anchor", "x": 400, "y": 140 },
+    {
+      "type": "spring", "anchor": "Anchor", "target": "Mass",
+      "restLength": 160, "stiffness": 40, "damping": 2
+    }
+  ]
+}
+```
+
+Spring endpoints must name different existing objects. Rest length, stiffness, and
+damping must be finite and nonnegative; omitted values default to the current distance,
+40, and 2 respectively. Optional `node` data follows the other constraints.
+
+Sources and free moving objects can specify `dynamics: { "mass": 1, "vx": 0, "vy": 0 }`.
+All three fields are optional; mass defaults to 1 and velocities to zero. The loader
+adds dynamic state to movable objects in spring-connected components. Explicit dynamics also
+enables spring-free pendulums and inertial motion. Pins supply zero inverse mass without
+requiring a special mass value. `gravity` requires finite X/Y components and defaults
+to zero. Saving a simulation preserves current velocities as well as positions.

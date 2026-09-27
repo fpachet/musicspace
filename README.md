@@ -4,7 +4,7 @@ MusicSpace is an old idea: bringing together the power of constraint propagation
 
 This project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
-MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, source generators, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, and angle sector.
+MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, source generators, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, angle sector, and dynamic springs. Spring networks add mass, damping, and optional gravity through the existing XPBD projectors, while their moving positions continue to drive musical mappings.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -16,13 +16,15 @@ Live demo: <https://fpachet.github.io/musicspace/>
 | Jazz Trio MIDI Spatializer | Granular Cloud Study |
 | ![MusicSpace Jazz Trio MIDI spatialization demo](assets/screenshots/musicspace-jazz-trio-midi.png?v=demo-gallery) | ![MusicSpace Granular Cloud parameter mapping demo](assets/screenshots/musicspace-granular-cloud-study.png?v=demo-gallery) |
 
-Short WebM captures. Cycloid Percussion, Faust Control Study, and Granular Cloud Study include recorded sound; Cycloid Rotator is motion-only.
+Short WebM captures. Cycloid Percussion, Faust Control Study, Granular Cloud Study, and Musical Spring include recorded sound; Cycloid Rotator is motion-only.
 
 | Cycloid Rotator | Cycloid Percussion |
 | --- | --- |
 | [Watch clip](assets/videos/musicspace-cycloid-rotator.webm) | [Watch clip](assets/videos/musicspace-cycloid-percussion.webm) |
 | Faust Control Study | Granular Cloud Study |
 | [Watch clip](assets/videos/musicspace-faust-control-study.webm) | [Watch clip](assets/videos/musicspace-granular-cloud-study.webm) |
+
+**Musical Spring:** [Watch WebM](assets/videos/musicspace-musical-spring.webm) · [Watch MP4](assets/videos/linkedin/musicspace-musical-spring-linkedin.mp4). Two drag-and-release gestures excite the coupled masses and vary synth pitch and filter frequency.
 
 ## Running
 
@@ -79,6 +81,13 @@ Export LinkedIn-friendly MP4 versions of the sound demos with:
 
 ```sh
 npm run export:linkedin
+```
+
+Regenerate only the spring clip and its MP4 export with:
+
+```sh
+npm run capture:video -- musical-spring musicspace-musical-spring.webm 14000
+npm run export:linkedin -- musicspace-musical-spring.webm
 ```
 
 ## Controls
@@ -203,6 +212,7 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 - Browser-based MusicSpace workbench with no build step or runtime dependencies.
 - Deterministic local constraint propagation that establishes a fixed point for coherent edits, with local backoff/clamping and residual diagnostics for unsatisfied graphs.
 - Experimental XPBD solver mode for iterative best-fit projection, with release refinement and regression coverage across representative constraint graphs.
+- Compliant springs with mass, damping, optional gravity, rigid-link coupling, and saved velocities.
 - Versioned JSON patch loading, saving, inspection, editing, and validation.
 - Canvas palette for creating sources, movers, constraints, and trajectory assignments.
 - Product constraints are shown with a `π` glyph, following the older MusicSpace visual convention.
@@ -215,6 +225,20 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.
 - A compact codebase intended for continued experimentation with constraint-based spatialization controls.
+
+## Springs and coupled oscillators
+
+The patch menu includes **Simple Spring**, **Coupled Springs**, **Spring Pendulum**, and
+**Musical Spring**. The simulation starts automatically, but the examples without gravity
+begin at equilibrium. Drag the red **Mass**, **A**, or **B** endpoint and release to
+excite the springs. In Spring Pendulum, drag **Bob** sideways. The pink **S** node is
+an inspector/label handle: dragging it changes only its display position.
+
+The musical patch maps A's Y position to pitch and B's Y position to filter frequency.
+Click **Play Sound** to hear the result. Double-click S in Edit mode to adjust rest
+length, stiffness, and damping; edit mass through the source inspector.
+See the [launch instructions](EXAMPLES.md#spring-examples) and
+[spring constraint documentation](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks).
 
 ## Authors
 

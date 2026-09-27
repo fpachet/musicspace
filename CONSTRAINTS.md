@@ -428,3 +428,10 @@ Failure should remain an ordinary part of the interaction model. The engine shou
 11. **OSC / external control backends**
 12. **Incompatibility**
 13. **Equalizing**
+
+## Implemented: spring dynamics
+
+Spring constraints now add compliance, inertia, mass, and axial damping to the existing
+XPBD constraint graph. They work with pins, rigid links, gravity, and musical mappings.
+See [spring semantics and integration](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks)
+and the four [guided spring examples](EXAMPLES.md#spring-examples).

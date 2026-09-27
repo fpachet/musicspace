@@ -24,6 +24,7 @@
       ProductConstraint,
       RadialLimitConstraint,
       FixedDistanceConstraint,
+      SpringConstraint,
       DistanceRatioConstraint,
       PinConstraint,
       SolidAttachmentConstraint,
@@ -33,7 +34,7 @@
     const { translateEntity, rotateVector, entityLabel, normalizeAngle, clamp } = geometry;
     const setConstraintStatus = onStatus;
     function enforceConstraints(moved, options = {}) {
-      if (state.solverMode === SOLVER_MODE_XPBD) {
+      if (state.solverMode === SOLVER_MODE_XPBD || isDynamicComponent(buildConstraintComponent(moved))) {
         const xpbdReport = enforceConstraintsWithXpbd(moved, options);
         if (xpbdReport) {
           state.lastPropagationReport = xpbdReport;
@@ -46,7 +47,11 @@
     }
 
     function refineXpbdAfterDrag(entity) {
-      if (state.solverMode !== SOLVER_MODE_XPBD || !entity) {
+      if (
+        !entity ||
+        isDynamicComponent(buildConstraintComponent(entity)) ||
+        state.solverMode !== SOLVER_MODE_XPBD
+      ) {
         return false;
       }
 
@@ -77,9 +82,10 @@
 
       const positions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
       const originalPositions = component.entities.map((entity) => ({ x: entity.x, y: entity.y }));
-      const mobility = createXpbdMobility(component, moved);
+      const dynamic = isDynamicComponent(component);
+      const mobility = createXpbdMobility(component, moved, dynamic);
       const intent =
-        moved && component.indexByEntity.has(moved)
+        !dynamic && moved && component.indexByEntity.has(moved)
           ? {
               index: component.indexByEntity.get(moved),
               x: moved.x,
@@ -107,7 +113,7 @@
         const next = positions[index];
         const dx = next.x - entity.x;
         const dy = next.y - entity.y;
-        if (Math.hypot(dx, dy) > 0.001) {
+        if (dynamic ? dx !== 0 || dy !== 0 : Math.hypot(dx, dy) > 0.001) {
           commitXpbdEntityPosition(entity, next, { preserveTrajectoryFrame });
         }
         if (
@@ -131,6 +137,171 @@
         propagationSteps: iterations * component.constraints.length,
         solverMode: SOLVER_MODE_XPBD
       });
+    }
+
+    function isTrajectoryDriven(entity) {
+      return entity instanceof MovingObject && entity.trajectory.type !== "free";
+    }
+
+    function isDynamicComponent(component) {
+      return Boolean(
+        component &&
+        (component.constraints.some((c) => c instanceof SpringConstraint) ||
+          component.entities.some((entity) => entity.dynamics))
+      );
+    }
+
+    function dynamicComponents() {
+      const seeds = [
+        ...state.constraints.filter((c) => c instanceof SpringConstraint).map((c) => c.anchor),
+        ...state.sources.filter((entity) => entity.dynamics),
+        ...state.movingObjects.filter((entity) => entity.dynamics)
+      ];
+      const visited = new Set();
+      const components = [];
+      for (const seed of seeds) {
+        if (visited.has(seed)) continue;
+        const component = buildConstraintComponent(seed);
+        for (const entity of component.entities) visited.add(entity);
+        components.push(component);
+      }
+      return components;
+    }
+
+    function initializeDynamics() {
+      const components = dynamicComponents();
+      for (const component of components) {
+        const pinned = new Set(
+          component.constraints.filter((c) => c instanceof PinConstraint).map((c) => c.target)
+        );
+        for (const entity of component.entities) {
+          if (entity !== state.listener && !pinned.has(entity) && !isTrajectoryDriven(entity)) {
+            entity.dynamics ??= { mass: 1, vx: 0, vy: 0 };
+          }
+        }
+      }
+      return components;
+    }
+
+    function hasDynamics() {
+      return (
+        state.constraints.some((c) => c instanceof SpringConstraint) ||
+        [...state.sources, ...state.movingObjects].some((entity) => entity.dynamics)
+      );
+    }
+
+    // Time is in seconds; positions are canvas pixels. Four substeps per 60 Hz tick
+    // reduce implicit-integration energy loss while sharing the geometric projectors.
+    function stepDynamics(dt = 1 / 60) {
+      if (!Number.isFinite(dt) || dt <= 0 || dt > 0.25)
+        throw new RangeError("Dynamics dt must be in (0, 0.25] seconds.");
+      if (state.propagationPaused) return false;
+      const components = initializeDynamics();
+      if (!components.length) return false;
+      const substeps = Math.ceil(dt / (1 / 240));
+      const h = dt / substeps;
+      const movedEntities = new Set();
+      let projectionCount = 0;
+      for (const component of components) {
+        const { entities, indexByEntity } = component;
+        const mobility = createXpbdMobility(component, null, true);
+        const springs = component.constraints.filter((c) => c instanceof SpringConstraint);
+        const geometric = orderedXpbdConstraints(
+          component.constraints.filter((c) => !(c instanceof SpringConstraint))
+        );
+        for (let step = 0; step < substeps; step += 1) {
+          const positions = entities.map((entity) => ({ x: entity.x, y: entity.y }));
+          for (const constraint of geometric) {
+            if (constraint instanceof PinConstraint)
+              projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility);
+          }
+          const previous = positions.map((position) => ({ ...position }));
+          for (let i = 0; i < entities.length; i += 1) {
+            const body = entities[i].dynamics;
+            if (!mobility[i]) {
+              if (body) {
+                body.vx = 0;
+                body.vy = 0;
+              }
+              continue;
+            }
+            body.vx += state.gravity.x * h;
+            body.vy += state.gravity.y * h;
+            positions[i].x += body.vx * h;
+            positions[i].y += body.vy * h;
+          }
+          // Multipliers persist across iterations, and reset for every substep.
+          const lambdas = new Map();
+          for (let iteration = 0; iteration < 24; iteration += 1) {
+            for (const spring of springs)
+              projectXpbdSpring(spring, indexByEntity, positions, previous, mobility, lambdas, h);
+            for (const constraint of geometric)
+              projectXpbdConstraint(constraint, indexByEntity, positions, mobility);
+          }
+          // Finish with the ordinary constraints so stiff springs cannot leave links stretched.
+          for (let iteration = 0; iteration < 8; iteration += 1) {
+            for (const constraint of geometric)
+              projectXpbdConstraint(constraint, indexByEntity, positions, mobility);
+          }
+          projectionCount += 24 * springs.length + 32 * geometric.length;
+          for (let i = 0; i < entities.length; i += 1) {
+            const entity = entities[i];
+            const next = positions[i];
+            if (mobility[i]) {
+              entity.dynamics.vx = (next.x - previous[i].x) / h;
+              entity.dynamics.vy = (next.y - previous[i].y) / h;
+            }
+            if (next.x !== entity.x || next.y !== entity.y) {
+              commitXpbdEntityPosition(entity, next);
+              movedEntities.add(entity);
+            }
+          }
+        }
+        for (const constraint of component.constraints) constraint.updateNode?.();
+      }
+      state.lastPropagationReport = createPropagationReport({
+        hitEntityCap: false,
+        hitStepCap: false,
+        messages: [],
+        movedEntities: [...movedEntities],
+        processCounts: new Map(),
+        propagationSteps: projectionCount,
+        solverMode: SOLVER_MODE_XPBD
+      });
+      setConstraintStatus(formatPropagationStatus(state.lastPropagationReport));
+      return true;
+    }
+
+    function projectXpbdSpring(spring, indexes, positions, previous, mobility, lambdas, h) {
+      const ai = indexes.get(spring.anchor);
+      const bi = indexes.get(spring.target);
+      const a = positions[ai];
+      const b = positions[bi];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const distance = Math.hypot(dx, dy);
+      const oldDx = previous[bi].x - previous[ai].x;
+      const oldDy = previous[bi].y - previous[ai].y;
+      const oldDistance = Math.hypot(oldDx, oldDy);
+      // Coincident endpoints use a deterministic direction, avoiding division by zero.
+      const nx = distance > 1e-9 ? dx / distance : oldDistance > 1e-9 ? oldDx / oldDistance : 1;
+      const ny = distance > 1e-9 ? dy / distance : oldDistance > 1e-9 ? oldDy / oldDistance : 0;
+      const w = mobility[ai] + mobility[bi];
+      if (!w) return;
+      const lambda = lambdas.get(spring) || 0;
+      const displacement = nx * (dx - oldDx) + ny * (dy - oldDy);
+      // XPBD compliance alpha = 1/k, alphaTilde = alpha/h², gamma = c/(k*h).
+      // Multiply numerator/denominator by k*h²: also well-defined for k=0 (dashpot).
+      const elastic = spring.stiffness * h * h;
+      const viscous = spring.damping * h;
+      const delta =
+        (-elastic * (distance - spring.restLength) - lambda - viscous * displacement) /
+        (1 + (elastic + viscous) * w);
+      lambdas.set(spring, lambda + delta);
+      a.x -= mobility[ai] * nx * delta;
+      a.y -= mobility[ai] * ny * delta;
+      b.x += mobility[bi] * nx * delta;
+      b.y += mobility[bi] * ny * delta;
     }
 
     function orderedXpbdConstraints(componentConstraints) {
@@ -225,7 +396,7 @@
       };
     }
 
-    function createXpbdMobility(component, moved) {
+    function createXpbdMobility(component, moved, dynamic = false) {
       const pinned = new Set(
         component.constraints
           .filter((constraint) => constraint instanceof PinConstraint)
@@ -241,6 +412,10 @@
           return 0;
         }
 
+        if (dynamic) {
+          if (entity === moved || entity === state.draggedEntity || isTrajectoryDriven(entity)) return 0;
+          return 1 / (entity.dynamics?.mass ?? 1);
+        }
         return 1;
       });
     }
@@ -747,6 +922,9 @@
     }
     return {
       enforceConstraints,
+      hasDynamics,
+      initializeDynamics,
+      stepDynamics,
       refineXpbdAfterDrag,
       enforceConstraintsWithXpbd,
       createPropagationReport,

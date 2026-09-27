@@ -4,7 +4,7 @@ This document describes the semantics implemented by the current MusicSpace prot
 
 MusicSpace uses a deterministic local propagation engine. A user drag, keyboard nudge, or trajectory tick proposes a new position for one entity; constraints that mention that entity may move other entities; those moved entities are then propagated in turn until the queue drains to a fixed point or the bounded solver reports remaining residuals. This is not a global optimizer and it does not search all possible solutions, but it does give the interaction a stable, inspectable repair semantics.
 
-An experimental XPBD-style solver is also available with `?solver=xpbd`. The propagation solver remains the default. XPBD solves only the affected connected component, projects constraints in deterministic phases, uses 10 iterations during drag/animation, and runs a 40-iteration refinement when an unpaused drag is released. The visible solver badge reports the active mode.
+An experimental XPBD-style solver is also available with `?solver=xpbd`. The propagation solver remains the default. XPBD solves only the affected connected component, projects constraints in deterministic phases, uses 10 iterations during drag/animation, and runs a 40-iteration refinement when an unpaused drag is released. The visible solver badge reports the selected mode. Components containing springs or explicit dynamic bodies always use mass-weighted XPBD substeps; see [spring dynamics](#springs-and-dynamic-networks).
 
 ## Core Concepts
 
@@ -382,3 +382,83 @@ The status line may report:
 - the first residual error above tolerance.
 
 This makes current behavior interactive and inspectable, but not formally complete. Future solver work should decide whether failed edits should be rejected, rolled back, softened, animated into place, or left as residuals.
+
+## Springs and dynamic networks
+
+`SpringConstraint(anchor, target, restLength, stiffness, damping)` joins two existing
+sources, free movers, or the listener. It uses the same constraint graph, node,
+selection, inspector, deletion, and patch serialization as geometric constraints.
+Use the **Spring** tool in Edit mode and click two endpoints. Use **Pin** to make
+an endpoint a fixed anchor. Double-click the spring node to edit its parameters.
+
+- **Rest length** is the distance with no elastic force (pixels). It defaults to
+  the endpoint distance at creation. Zero is allowed.
+- **Stiffness** defaults to 40. Larger values resist extension more strongly;
+  very large values approach a rigid distance. Internally compliance is `1 / stiffness`.
+  Zero stiffness disables elasticity while retaining any damping.
+- **Damping** defaults to 2. It opposes relative velocity along the spring and
+  removes energy. Small values allow many oscillations; large values settle more slowly
+  without much overshoot. It does not damp unconstrained sideways or collective motion.
+- **Mass** defaults to 1. More mass means less acceleration for the same force.
+  Movable spring-connected objects automatically receive `dynamics: { mass, vx, vy }`.
+  Mass must be positive; velocities are pixels/second. Edit a source's mass in its
+  inspector, or set dynamics in patch JSON for sources and free movers.
+- **Anchors** use existing `pin` constraints and have zero mobility in the solve.
+  The listener and movers with authored non-free trajectories are kinematic supports:
+  the dynamics solver does not accelerate them. Their normal edit/trajectory controls
+  still set their positions. Do not give a trajectory-driven mover a competing physical motion.
+- **Gravity** is an optional patch-level vector in pixels/second², for example
+  `"gravity": { "x": 0, "y": 180 }`. Positive Y points down. Omit it or set both
+  components to zero to disable gravity. It acts only on dynamic objects.
+
+A hard geometric constraint projects positions toward an exact relationship.
+A spring allows deformation, storing energy that drives later motion. Its extension
+is therefore not reported as a failed geometric constraint. Ordinary constraint
+residuals and conflict diagnostics still apply to the rest of the network.
+
+### Interaction and composition
+
+Spring patches start the simulation automatically. Without gravity or an initial
+velocity/displacement, a spring at its rest length remains still. **Stop Motion /
+Start Motion** pauses and resumes the simulation. The pink **S** node is a visual
+label/inspector handle; dragging it only changes its display position. Drag a red
+mass endpoint (**Mass**, **A**, **B**, or **Bob** in the examples) to excite the system.
+Dragging an unpinned mass holds it at the pointer while connected objects
+react. Releasing it restores its mobility; deformation supplies the initial energy.
+The release does not estimate a mouse throw velocity. Pins retain their exact positions.
+Shift-drag pauses the solve; on release ordinary constraints recapture as before,
+while springs keep their rest lengths. Use **Recapture** in the spring inspector
+when you intentionally want a new rest length.
+
+Connect springs through shared objects and ordinary fixed-distance or solid links to
+make coupled oscillators. A component containing a spring (or explicit dynamics) uses
+the mass-weighted XPBD path in both toolbar solver modes. Components without dynamics
+retain the selected static solver. Existing projectors are reused, so incompatible
+hard constraints still produce a bounded best fit and residual diagnostics.
+
+A pendulum needs only a fixed anchor, `fixedDistance` link, explicit dynamics on the
+bob, and gravity. No separate pendulum type is needed. Removing a spring leaves its
+objects' mass and velocity intact; remove their `dynamics` fields in JSON to return
+an otherwise disconnected component to static editing.
+
+### Integration and musical output
+
+The existing 60 Hz clock calls `scene.step(dt)`. Dynamic prediction, compliant spring
+projection, ordinary geometric projection, and velocity reconstruction run in substeps
+of at most 1/240 second. Each spring's multiplier accumulates across solver iterations
+and resets each substep. The damped XPBD update uses compliance `alpha = 1/k`,
+`alphaTilde = alpha/h²`, and `gamma = c/(k*h)`, with algebra arranged to support `k=0`.
+There is no separate force engine or physics dependency. Implicit integration introduces
+some numerical damping even when spring damping is zero, especially for very stiff springs.
+
+Headless code can call `scene.stepDynamics(1 / 60)` without ticking authored trajectories,
+or `scene.step()` for the normal fixed tick. `stepDynamics` accepts finite positive steps
+up to 0.25 seconds and subdivides them. `scene.beginDrag(entity)` / `scene.endDrag()` expose
+the same hold/release behavior for deterministic tests. There are no simulated canvas
+walls; unconstrained bodies can leave the visible area.
+
+Motion updates the actual entity positions. The existing distance, angle, X/Y mappings,
+spatial audio clients, trace drawing, and render loop observe those positions normally.
+Saving includes mass, velocity, spring parameters, gravity, and node layout, allowing
+motion to continue after reload. Existing version-1 files remain valid and acquire no
+dynamic state unless their objects join a dynamic network.

@@ -202,6 +202,48 @@
         "diagnostics",
         "example"
       ]
+    },
+    {
+      "key": "simple-spring",
+      "name": "Simple Spring",
+      "file": "simple-spring.json",
+      "description": "Drag Mass and release to oscillate. The S node only positions the spring label.",
+      "tags": [
+        "dynamics",
+        "springs"
+      ]
+    },
+    {
+      "key": "coupled-springs",
+      "name": "Coupled Springs",
+      "file": "coupled-springs.json",
+      "description": "Drag A or B and release to excite both masses through the rigid link.",
+      "tags": [
+        "dynamics",
+        "springs"
+      ]
+    },
+    {
+      "key": "spring-pendulum",
+      "name": "Spring Pendulum",
+      "file": "spring-pendulum.json",
+      "description": "Drag Bob sideways and release. Gravity couples its swing to both springs.",
+      "tags": [
+        "dynamics",
+        "springs"
+      ]
+    },
+    {
+      "key": "musical-spring",
+      "name": "Musical Spring",
+      "file": "musical-spring.json",
+      "description": "Click Play Sound, then drag A or B and release to vary pitch and filter frequency.",
+      "tags": [
+        "dynamics",
+        "springs",
+        "audio",
+        "mapping"
+      ]
     }
   ]
 }

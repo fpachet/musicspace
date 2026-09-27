@@ -30,6 +30,7 @@
       "items": {
         "allOf": [
           { "$ref": "#/$defs/namedPoint" },
+          { "properties": { "dynamics": { "$ref": "#/$defs/dynamics" } } },
           { "$ref": "#/$defs/traceable" }
         ]
       }
@@ -39,6 +40,7 @@
       "items": {
         "allOf": [
           { "$ref": "#/$defs/namedPoint" },
+          { "properties": { "dynamics": { "$ref": "#/$defs/dynamics" } } },
           { "$ref": "#/$defs/traceable" },
           {
             "type": "object",
@@ -49,6 +51,7 @@
         ]
       }
     },
+    "gravity": { "$ref": "#/$defs/point" },
     "constraints": {
       "type": "array",
       "items": {
@@ -295,6 +298,14 @@
         { "$ref": "#/$defs/point" },
         { "$ref": "#/$defs/traceable" }
       ]
+    },
+    "dynamics": {
+      "type": "object",
+      "properties": {
+        "mass": { "type": "number", "exclusiveMinimum": 0, "default": 1 },
+        "vx": { "type": "number", "default": 0 },
+        "vy": { "type": "number", "default": 0 }
+      }
     },
     "namedPoint": {
       "allOf": [
@@ -543,6 +554,23 @@
     },
     "constraint": {
       "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "anchor", "target"],
+              "properties": {
+                "type": { "const": "spring" },
+                "anchor": { "$ref": "#/$defs/entityName" },
+                "target": { "$ref": "#/$defs/entityName" },
+                "restLength": { "type": "number", "minimum": 0 },
+                "stiffness": { "type": "number", "minimum": 0, "default": 40 },
+                "damping": { "type": "number", "minimum": 0, "default": 2 }
+              }
+            }
+          ]
+        },
         {
           "allOf": [
             { "$ref": "#/$defs/constraintBase" },

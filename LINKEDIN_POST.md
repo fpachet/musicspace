@@ -8,6 +8,7 @@ Alternative follow-up clips:
 
 - `assets/videos/linkedin/musicspace-faust-control-study-linkedin.mp4`
 - `assets/videos/linkedin/musicspace-granular-cloud-study-linkedin.mp4`
+- `assets/videos/linkedin/musicspace-musical-spring-linkedin.mp4` — 14 seconds of coupled oscillation controlling pitch and filter frequency.
 
 ## Post
 

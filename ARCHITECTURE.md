@@ -59,3 +59,14 @@ External sequence playback clears queued messages on its selected MIDI output be
 Propagation visits adjacent constraints in original constraint order. Component discovery uses the same index. Both traversals use queue cursors, and XPBD constraint ordering is computed once per solve. Residual reporting still scans the entire scene, preserving visibility of unrelated conflicts.
 
 `benchmarks/` records diagnostic measurements; see `TESTING.md` for commands. The projection solver remains experimental: bounded execution and finite positions are not proofs of feasibility or optimality. Dense graphs and large imported scores need separate profiling before changing solver budgets.
+
+### Spring dynamics
+
+`SpringConstraint` lives beside the geometric constraints in `musicspace-model.js`.
+`musicspace-solvers.js` discovers dynamic components through the existing adjacency
+graph, adds body state only to participating objects, and reuses the XPBD geometric
+projectors during deterministic substeps. Spring compliance and damping share those
+iterations. Pins, the listener, dragged objects, and authored trajectories have zero
+mobility; other participating objects use inverse mass. Optional explicit dynamics
+also supports rigid pendulums without springs. `scene.step()` is still the browser
+clock's single entry point. See [the detailed semantics](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks).

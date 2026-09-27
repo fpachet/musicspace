@@ -188,6 +188,11 @@ const constraintNextButton = document.getElementById("constraint-next");
 
 const constraintRecaptureButton = document.getElementById("constraint-recapture");
 
+const constraintValueCRow = document.getElementById("constraint-value-c-row");
+const constraintValueCLabel = document.getElementById("constraint-value-c-label");
+const constraintValueCInput = document.getElementById("constraint-value-c");
+const sourceMassRow = document.getElementById("source-mass-row");
+const sourceMassInput = document.getElementById("source-mass");
 const constraintApplyButton = document.getElementById("constraint-apply");
 
 const constraintCloseButton = document.getElementById("constraint-close");
@@ -607,6 +612,7 @@ const {
   ProductConstraint,
   RadialLimitConstraint,
   FixedDistanceConstraint,
+  SpringConstraint,
   DistanceRatioConstraint,
   PinConstraint,
   SolidAttachmentConstraint,
@@ -737,6 +743,29 @@ RadialLimitConstraint.prototype.draw = function (ctx) {
   drawRadialLimit(ctx, this.listener, this.minDistance, this.maxDistance, "#ea580c");
   drawConnector(ctx, this.node, this.source, "#ea580c");
   drawConnector(ctx, this.node, this.listener, "#ea580c");
+  this.node.draw(ctx);
+};
+
+SpringConstraint.prototype.draw = function (ctx) {
+  const dx = this.target.x - this.anchor.x;
+  const dy = this.target.y - this.anchor.y;
+  const length = Math.hypot(dx, dy);
+  const nx = length ? -dy / length : 0;
+  const ny = length ? dx / length : 1;
+  ctx.beginPath();
+  ctx.moveTo(this.anchor.x, this.anchor.y);
+  for (let i = 1; i < 16; i += 1) {
+    const offset = i === 1 || i === 15 ? 0 : (i % 2 ? -1 : 1) * Math.min(7, length / 10);
+    ctx.lineTo(this.anchor.x + (dx * i) / 16 + nx * offset, this.anchor.y + (dy * i) / 16 + ny * offset);
+  }
+  ctx.lineTo(this.target.x, this.target.y);
+  ctx.strokeStyle = this.node.color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (this.node.isManual) {
+    drawConnector(ctx, this.node, this.anchor, this.node.color);
+    drawConnector(ctx, this.node, this.target, this.node.color);
+  }
   this.node.draw(ctx);
 };
 
@@ -1014,6 +1043,7 @@ function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
   updatePatchInfo(patch);
   drawAll();
   updatePatchInspector();
+  if (scene.hasDynamics()) startAnimation();
   return true;
 }
 
@@ -1301,6 +1331,9 @@ function describeConstraintSpec(spec) {
   }
   if (spec.type === "radialLimit") {
     return `Radial limit: ${spec.source} in [${spec.minDistance}, ${spec.maxDistance}]`;
+  }
+  if (spec.type === "spring") {
+    return `Spring: ${spec.anchor} to ${spec.target}, rest ${spec.restLength}, stiffness ${spec.stiffness}, damping ${spec.damping}`;
   }
   if (spec.type === "fixedDistance") {
     return `Fixed distance: ${spec.anchor} to ${spec.target} = ${spec.distance}`;
@@ -1885,7 +1918,7 @@ function patchHasSoundOutput() {
 }
 
 function patchHasMovers() {
-  return Array.isArray(state.movingObjects) && state.movingObjects.length > 0;
+  return state.movingObjects.length > 0 || scene.hasDynamics();
 }
 
 function updateToolbarAvailability() {
@@ -1936,6 +1969,7 @@ function toolPrompt(tool) {
     sum: "Sum: click two or more sources or movers; click Sum again to finish.",
     product: "Product: click two or more sources or movers; click Product again to finish.",
     radialLimit: "Limit: click one source or mover.",
+    spring: "Spring: click two endpoints. Then drag an unpinned endpoint and release to oscillate.",
     fixedDistance: "Distance: click anchor, then target.",
     distanceRatio: "Ratio: click two sources or movers.",
     pin: "Pin: click one object.",
@@ -1959,6 +1993,7 @@ function requiredEntityCount(tool) {
     product: 2,
     radialLimit: 1,
     fixedDistance: 2,
+    spring: 2,
     distanceRatio: 2,
     pin: 1,
     solid: 2,
@@ -2066,6 +2101,8 @@ function finishPendingConstraintTool() {
   if (constraint) {
     pushUndoSnapshot("create constraint");
     state.constraints.push(constraint);
+    scene.initializeDynamics();
+    if (scene.hasDynamics()) startAnimation();
     selectedEntity = constraint.node;
     addedMessage = `${constraint.node.label} constraint added.`;
   }
@@ -2109,6 +2146,10 @@ function createConstraintFromTool(tool, entities) {
       Math.max(MIN_DISTANCE, distance * 0.55),
       distance * 1.35
     );
+  }
+
+  if (tool === "spring") {
+    return new SpringConstraint(entities[0], entities[1]);
   }
 
   if (tool === "fixedDistance") {
@@ -2561,6 +2602,25 @@ function constraintEditorSpec(constraint) {
       valueB: { label: "Maximum distance", value: constraint.maxDistance, min: 0, step: 1 }
     };
   }
+  if (constraint instanceof SpringConstraint) {
+    const movableEndpoints = constraint
+      .affectedEntities()
+      .filter(
+        (entity) =>
+          entity !== state.listener &&
+          !(entity instanceof MovingObject && entity.trajectory.type !== "free") &&
+          !state.constraints.some((other) => other instanceof PinConstraint && other.target === entity)
+      );
+    const gesture = movableEndpoints.length
+      ? `Drag ${movableEndpoints.map(entityLabel).join(" or ")} and release to oscillate.`
+      : "Both endpoints are fixed.";
+    return {
+      summary: `${gesture} Dragging S only moves this label.`,
+      valueA: { label: "Rest length", value: constraint.restLength, min: 0, step: 1 },
+      valueB: { label: "Stiffness", value: constraint.stiffness, min: 0, step: 1 },
+      valueC: { label: "Damping", value: constraint.damping, min: 0, step: 0.1 }
+    };
+  }
   if (constraint instanceof FixedDistanceConstraint) {
     return {
       summary: `${entityLabel(constraint.target)} fixed from ${entityLabel(constraint.anchor)}.`,
@@ -2640,6 +2700,7 @@ function openConstraintEditor(constraint) {
   constraintNodeYRow.hidden = false;
   fillConstraintEditorField(constraintValueARow, constraintValueALabel, constraintValueAInput, spec.valueA);
   fillConstraintEditorField(constraintValueBRow, constraintValueBLabel, constraintValueBInput, spec.valueB);
+  fillConstraintEditorField(constraintValueCRow, constraintValueCLabel, constraintValueCInput, spec.valueC);
   constraintEditor.hidden = false;
   updateInspectorNavButtons();
   setConstraintStatus(`Editing ${constraint.node.label} constraint.`);
@@ -2678,6 +2739,12 @@ function applyConstraintEditor() {
 function readConstraintEditorValues(constraint) {
   const valueA = Number(constraintValueAInput.value);
   const valueB = Number(constraintValueBInput.value);
+  const valueC = Number(constraintValueCInput.value);
+  if (
+    constraint instanceof SpringConstraint &&
+    [valueA, valueB, valueC].some((value) => !Number.isFinite(value) || value < 0)
+  )
+    return { ok: false, message: "Spring parameters must be finite and nonnegative." };
 
   if (!constraintValueARow.hidden && !Number.isFinite(valueA)) {
     return { ok: false, message: `${constraintValueALabel.textContent} must be a number.` };
@@ -2700,7 +2767,7 @@ function readConstraintEditorValues(constraint) {
     return { ok: false, message: "Width must be positive." };
   }
 
-  return { ok: true, valueA, valueB };
+  return { ok: true, valueA, valueB, valueC };
 }
 
 function applyConstraintEditorValues(constraint, values) {
@@ -2713,6 +2780,10 @@ function applyConstraintEditorValues(constraint, values) {
   } else if (constraint instanceof RadialLimitConstraint) {
     constraint.minDistance = Math.max(0, values.valueA);
     constraint.maxDistance = Math.max(constraint.minDistance, values.valueB);
+  } else if (constraint instanceof SpringConstraint) {
+    constraint.restLength = values.valueA;
+    constraint.stiffness = values.valueB;
+    constraint.damping = values.valueC;
   } else if (constraint instanceof FixedDistanceConstraint) {
     constraint.distance = Math.max(MIN_DISTANCE, values.valueA);
   } else if (constraint instanceof DistanceRatioConstraint) {
@@ -2755,7 +2826,11 @@ function primaryEntityForConstraint(constraint) {
   if (constraint instanceof RadialLimitConstraint || constraint instanceof AngleSectorConstraint) {
     return constraint.source;
   }
-  if (constraint instanceof FixedDistanceConstraint || constraint instanceof PinConstraint) {
+  if (
+    constraint instanceof FixedDistanceConstraint ||
+    constraint instanceof SpringConstraint ||
+    constraint instanceof PinConstraint
+  ) {
     return constraint.target;
   }
   if (constraint instanceof SolidAttachmentConstraint) {
@@ -3690,6 +3765,8 @@ function openSourceEditor(source) {
   const [midiBinding] = midiFileClient.bindingsForSource(source.name);
   const generatorMappings = generatorClient.mappingsForSource(source.name);
   sourceNameInput.value = source.name;
+  sourceMassRow.hidden = !source.dynamics;
+  sourceMassInput.value = String(source.dynamics?.mass ?? 1);
   sourceOutputTypeInput.value =
     binding?.type === SOURCE_BINDING_AUDIO_FILE
       ? SOURCE_BINDING_AUDIO_FILE
@@ -3758,6 +3835,11 @@ function applySourceEditor() {
     return;
   }
 
+  const mass = Number(sourceMassInput.value);
+  if (activeSourceEditorSource.dynamics && (!Number.isFinite(mass) || mass <= 0)) {
+    setConstraintStatus("Mass must be finite and positive.");
+    return;
+  }
   const previousName = activeSourceEditorSource.name;
   const requestedName = sourceNameInput.value.trim();
   const renameProblem = sourceRenameProblem(activeSourceEditorSource, requestedName);
@@ -3776,6 +3858,7 @@ function applySourceEditor() {
   }
 
   pushUndoSnapshot("edit source");
+  if (activeSourceEditorSource.dynamics) activeSourceEditorSource.dynamics.mass = mass;
   renameSource(activeSourceEditorSource, requestedName);
   const sourceName = activeSourceEditorSource.name;
 
@@ -4281,8 +4364,8 @@ function traceColorForEntity(entity) {
   return "rgba(220, 38, 38, 0.45)";
 }
 
-function stepAnimation() {
-  scene.step();
+function stepAnimation(dt) {
+  scene.step(dt);
   drawTracesForChangedEntities();
 }
 
@@ -4303,14 +4386,14 @@ function startAnimation() {
   }
 
   if (!patchHasMovers()) {
-    setConstraintStatus("This patch has no movers to animate.");
+    setConstraintStatus("This patch has no movers or dynamics to animate.");
     updateToolbarAvailability();
     return;
   }
 
   simulationClock.reset();
   isAnimating = true;
-  animationToggle.textContent = "Stop Movers";
+  animationToggle.textContent = scene.hasDynamics() ? "Stop Motion" : "Stop Movers";
   setAnimationPressedState(true);
   syncTracePositions();
   animationFrame = requestAnimationFrame(animate);
@@ -4319,7 +4402,7 @@ function startAnimation() {
 function stopAnimation() {
   isAnimating = false;
   simulationClock.reset();
-  animationToggle.textContent = "Start Movers";
+  animationToggle.textContent = scene.hasDynamics() ? "Start Motion" : "Start Movers";
   setAnimationPressedState(false);
 
   if (animationFrame !== null) {
@@ -4521,6 +4604,8 @@ function beginDrag(event) {
     didSnapshot: false,
     skipPropagation: false
   };
+  scene.beginDrag(entity);
+  if (scene.hasDynamics()) startAnimation();
   stage.classList.add("is-dragging");
   canvas.style.cursor = "grabbing";
   canvas.setPointerCapture(event.pointerId);
@@ -4570,6 +4655,7 @@ function endDrag(event) {
     canvas.releasePointerCapture(event.pointerId);
   }
 
+  scene.endDrag();
   stage.classList.remove("is-dragging");
   dragged = null;
   const { x, y } = getPointerPosition(event);

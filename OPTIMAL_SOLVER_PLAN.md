@@ -16,10 +16,11 @@ Implemented:
 - Mouse-release refinement budget of 40 XPBD iterations after unpaused drags.
 - Propagation fallback when the affected component exceeds XPBD limits.
 - Regression tests, solver comparison metrics, trajectory stability tests, and an XPBD iteration sweep.
+- Dynamic spring components with inverse-mass weights, velocity prediction, compliant/damped projections, optional gravity, and deterministic substeps. These components reuse the geometric projectors in both toolbar modes; see [spring semantics](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks).
 
 Still open:
 
-- richer mobility weights;
+- richer mobility weights for static editing (dynamic components already use inverse mass);
 - better status/detail reporting for multiple residuals;
 - optional least-squares refinement;
 - broader manual comparison before making XPBD a user-facing default option.

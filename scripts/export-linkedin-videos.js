@@ -22,6 +22,10 @@ const clips = [
   {
     input: "musicspace-granular-cloud-study.webm",
     output: "musicspace-granular-cloud-study-linkedin.mp4"
+  },
+  {
+    input: "musicspace-musical-spring.webm",
+    output: "musicspace-musical-spring-linkedin.mp4"
   }
 ];
 
@@ -75,7 +79,10 @@ function runFfmpeg(inputPath, outputPath) {
 function main() {
   fs.mkdirSync(outputDir, { recursive: true });
 
-  for (const clip of clips) {
+  const requestedInput = process.argv[2];
+  const selectedClips = requestedInput ? clips.filter((clip) => clip.input === requestedInput) : clips;
+  if (!selectedClips.length) throw new Error(`Unknown input clip: ${requestedInput}`);
+  for (const clip of selectedClips) {
     const inputPath = path.join(sourceDir, clip.input);
     const outputPath = path.join(outputDir, clip.output);
     if (!fs.existsSync(inputPath)) {

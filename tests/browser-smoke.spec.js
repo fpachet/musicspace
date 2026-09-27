@@ -1,3 +1,5 @@
+// These bindings are provided by musicspace.js inside page.evaluate callbacks.
+/* global scene, state, SpringConstraint */
 const { expect, test } = require("@playwright/test");
 
 test("musicspace page loads and core controls respond", async ({ page }) => {
@@ -250,3 +252,81 @@ for (const action of ["stop", "dispose"]) {
     expect(result).toEqual({ enabled: false, connections: 0, destroys: action === "dispose" ? 1 : 0 });
   });
 }
+
+test("spring patches animate, drag, edit and drive existing musical mappings", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(error.message));
+  await page.goto("/musicspace.html");
+  const patches = page.locator("#patch-select");
+  await expect(patches).toBeEnabled();
+  for (const key of ["simple-spring", "coupled-springs", "spring-pendulum", "musical-spring"]) {
+    await patches.selectOption(key);
+    await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "true");
+    await page.evaluate(() => {
+      window.stopAnimation();
+      for (let i = 0; i < 10; i += 1) scene.step();
+      window.drawAll();
+    });
+  }
+  await page.locator("#target-toggle").click();
+  await expect(page.locator("#target-toggle")).toHaveAttribute("aria-pressed", "true");
+  const mappedValues = await page.evaluate(() => {
+    const a = scene.getObjectByName("A");
+    scene.moveEntity(a, a.x, a.y + 60);
+    const mapping = scene.serializePatch().parameterMappings[0];
+    const values = [];
+    for (let i = 0; i < 60; i += 1) {
+      window.stepAnimation(1 / 60);
+      window.drawAll();
+      values.push(
+        MusicSpaceMapping.valueFromMapping(mapping, scene.parameterFeatureValue(mapping.feature, a))
+      );
+    }
+    return values;
+  });
+  expect(Math.max(...mappedValues) - Math.min(...mappedValues)).toBeGreaterThan(100);
+
+  await patches.selectOption("simple-spring");
+  await page.locator("#ui-mode-edit").click();
+  await page.evaluate(() => window.stopAnimation());
+  const box = await page.locator("#canvas").boundingBox();
+  const at = (x, y) => ({ x: box.x + (x * box.width) / 800, y: box.y + (y * box.height) / 600 });
+  const mass = at(400, 300);
+  const pulled = at(400, 360);
+  await page.mouse.move(mass.x, mass.y);
+  await page.mouse.down();
+  await page.mouse.move(pulled.x, pulled.y, { steps: 5 });
+  const held = await page.evaluate(() => {
+    window.stopAnimation();
+    for (let i = 0; i < 20; i += 1) scene.step();
+    return { y: scene.getObjectByName("Mass").y, anchorY: scene.getObjectByName("Anchor").y };
+  });
+  expect(held.y).toBeCloseTo(360, 1);
+  expect(held.anchorY).toBe(140);
+  await page.mouse.up();
+  const releasedY = await page.evaluate(() => {
+    for (let i = 0; i < 20; i += 1) scene.step();
+    window.drawAll();
+    return scene.getObjectByName("Mass").y;
+  });
+  expect(releasedY).toBeLessThan(held.y - 10);
+  await page.evaluate(() =>
+    window.openConstraintEditor(state.constraints.find((c) => c instanceof SpringConstraint))
+  );
+  await expect(page.locator("#constraint-value-c-row")).toBeVisible();
+  await page.locator("#constraint-value-a").fill("150");
+  await page.locator("#constraint-value-b").fill("70");
+  await page.locator("#constraint-value-c").fill("3");
+  await page.locator("#constraint-apply").click();
+  await page.screenshot({ path: test.info().outputPath("spring-editor.png"), fullPage: true });
+  const spring = await page.evaluate(() =>
+    window.serializePatch().constraints.find((c) => c.type === "spring")
+  );
+  expect(spring).toMatchObject({ restLength: 150, stiffness: 70, damping: 3 });
+  await page.evaluate(() => window.openSourceEditor(scene.getObjectByName("Mass")));
+  await expect(page.locator("#source-mass-row")).toBeVisible();
+  await page.locator("#source-mass").fill("2.5");
+  await page.locator("#source-apply").click();
+  expect(await page.evaluate(() => scene.getObjectByName("Mass").dynamics.mass)).toBe(2.5);
+  expect(failures).toEqual([]);
+});

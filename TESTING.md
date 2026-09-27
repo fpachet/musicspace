@@ -69,3 +69,13 @@ npm run export:linkedin
 ```
 
 The headless example needs no browser or audio device. Capture scripts use Playwright; video muxing/export also needs `ffmpeg`. See `EXAMPLES.md` for guided manual exercises and `ARCHITECTURE.md` for model and output lifecycle contracts.
+
+## Spring dynamics checks
+
+Run `node --test tests/spring-dynamics.test.js` for deterministic equilibrium,
+stretch/compression, damping, anchors, unequal masses, coupling, rigid links,
+gravity/pendulum, long-run stability, coincident endpoints, serialization, clock-rate,
+input validation, Shift-drag, and musical mapping coverage. These tests use explicit
+simulation steps rather than wall-clock timing. Inspector coverage is in
+`tests/constraint-engine.test.js`; Chromium coverage in `tests/browser-smoke.spec.js`
+checks the four patches, pointer hold/release, parameter editing, mass editing, and sound enablement.

@@ -29,7 +29,9 @@
       listenerMode: LISTENER_MODE_RETARGET,
       solverMode: DEFAULT_SOLVER_MODE,
       lastPropagationReport: null,
-      propagationPaused: false
+      propagationPaused: false,
+      gravity: { x: 0, y: 0 },
+      draggedEntity: null
     };
     const graph = graphApi.createConstraintGraph();
     let trackedConstraints = graph.track(state.constraints);
@@ -426,6 +428,54 @@
       }
     }
 
+    class SpringConstraint {
+      constructor(
+        anchor,
+        target,
+        restLength = Math.hypot(target.x - anchor.x, target.y - anchor.y),
+        stiffness = 40,
+        damping = 2
+      ) {
+        this.anchor = anchor;
+        this.target = target;
+        this.restLength = restLength;
+        this.stiffness = stiffness;
+        this.damping = damping;
+        this.node = new ConstraintNode(
+          (anchor.x + target.x) / 2,
+          (anchor.y + target.y) / 2,
+          "Spring",
+          "#be185d",
+          "S"
+        );
+      }
+
+      affectedEntities() {
+        return [this.anchor, this.target];
+      }
+
+      refresh() {
+        this.restLength = Math.hypot(this.target.x - this.anchor.x, this.target.y - this.anchor.y);
+        this.updateNode();
+      }
+
+      updateNode() {
+        if (!this.node.isManual) {
+          this.node.x = (this.anchor.x + this.target.x) / 2;
+          this.node.y = (this.anchor.y + this.target.y) / 2;
+        }
+      }
+
+      // Extension stores energy; it is not a failed geometric constraint.
+      measureError() {
+        return { label: "Spring", error: 0, tolerance: CONSTRAINT_EPSILON, unit: "px" };
+      }
+      enforce() {
+        this.updateNode();
+        return { satisfied: true };
+      }
+    }
+
     class DistanceRatioConstraint {
       constructor(listener, a, b, ratio = distanceBetween(a, listener) / distanceBetween(b, listener)) {
         this.listener = listener;
@@ -775,6 +825,14 @@
           spec.minDistance,
           spec.maxDistance
         );
+      } else if (spec.type === "spring") {
+        constraint = new SpringConstraint(
+          objectByName.get(spec.anchor),
+          objectByName.get(spec.target),
+          spec.restLength,
+          spec.stiffness,
+          spec.damping
+        );
       } else if (spec.type === "fixedDistance") {
         constraint = new FixedDistanceConstraint(
           objectByName.get(spec.anchor),
@@ -845,7 +903,7 @@
         return !constraint.source;
       }
 
-      if (constraint instanceof FixedDistanceConstraint) {
+      if (constraint instanceof FixedDistanceConstraint || constraint instanceof SpringConstraint) {
         return !constraint.anchor || !constraint.target;
       }
 
@@ -889,7 +947,7 @@
         return constraint.listener === entity || constraint.source === entity;
       }
 
-      if (constraint instanceof FixedDistanceConstraint) {
+      if (constraint instanceof FixedDistanceConstraint || constraint instanceof SpringConstraint) {
         return constraint.anchor === entity || constraint.target === entity;
       }
 
@@ -957,6 +1015,18 @@
           source: entityLabel(constraint.source),
           minDistance: constraint.minDistance,
           maxDistance: constraint.maxDistance,
+          node
+        };
+      }
+
+      if (constraint instanceof SpringConstraint) {
+        return {
+          type: "spring",
+          anchor: entityLabel(constraint.anchor),
+          target: entityLabel(constraint.target),
+          restLength: constraint.restLength,
+          stiffness: constraint.stiffness,
+          damping: constraint.damping,
           node
         };
       }
@@ -1284,7 +1354,8 @@
 
     function refreshConstraints() {
       for (const constraint of state.constraints) {
-        constraint.refresh();
+        if (constraint instanceof SpringConstraint) constraint.updateNode();
+        else constraint.refresh();
       }
       state.propagationPaused = false;
       state.lastPropagationReport = null;
@@ -1295,6 +1366,10 @@
       const nextX = clamp(x, 0, WIDTH);
       const nextY = clamp(y, 0, HEIGHT);
       translateEntity(entity, nextX - entity.x, nextY - entity.y);
+      if (entity.dynamics) {
+        entity.dynamics.vx = 0;
+        entity.dynamics.vy = 0;
+      }
 
       if (skipPropagation) {
         pausePropagation(entity);
@@ -1343,6 +1418,7 @@
       ProductConstraint,
       RadialLimitConstraint,
       FixedDistanceConstraint,
+      SpringConstraint,
       DistanceRatioConstraint,
       PinConstraint,
       SolidAttachmentConstraint,
@@ -1369,12 +1445,14 @@
         state.listener.drawTrace = Boolean(candidate.listener.drawTrace);
         state.sources = candidate.sources.map((source) =>
           Object.assign(new SoundSource(source.x, source.y, source.name), {
-            drawTrace: Boolean(source.drawTrace)
+            drawTrace: Boolean(source.drawTrace),
+            ...(source.dynamics ? { dynamics: normalizeDynamics(source.dynamics) } : {})
           })
         );
         state.movingObjects = (candidate.movingObjects || []).map((mover) =>
           Object.assign(new MovingObject(mover.x, mover.y, mover.name, { type: "free" }), {
-            drawTrace: Boolean(mover.drawTrace)
+            drawTrace: Boolean(mover.drawTrace),
+            ...(mover.dynamics ? { dynamics: normalizeDynamics(mover.dynamics) } : {})
           })
         );
         state.movingObjects.forEach((mover, index) => {
@@ -1386,6 +1464,9 @@
         );
         if (state.constraints.some((constraint) => !constraint))
           throw new Error("Could not construct constraints.");
+        state.gravity = { x: 0, y: 0, ...candidate.gravity };
+        state.draggedEntity = null;
+        solvers.initializeDynamics();
         state.lastPropagationReport = null;
         state.propagationPaused = false;
         patchData = candidate;
@@ -1396,31 +1477,38 @@
         return false;
       }
     }
+    function normalizeDynamics(body = {}) {
+      return { mass: body.mass ?? 1, vx: body.vx ?? 0, vy: body.vy ?? 0 };
+    }
     function serializePatch() {
       return patchApi.clonePatch({
         ...patchData,
         version: 1,
+        ...(patchData.gravity || state.gravity.x || state.gravity.y ? { gravity: { ...state.gravity } } : {}),
         listener: { x: state.listener.x, y: state.listener.y, drawTrace: state.listener.drawTrace },
         sources: state.sources.map((source) => ({
           name: source.name,
           x: source.x,
           y: source.y,
-          drawTrace: source.drawTrace
+          drawTrace: source.drawTrace,
+          ...(source.dynamics ? { dynamics: { ...source.dynamics } } : {})
         })),
         movingObjects: state.movingObjects.map((mover) => ({
           name: mover.name,
           x: mover.x,
           y: mover.y,
           drawTrace: mover.drawTrace,
-          trajectory: mover.trajectory
+          trajectory: mover.trajectory,
+          ...(mover.dynamics ? { dynamics: { ...mover.dynamics } } : {})
         })),
         constraints: state.constraints.map(serializeConstraint).filter(Boolean)
       });
     }
-    function step() {
+    function step(dt = 1 / 60) {
       for (const mover of state.movingObjects) {
         if (mover.tick()) enforceConstraints(mover, { preserveTrajectoryFrame: true });
       }
+      solvers.stepDynamics(dt);
       return getLastPropagationReport();
     }
     return {
@@ -1443,6 +1531,16 @@
       loadPatch,
       serializePatch,
       step,
+      beginDrag(entity) {
+        state.draggedEntity = entity;
+        if (entity.dynamics) {
+          entity.dynamics.vx = 0;
+          entity.dynamics.vy = 0;
+        }
+      },
+      endDrag() {
+        state.draggedEntity = null;
+      },
       validatePatch,
       validation: () => lastValidation.slice(),
       getSolverMode: () => state.solverMode,

@@ -26,6 +26,11 @@ const defaultDemoVideos = [
     patchKey: "granular-cloud-study",
     outputName: "musicspace-granular-cloud-study.webm",
     durationMs: 7000
+  },
+  {
+    patchKey: "musical-spring",
+    outputName: "musicspace-musical-spring.webm",
+    durationMs: 14000
   }
 ];
 const demoVideos = demosFromArgs(process.argv.slice(2));
@@ -153,7 +158,21 @@ async function recordCanvasClip(page, durationMs, includeAudio = true) {
         });
       }
 
-      const canvasStream = canvas.captureStream(30);
+      // The scene canvas is transparent over a CSS background. Flatten that
+      // background for video codecs, which would otherwise show it as black.
+      const recordingCanvas = document.createElement("canvas");
+      recordingCanvas.width = canvas.width;
+      recordingCanvas.height = canvas.height;
+      const recordingContext = recordingCanvas.getContext("2d");
+      let recordingFrame;
+      function paintRecording() {
+        recordingContext.fillStyle = "#ffffff";
+        recordingContext.fillRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+        recordingContext.drawImage(canvas, 0, 0);
+        recordingFrame = requestAnimationFrame(paintRecording);
+      }
+      paintRecording();
+      const canvasStream = recordingCanvas.captureStream(30);
       const videoStream = new MediaStream(canvasStream.getVideoTracks());
       const audioStream = withAudio ? await globalThis.MusicSpaceAudioCapture?.stream?.() : null;
       const audioTracks = audioStream?.getAudioTracks?.() || [];
@@ -175,10 +194,13 @@ async function recordCanvasClip(page, durationMs, includeAudio = true) {
         audioRecorderError = error.message || "Audio MediaRecorder could not start.";
         activeAudioRecorder = null;
       }
+      globalThis.musicspaceDemoRecording = true;
       await new Promise((resolve) => setTimeout(resolve, recordingMs));
+      globalThis.musicspaceDemoRecording = false;
       videoRecorder.recorder.stop();
       activeAudioRecorder?.recorder.stop();
       await Promise.all([videoRecorder.stopped, activeAudioRecorder?.stopped].filter(Boolean));
+      cancelAnimationFrame(recordingFrame);
 
       for (const track of videoStream.getTracks()) {
         track.stop();
@@ -202,6 +224,46 @@ async function recordCanvasClip(page, durationMs, includeAudio = true) {
     },
     { recordingMs: durationMs, withAudio: includeAudio }
   );
+}
+
+async function dragSpringMass(page, name, targetX, targetY) {
+  const source = await page.evaluate(
+    (sourceName) => window.serializePatch().sources.find((candidate) => candidate.name === sourceName),
+    name
+  );
+  const box = await page.locator("#canvas").boundingBox();
+  if (!source || !box) throw new Error(`Cannot locate spring mass ${name}.`);
+  const screenPoint = (x, y) => ({ x: box.x + (x / 800) * box.width, y: box.y + (y / 600) * box.height });
+  const start = screenPoint(source.x, source.y);
+  const end = screenPoint(targetX, targetY);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 30; step += 1) {
+    const t = step / 30;
+    await page.mouse.move(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t);
+    await page.waitForTimeout(25);
+  }
+  await page.waitForTimeout(200);
+  await page.mouse.up();
+}
+
+async function recordDemoClip(page, demo, includeAudio = true) {
+  await page.evaluate(() => {
+    globalThis.musicspaceDemoRecording = false;
+  });
+  const recording = recordCanvasClip(page, demo.durationMs, includeAudio);
+  const gestures = async () => {
+    if (demo.patchKey !== "musical-spring") return;
+    await page.waitForFunction(() => globalThis.musicspaceDemoRecording);
+    await page.waitForTimeout(600);
+    await dragSpringMass(page, "A", 250, 360);
+    if (demo.durationMs >= 10000) {
+      await page.waitForTimeout(4200);
+      await dragSpringMass(page, "B", 550, 345);
+    }
+  };
+  const [clip] = await Promise.all([recording, gestures()]);
+  return clip;
 }
 
 function writeRecording(outputPath, recording) {
@@ -287,10 +349,10 @@ async function main() {
       const soundStarted = await setPressed(page, "#target-toggle", true);
       await page.waitForTimeout(soundStarted ? 600 : 250);
 
-      let recording = await recordCanvasClip(page, demo.durationMs, true);
+      let recording = await recordDemoClip(page, demo, true);
       if (recording.videoSize < 1024) {
         console.warn(`${demo.outputName}: video capture returned an empty clip; retrying video-only.`);
-        recording = await recordCanvasClip(page, demo.durationMs, false);
+        recording = await recordDemoClip(page, demo, false);
       }
       const outputPath = path.join(videoDir, demo.outputName);
       const writeResult = writeRecording(outputPath, recording);
