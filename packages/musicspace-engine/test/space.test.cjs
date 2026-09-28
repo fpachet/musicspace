@@ -242,3 +242,26 @@ test("ESM entry imports without creating global MusicSpace objects", async () =>
     before
   );
 });
+
+test("runtime settings validate atomically and preserve paused drags", () => {
+  const space = createSpace({ points: [{ id: "a", x: 10, y: 20, dynamics: { mass: 1, vx: 3, vy: 4 } }] });
+  space.beginDrag("a");
+  space.move("a", 12, 24, { skipPropagation: true });
+  const before = space.snapshot();
+  for (const options of [
+    { solver: null },
+    { centerMode: null },
+    { solver: "xpbd", gravity: { x: NaN, y: 2 } }
+  ]) {
+    assert.throws(() => space.configure(options), TypeError);
+    assert.deepEqual(space.snapshot(), before);
+  }
+  space.configure({ solver: "xpbd", centerMode: "retarget", gravity: { x: 0, y: 150 } });
+  assert.equal(space.diagnostics().propagationPaused, true);
+  space.resumePropagation();
+  space.step();
+  assert.deepEqual(space.getPoint("a"), { id: "a", x: 12, y: 24 });
+  space.endDrag({ refine: false });
+  space.step();
+  assert.ok(space.getPoint("a").y > 24);
+});

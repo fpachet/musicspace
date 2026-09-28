@@ -59,6 +59,10 @@ port, so environments that prohibit local servers need permission to run it.
   through dragging, center motion, simulation, residuals, velocities and continued
   motion after save/load. Focused cases cover bounds, paused propagation, spring
   rest lengths, name collisions, independent context data and invalid exports.
+- `test/workbench-play.test.cjs` compares the Play bridge with the original model
+  across all 23 patches and both solvers. It rejects any use of presentation
+  solvers/ticks and verifies stable view objects, settings, traces, handles and
+  failed-load preservation.
 - `test/browser.test.cjs` uses the standalone SVG playground to verify dragging,
   indirect movement, JSON save/load, rotation, spring release and the absence of
   global MusicSpace objects or browser exceptions.
@@ -71,9 +75,12 @@ npx prettier --check 'packages/musicspace-engine/src/*' 'packages/musicspace-eng
 ```
 
 Package tests rebuild ignored `dist/` files and the license copy. Keep generated
-bundles, `.tgz` archives and test screenshots out of commits. The current UI is not
-migrated, so the existing application suites remain necessary alongside the new
-package suite.
+bundles, `.tgz` archives and test screenshots out of commits. The default UI and experimental Play mode both remain
+covered. `npm run smoke` builds the package before running the original browser
+suite plus `tests/browser-package.spec.js`: default-mode independence, import
+failure, all-patch parity, traces/undo, sound backends, mappings and fullscreen
+touch drag/release. These checks do not cover external MIDI hardware or subjective
+audio quality.
 
 ## Benchmarks
 

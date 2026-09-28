@@ -344,12 +344,13 @@ function createSpace(initial = {}) {
       model.beginDrag(entity(id));
       dragging = id;
     },
-    endDrag() {
+    endDrag({ refine = true } = {}) {
+      if (typeof refine !== "boolean") throw new TypeError("refine must be boolean.");
       const before = positions();
       const p = dragging ? entity(dragging) : null;
       model.endDrag();
       dragging = null;
-      if (p && model.getSolverMode() === "xpbd" && !model.state.propagationPaused)
+      if (refine && p && model.getSolverMode() === "xpbd" && !model.state.propagationPaused)
         model.refineXpbdAfterDrag(p);
       return publish("endDrag", before);
     },
@@ -375,10 +376,20 @@ function createSpace(initial = {}) {
       clock.reset();
     },
     configure(options) {
-      return edit("configure", (s) => {
-        for (const key of ["solver", "centerMode", "gravity"])
-          if (options[key] !== undefined) s[key] = clone(options[key]);
-      });
+      const solver = options.solver === undefined ? model.state.solverMode : options.solver;
+      const centerMode = options.centerMode === undefined ? model.state.listenerMode : options.centerMode;
+      const gravity = options.gravity === undefined ? model.state.gravity : clone(options.gravity);
+      if (!["propagation", "xpbd"].includes(solver)) throw new TypeError("Unknown solver.");
+      if (!["preserve", "retarget"].includes(centerMode)) throw new TypeError("Unknown center mode.");
+      finite(gravity?.x, "gravity.x");
+      finite(gravity?.y, "gravity.y");
+      const before = positions();
+      // Runtime settings must preserve trajectory deltas, velocities, drag state
+      // and paused propagation. Rebuilding a scene loses those transient values.
+      model.setSolverMode(solver);
+      model.state.listenerMode = centerMode;
+      model.state.gravity = { x: gravity.x, y: gravity.y };
+      return publish("configure", before);
     },
     restore(scene) {
       const before = positions();

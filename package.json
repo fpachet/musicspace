@@ -6,7 +6,7 @@
   "scripts": {
     "check": "eslint .",
     "test": "node --test tests/*.test.js",
-    "smoke": "playwright test",
+    "smoke": "node packages/musicspace-engine/scripts/build.cjs && playwright test",
     "capture:screenshot": "node scripts/capture-readme-screenshot.js",
     "capture:video": "node scripts/capture-demo-videos.js",
     "export:linkedin": "node scripts/export-linkedin-videos.js",

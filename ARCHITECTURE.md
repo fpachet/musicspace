@@ -63,9 +63,22 @@ non-geometric data in a serializable context. Stable package IDs map back to
 workbench names and constraint entries. Export validates retained bindings and
 rejects disabled constraints, which the legacy format cannot represent. Stored
 constraint-node positions are retained; automatic display layout remains the
-host's responsibility. The workbench continues to use the original model. A future
-migration must preserve inspectors, constraint-node handles, undo, traces, output
-metadata and legacy patch compatibility through an explicit adapter. See the
+host's responsibility.
+
+The workbench uses its original model by default. With `?engine=package`,
+`musicspace-play-engine.js` dynamically loads the public package and legacy adapter.
+It runs the simulation through the package and copies results into stable legacy
+objects used only for drawing and output feature lookup. It also maps diagnostic
+IDs to display constraints. Detailed propagation counts are not exposed by the
+public API. The UI still owns trace flags, manual constraint-node positions,
+output metadata and undo snapshots. Runtime solver/center/gravity changes preserve
+trajectory deltas, held bodies and paused propagation without rebuilding the scene.
+
+Experimental mode supports Play and disables authoring inspectors and tools.
+The listener inspector uses the same movement API. Default startup never requests
+package artifacts, and failed experimental imports display an error. This adapter
+is transitional: authoring migration and removal of presentation classes remain.
+See the
 [package contract and limitations](packages/musicspace-engine/README.md) and
 [migration stages](packages/musicspace-engine/MIGRATION.md).
 

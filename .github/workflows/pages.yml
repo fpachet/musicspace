@@ -71,6 +71,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node for the optional package engine
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build standalone engine for experimental Play mode
+        run: node packages/musicspace-engine/scripts/build.cjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

@@ -132,7 +132,8 @@ export interface Space {
   /** Resume after a paused edit, retargeting geometric constraints to the current layout. Spring rest lengths remain unchanged. */
   resumePropagation(): Change;
   beginDrag(id: string): void;
-  endDrag(): Change;
+  /** Pass refine:false for a click/cancel that should not refine geometric XPBD. */
+  endDrag(options?: { refine?: boolean }): Change;
   solve(id?: string): Change;
   /** Advance exactly 1/60 second, regardless of rendering frequency. */
   step(): Change;

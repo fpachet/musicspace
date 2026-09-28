@@ -8,8 +8,9 @@ events, audio or other parameter meanings, and animation scheduling. It works wi
 SVG, Canvas, DOM elements or a UI framework, and in Node without a browser.
 
 **Status: local alpha, not published on npm.** The name `@musicspace/engine` is a
-working name; npm scope availability has not been checked. The existing MusicSpace
-application has not been migrated or modified. There are no runtime dependencies.
+working name; npm scope availability has not been checked. The MusicSpace
+application offers an experimental Play mode using this package; its default
+engine is unchanged. There are no runtime dependencies.
 
 ## Try it
 
@@ -26,6 +27,11 @@ The playground includes a balance constraint with a movable center, a rotating
 constellation, coupled springs, and JSON save/load. Its source is a complete custom
 SVG interface using only the public API.
 
+The existing workbench can also use the package:
+<http://localhost:8000/musicspace.html?engine=package&patch=musical-spring>.
+This is an optional Play-only migration with a visible return link to standard
+mode. See [migration status](MIGRATION.md) for boundaries and remaining work.
+
 ## Install in another project
 
 Build a self-contained archive from this repository:
@@ -38,7 +44,7 @@ npm pack
 In the consuming project, install that archive by its actual path:
 
 ```sh
-npm install /path/to/musicspace-engine-0.1.0-alpha.2.tgz
+npm install /path/to/musicspace-engine-0.1.0-alpha.3.tgz
 ```
 
 Then import `createSpace` from `@musicspace/engine`. CommonJS `require` is also
@@ -97,7 +103,7 @@ See `dist/index.d.ts` for the complete typed contract.
 | `updateConstraint(id, {enabled: false})` | Disable a relation while retaining its target |
 | `move(id, x, y, options?)` | Propose a displacement; optional bounds or paused propagation |
 | `resumePropagation()` | Resume a paused edit and retarget geometric constraints to the new layout |
-| `beginDrag(id)` / `endDrag()` | Hold a dynamic body during a pointer gesture; refine XPBD on release |
+| `beginDrag(id)` / `endDrag({refine?})` | Hold a dynamic body during a pointer gesture; refine XPBD on release |
 | `solve(id = CENTER)` | Propagate from a chosen object without moving it first |
 | `positions()` / `getPoint(id)` | Read coordinates |
 | `diagnostics()` | Read unsatisfied relations by constraint ID |
@@ -105,7 +111,7 @@ See `dist/index.d.ts` for the complete typed contract.
 | `step()` | Advance exactly 1/60 second |
 | `advance(timestampMs)` / `resetClock()` | Optional fixed-step scheduling from host timestamps |
 | `snapshot()` / `restore(scene)` | Save/restore JSON data including invariants and dynamic velocities |
-| `configure({solver?, centerMode?, gravity?})` | Change scene behavior |
+| `configure({solver?, centerMode?, gravity?})` | Change scene behavior while retaining motion, held bodies and pause state |
 
 Authoring operations validate before replacing the scene and throw `TypeError` on
 invalid data. They preserve existing invariant targets and do not automatically
@@ -133,6 +139,7 @@ without solving and pauses dynamics. `resumePropagation()` retargets geometric
 relations to the edited layout; spring rest lengths remain unchanged. A normal
 `move` resumes solving against the existing targets instead. `diagnostics()` exposes
 `propagationPaused`, and `endDrag()` does not refine XPBD while propagation is paused.
+Use `endDrag({refine: false})` for a selection click that should not solve constraints.
 
 ## Existing MusicSpace patches
 

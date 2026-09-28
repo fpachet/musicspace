@@ -16,9 +16,9 @@ trajectories, linked rotations, spring dynamics, change notifications and scene
 save/restore. Your application supplies the rendering, gestures and parameter
 meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
 
-**Status: `0.1.0-alpha.2`, distributed locally, not published on npm.**
-`@musicspace/engine` is a provisional package name. The existing workbench still
-uses its original modules; migration to the package is a later, separate step.
+**Status: `0.1.0-alpha.3`, distributed locally, not published on npm.**
+`@musicspace/engine` is a provisional package name. The workbench uses its original engine by default. An optional
+package-backed Play mode is available for testing the gradual migration.
 
 Build and try the package from this repository:
 
@@ -32,6 +32,15 @@ Open <http://localhost:8000/packages/musicspace-engine/examples/playground.html>
 for three interactive examples: balance around a movable center, a rotating
 constellation, and coupled springs. Building the package is required for these
 examples; the existing workbench continues to run without a build.
+
+After building, open <http://localhost:8000/musicspace.html?engine=package> to try
+the current interface with the package engine. Add `&patch=musical-spring` to select
+a patch, or `&solver=xpbd` to compare solvers. A banner identifies this experimental
+mode. Play gestures, trajectories, springs, traces, undo and sound outputs are
+available; source, trajectory, constraint and JSON editing remain in standard
+mode. The return link reloads the selected built-in patch with the standard engine;
+it does not transfer live changes. Without `?engine=package`, no package artifacts
+are loaded and no build is needed.
 
 See the [package guide](packages/musicspace-engine/README.md) for creating an
 installable archive, the API and alpha limitations, and the

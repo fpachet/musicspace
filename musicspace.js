@@ -649,10 +649,23 @@ function drawMidiEmitterIcon(ctx, x, y) {
   ctx.fill();
 }
 
-const scene = MusicSpaceModel.createSceneModel({
+const usePackageEngine = (() => {
+  try {
+    return new URL(window.location.href).searchParams.get("engine") === "package";
+  } catch {
+    return false;
+  }
+})();
+const sceneOptions = {
   targetApi: globalThis.MusicSpaceTargets,
   onStatus: setConstraintStatus
-});
+};
+const scene = usePackageEngine
+  ? globalThis.MusicSpacePlayEngine.createPlayScene({
+      createView: () => MusicSpaceModel.createSceneModel(sceneOptions),
+      onStatus: setConstraintStatus
+    })
+  : MusicSpaceModel.createSceneModel(sceneOptions);
 const state = scene.state;
 const {
   Entity,
@@ -680,7 +693,6 @@ const {
   entityLabel,
   normalizeTrajectory,
   parameterFeatureValue,
-  refreshConstraints,
   clamp,
   enforceConstraints,
   refineXpbdAfterDrag,
@@ -1131,6 +1143,12 @@ function patchTags(patch = {}) {
 }
 
 function updatePatchInfo(patch = activePatch) {
+  if (usePackageEngine) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("engine");
+    if (patch?.key) url.searchParams.set("patch", patch.key);
+    document.getElementById("standard-engine-link").href = url.href;
+  }
   if (!patchInfo) {
     return;
   }
@@ -1876,6 +1894,10 @@ function setSolverMode(nextMode, { updateUrl = false } = {}) {
 }
 
 function setUiMode(nextMode) {
+  if (usePackageEngine && nextMode === UI_MODE_EDIT) {
+    setConstraintStatus("Package mode currently supports Play. Use standard mode for editing.");
+    return;
+  }
   uiMode = nextMode === UI_MODE_EDIT ? UI_MODE_EDIT : UI_MODE_PLAY;
   document.body?.classList?.toggle("is-play-mode", uiMode === UI_MODE_PLAY);
   document.body?.classList?.toggle("is-edit-mode", uiMode === UI_MODE_EDIT);
@@ -1997,6 +2019,7 @@ function updateToolbarAvailability() {
 }
 
 function setActiveTool(tool) {
+  if (usePackageEngine && tool !== TOOL_SELECT) return;
   if (tool !== TOOL_SELECT) {
     stopAnimation();
   }
@@ -2451,6 +2474,7 @@ function closeListenerEditor() {
 }
 
 function openRotationEditor(mover) {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit trajectories.");
   if (!(mover instanceof MovingObject)) {
     return;
   }
@@ -2505,6 +2529,7 @@ function closeRotationEditor() {
 }
 
 function openShuttleEditor(mover) {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit trajectories.");
   if (!(mover instanceof MovingObject)) {
     return;
   }
@@ -2733,6 +2758,7 @@ function fillConstraintEditorField(row, label, input, spec) {
 }
 
 function openConstraintEditor(constraint) {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit constraints.");
   if (!constraint) {
     return;
   }
@@ -3801,6 +3827,7 @@ function clampIntegerInput(value, min, max, fallback) {
 }
 
 function openSourceEditor(source) {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit sources.");
   if (!(source instanceof SoundSource)) {
     return;
   }
@@ -4073,6 +4100,7 @@ function readFileAsDataUrl(file) {
 }
 
 function deleteSelectedEntity() {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to delete objects.");
   if (!selectedEntity) {
     setConstraintStatus("Select an object or constraint to delete.");
     return;
@@ -4228,6 +4256,12 @@ function canvasClickDistance(event) {
 }
 
 function handleEntityDoubleClick(entity) {
+  if (usePackageEngine && entity !== state.listener) {
+    setConstraintStatus(
+      "Inspectors are available in standard mode. Drag to play, or use the trace and mute controls."
+    );
+    return Boolean(entity);
+  }
   if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
     openRotationEditor(entity);
     selectedEntity = entity;
@@ -4282,8 +4316,7 @@ function moveEntity(entity, x, y, options) {
 }
 
 function resumePropagationAfterPausedDrag() {
-  state.propagationPaused = false;
-  refreshConstraints();
+  scene.resumePropagationAfterPausedDrag();
   setConstraintStatus("Propagation resumed; constraints retargeted to paused positions.");
 }
 
@@ -4570,6 +4603,7 @@ function togglePatchJsonEditor() {
 }
 
 function openPatchInspector() {
+  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit patches.");
   patchInspector.hidden = false;
   setPatchInspectorPressedState(true);
   updatePatchInspector({ refreshJson: false });
@@ -4739,7 +4773,7 @@ function endDrag(event) {
     canvas.releasePointerCapture(event.pointerId);
   }
 
-  scene.endDrag();
+  scene.endDrag({ refine: !wasClick && !wasPropagationPaused });
   stage.classList.remove("is-dragging");
   dragged = null;
   const { x, y } = getPointerPosition(event);
@@ -5083,10 +5117,31 @@ async function initializeApp() {
   updateSoundToggleButton();
 
   try {
+    if (usePackageEngine) {
+      const notice = document.getElementById("package-engine-notice");
+      notice.hidden = false;
+      uiModeEditButton.disabled = true;
+      uiModeEditButton.title = "Use standard mode for editing";
+      for (const button of toolButtons) button.disabled = true;
+      try {
+        await scene.initialize();
+      } catch (error) {
+        document.getElementById("package-engine-message").textContent =
+          "Package unavailable. Run npm run build --prefix packages/musicspace-engine, then reload.";
+        loadingOption.textContent = "Package engine unavailable";
+        canvas.style.pointerEvents = "none";
+        canvas.tabIndex = -1;
+        resetButton.disabled = true;
+        setConstraintStatus(error.message);
+        return;
+      }
+    }
     await loadBuiltInPatchLibrary();
     populatePatchSelect();
     patchSelect.disabled = false;
-    activePatch = clonePatch(builtInPatches[0]);
+    const initialKey = new URL(window.location.href).searchParams.get("patch");
+    activePatch = clonePatch(builtInPatches.find((patch) => patch.key === initialKey) || builtInPatches[0]);
+    patchSelect.value = activePatch.key;
     resetScene();
   } catch (error) {
     console.error(error);
