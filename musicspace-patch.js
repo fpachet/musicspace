@@ -62,8 +62,8 @@
       validateObjectArray(patch.sources, "source", names, seen, add);
       validateObjectArray(patch.movingObjects || [], "moving object", names, seen, add);
 
-      if (!Array.isArray(patch.sources) || patch.sources.length === 0) {
-        add("error", "Patch needs at least one source.");
+      if (!Array.isArray(patch.sources)) {
+        add("error", "Patch sources must be an array.");
       }
 
       return { names };

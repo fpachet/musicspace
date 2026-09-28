@@ -661,7 +661,7 @@ const sceneOptions = {
   onStatus: setConstraintStatus
 };
 const scene = usePackageEngine
-  ? globalThis.MusicSpacePlayEngine.createPlayScene({
+  ? globalThis.MusicSpacePackageScene.createPackageScene({
       createView: () => MusicSpaceModel.createSceneModel(sceneOptions),
       onStatus: setConstraintStatus
     })
@@ -1220,6 +1220,19 @@ function pushUndoSnapshot(reason = "edit") {
   updateUndoStatus();
 }
 
+function editGeometry(reason, mutate) {
+  const patch = clonePatch(serializePatch());
+  if (scene.editGeometry) {
+    if (!scene.editGeometry(mutate)) return false;
+  } else {
+    mutate();
+  }
+  undoStack.push({ reason, patch });
+  if (undoStack.length > 60) undoStack.shift();
+  updateUndoStatus();
+  return true;
+}
+
 function undoLastEdit() {
   const snapshot = undoStack.pop();
   if (!snapshot) {
@@ -1229,7 +1242,12 @@ function undoLastEdit() {
   }
 
   stopAnimation();
-  loadPatch(snapshot.patch, { preserveAsActive: true, clearUndo: false });
+  if (!loadPatch(snapshot.patch, { preserveAsActive: true, clearUndo: false })) {
+    undoStack.push(snapshot);
+    updateUndoStatus();
+    return;
+  }
+  if (activePatch.key) patchSelect.value = activePatch.key;
   setConstraintStatus(`Undid ${snapshot.reason}.`);
   updateUndoStatus();
 }
@@ -1894,10 +1912,6 @@ function setSolverMode(nextMode, { updateUrl = false } = {}) {
 }
 
 function setUiMode(nextMode) {
-  if (usePackageEngine && nextMode === UI_MODE_EDIT) {
-    setConstraintStatus("Package mode currently supports Play. Use standard mode for editing.");
-    return;
-  }
   uiMode = nextMode === UI_MODE_EDIT ? UI_MODE_EDIT : UI_MODE_PLAY;
   document.body?.classList?.toggle("is-play-mode", uiMode === UI_MODE_PLAY);
   document.body?.classList?.toggle("is-edit-mode", uiMode === UI_MODE_EDIT);
@@ -2019,7 +2033,6 @@ function updateToolbarAvailability() {
 }
 
 function setActiveTool(tool) {
-  if (usePackageEngine && tool !== TOOL_SELECT) return;
   if (tool !== TOOL_SELECT) {
     stopAnimation();
   }
@@ -2108,9 +2121,8 @@ function canUseEntityForTool(tool, entity) {
 
 function handleToolClick(x, y, entity) {
   if (activeTool === "source") {
-    pushUndoSnapshot("create source");
     const source = new SoundSource(x, y, nextSourceName());
-    state.sources.push(source);
+    if (!editGeometry("create source", () => state.sources.push(source))) return true;
     selectedEntity = source;
     setActiveTool(TOOL_SELECT);
     drawAll();
@@ -2118,9 +2130,8 @@ function handleToolClick(x, y, entity) {
   }
 
   if (activeTool === "mover") {
-    pushUndoSnapshot("create mover");
     const mover = new MovingObject(x, y, nextMoverName(), { type: "free" });
-    state.movingObjects.push(mover);
+    if (!editGeometry("create mover", () => state.movingObjects.push(mover))) return true;
     selectedEntity = mover;
     setActiveTool(TOOL_SELECT);
     drawAll();
@@ -2128,13 +2139,18 @@ function handleToolClick(x, y, entity) {
   }
 
   if (isTrajectoryTool(activeTool)) {
-    pushUndoSnapshot("assign trajectory");
     const mover =
       entity instanceof MovingObject ? entity : new MovingObject(x, y, nextMoverName(), { type: "free" });
-    if (!state.movingObjects.includes(mover)) {
-      state.movingObjects.push(mover);
-    }
-    assignTrajectoryFromTool(mover, activeTool);
+    const tool = activeTool;
+    if (
+      !editGeometry("assign trajectory", () => {
+        if (!state.movingObjects.includes(mover)) state.movingObjects.push(mover);
+        assignTrajectoryFromTool(mover, tool);
+      })
+    )
+      return true;
+    if (tool === "shuttleTrajectory") openShuttleEditor(mover);
+    if (tool === "rotatorTrajectory") openRotationEditor(mover);
     selectedEntity = mover;
     setActiveTool(TOOL_SELECT);
     drawAll();
@@ -2176,9 +2192,13 @@ function finishPendingConstraintTool() {
   const constraint = createConstraintFromTool(activeTool, pendingToolEntities);
   let addedMessage = "";
   if (constraint) {
-    pushUndoSnapshot("create constraint");
-    state.constraints.push(constraint);
-    scene.initializeDynamics();
+    if (
+      !editGeometry("create constraint", () => {
+        state.constraints.push(constraint);
+        if (!usePackageEngine) scene.initializeDynamics();
+      })
+    )
+      return;
     if (scene.hasDynamics()) startAnimation();
     selectedEntity = constraint.node;
     addedMessage = `${constraint.node.label} constraint added.`;
@@ -2306,7 +2326,6 @@ function assignTrajectoryFromTool(mover, tool) {
       mover.x,
       mover.y
     );
-    openShuttleEditor(mover);
   } else if (tool === "rotatorTrajectory") {
     mover.trajectory = normalizeTrajectory(
       {
@@ -2319,7 +2338,6 @@ function assignTrajectoryFromTool(mover, tool) {
       mover.x,
       mover.y
     );
-    openRotationEditor(mover);
   } else if (tool === "bounceTrajectory") {
     mover.trajectory = normalizeTrajectory({ type: "bounce", vx: 1.8, vy: 1.1 }, mover.x, mover.y);
   }
@@ -2474,13 +2492,17 @@ function closeListenerEditor() {
 }
 
 function openRotationEditor(mover) {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit trajectories.");
   if (!(mover instanceof MovingObject)) {
     return;
   }
 
   if (mover.trajectory?.type !== "rotator") {
-    mover.trajectory = normalizeTrajectory({ type: "rotator" }, mover.x, mover.y);
+    if (
+      !editGeometry("assign rotator", () => {
+        mover.trajectory = normalizeTrajectory({ type: "rotator" }, mover.x, mover.y);
+      })
+    )
+      return;
   }
 
   shuttleEditor.hidden = true;
@@ -2504,20 +2526,24 @@ function applyRotationEditor() {
     return;
   }
 
-  pushUndoSnapshot("edit rotative object");
   const periodSeconds = Number(rotationPeriodInput.value);
-  activeRotationMover.trajectory = normalizeTrajectory(
-    {
-      ...activeRotationMover.trajectory,
-      type: "rotator",
-      running: rotationRunningInput.checked,
-      periodSeconds: Number.isFinite(periodSeconds) ? Math.max(0.5, periodSeconds) : 20,
-      direction: Number(rotationDirectionInput.value) < 0 ? -1 : 1,
-      displacementInducesRotation: rotationDisplacementInput.checked
-    },
-    activeRotationMover.x,
-    activeRotationMover.y
-  );
+  if (
+    !editGeometry("edit rotative object", () => {
+      activeRotationMover.trajectory = normalizeTrajectory(
+        {
+          ...activeRotationMover.trajectory,
+          type: "rotator",
+          running: rotationRunningInput.checked,
+          periodSeconds: Number.isFinite(periodSeconds) ? Math.max(0.5, periodSeconds) : 20,
+          direction: Number(rotationDirectionInput.value) < 0 ? -1 : 1,
+          displacementInducesRotation: rotationDisplacementInput.checked
+        },
+        activeRotationMover.x,
+        activeRotationMover.y
+      );
+    })
+  )
+    return;
   setConstraintStatus(`Rotative object ${activeRotationMover.name} updated.`);
   drawAll();
 }
@@ -2529,13 +2555,17 @@ function closeRotationEditor() {
 }
 
 function openShuttleEditor(mover) {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit trajectories.");
   if (!(mover instanceof MovingObject)) {
     return;
   }
 
   if (mover.trajectory?.type !== "shuttle") {
-    mover.trajectory = normalizeTrajectory({ type: "shuttle" }, mover.x, mover.y);
+    if (
+      !editGeometry("assign shuttle", () => {
+        mover.trajectory = normalizeTrajectory({ type: "shuttle" }, mover.x, mover.y);
+      })
+    )
+      return;
   }
 
   rotationEditor.hidden = true;
@@ -2602,21 +2632,25 @@ function applyShuttleEditor() {
     return;
   }
 
-  pushUndoSnapshot("edit shuttle trajectory");
   const current = activeShuttleMover.trajectory;
   const speed = Number(shuttleSpeedInput.value);
-  activeShuttleMover.trajectory = normalizeTrajectory(
-    {
-      ...current,
-      type: "shuttle",
-      start: endpointFromEditor(shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput),
-      end: endpointFromEditor(shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput),
-      speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed,
-      showPath: shuttleShowPathInput.checked
-    },
-    activeShuttleMover.x,
-    activeShuttleMover.y
-  );
+  if (
+    !editGeometry("edit shuttle trajectory", () => {
+      activeShuttleMover.trajectory = normalizeTrajectory(
+        {
+          ...current,
+          type: "shuttle",
+          start: endpointFromEditor(shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput),
+          end: endpointFromEditor(shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput),
+          speed: Number.isFinite(speed) ? Math.max(0.001, speed) : current.speed,
+          showPath: shuttleShowPathInput.checked
+        },
+        activeShuttleMover.x,
+        activeShuttleMover.y
+      );
+    })
+  )
+    return;
   setConstraintStatus(`Shuttle trajectory ${activeShuttleMover.name} updated.`);
   drawAll();
 }
@@ -2758,7 +2792,6 @@ function fillConstraintEditorField(row, label, input, spec) {
 }
 
 function openConstraintEditor(constraint) {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit constraints.");
   if (!constraint) {
     return;
   }
@@ -2799,14 +2832,18 @@ function applyConstraintEditor() {
     return;
   }
 
-  pushUndoSnapshot(`edit ${constraint.node.label} constraint`);
-  applyConstraintEditorValues(constraint, values);
-  constraint.node.isManual = constraintNodeManualInput.checked;
-  constraint.node.x = clampNumberInput(constraintNodeXInput.value, 0, WIDTH, constraint.node.x);
-  constraint.node.y = clampNumberInput(constraintNodeYInput.value, 0, HEIGHT, constraint.node.y);
-  if (!constraint.node.isManual) {
-    constraint.updateNode?.();
-  }
+  if (
+    !editGeometry(`edit ${constraint.node.label} constraint`, () => {
+      applyConstraintEditorValues(constraint, values);
+      constraint.node.isManual = constraintNodeManualInput.checked;
+      constraint.node.x = clampNumberInput(constraintNodeXInput.value, 0, WIDTH, constraint.node.x);
+      constraint.node.y = clampNumberInput(constraintNodeYInput.value, 0, HEIGHT, constraint.node.y);
+      if (!constraint.node.isManual) {
+        constraint.updateNode?.();
+      }
+    })
+  )
+    return;
   const primary = primaryEntityForConstraint(constraint);
   if (primary) {
     enforceConstraints(primary);
@@ -2888,8 +2925,7 @@ function recaptureConstraintFromGeometry() {
     return;
   }
 
-  pushUndoSnapshot(`recapture ${constraint.node.label} constraint`);
-  constraint.refresh?.();
+  if (!editGeometry(`recapture ${constraint.node.label} constraint`, () => constraint.refresh?.())) return;
   openConstraintEditor(constraint);
   updatePatchInspector();
   drawAll();
@@ -3827,7 +3863,6 @@ function clampIntegerInput(value, min, max, fallback) {
 }
 
 function openSourceEditor(source) {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit sources.");
   if (!(source instanceof SoundSource)) {
     return;
   }
@@ -3938,9 +3973,15 @@ function applySourceEditor() {
     return;
   }
 
-  pushUndoSnapshot("edit source");
-  if (activeSourceEditorSource.dynamics) activeSourceEditorSource.dynamics.mass = mass;
-  renameSource(activeSourceEditorSource, requestedName);
+  if (
+    !editGeometry("edit source", () => {
+      if (activeSourceEditorSource.dynamics) activeSourceEditorSource.dynamics.mass = mass;
+      activeSourceEditorSource.name = requestedName;
+      renameTrajectoryEndpointReferences(previousName, requestedName);
+    })
+  )
+    return;
+  renameSourceBindings(previousName, requestedName);
   const sourceName = activeSourceEditorSource.name;
 
   if (outputType === "none") {
@@ -4036,14 +4077,8 @@ function sourceRenameProblem(source, nextName) {
   return "";
 }
 
-function renameSource(source, nextName) {
-  const previousName = source.name;
-  if (previousName === nextName) {
-    return;
-  }
-
-  source.name = nextName;
-  renameTrajectoryEndpointReferences(previousName, nextName);
+function renameSourceBindings(previousName, nextName) {
+  if (previousName === nextName) return;
   parameterClient.renameSource(previousName, nextName);
   sourceAudioClient.renameSource(previousName, nextName);
   midiFileClient.renameSource(previousName, nextName);
@@ -4100,7 +4135,6 @@ function readFileAsDataUrl(file) {
 }
 
 function deleteSelectedEntity() {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to delete objects.");
   if (!selectedEntity) {
     setConstraintStatus("Select an object or constraint to delete.");
     return;
@@ -4112,11 +4146,12 @@ function deleteSelectedEntity() {
   }
 
   const entity = selectedEntity;
-  pushUndoSnapshot(`delete ${entityLabel(entity)}`);
 
   const constraintIndex = state.constraints.findIndex((constraint) => constraint.node === entity);
   if (constraintIndex >= 0) {
-    const [removed] = state.constraints.splice(constraintIndex, 1);
+    const removed = state.constraints[constraintIndex];
+    if (!editGeometry(`delete ${entityLabel(entity)}`, () => state.constraints.splice(constraintIndex, 1)))
+      return;
     if (activeConstraintEditorConstraint === removed) {
       closeConstraintEditor();
     }
@@ -4126,11 +4161,23 @@ function deleteSelectedEntity() {
     return;
   }
 
-  state.sources = state.sources.filter((source) => source !== entity);
-  state.movingObjects = state.movingObjects.filter((mover) => mover !== entity);
-  state.constraints = state.constraints.filter(
-    (constraint) => !constraintReferencesEntity(constraint, entity)
-  );
+  if (
+    !editGeometry(`delete ${entityLabel(entity)}`, () => {
+      for (const mover of state.movingObjects)
+        for (const key of ["start", "end"]) {
+          if (mover.trajectory?.[key]?.type === "object" && mover.trajectory[key].name === entity.name)
+            mover.trajectory[key] = { type: "fixed", x: entity.x, y: entity.y };
+        }
+      state.sources = state.sources.filter((source) => source !== entity);
+      state.movingObjects = state.movingObjects.filter((mover) => mover !== entity);
+      state.constraints = state.constraints.filter(
+        (constraint) => !constraintReferencesEntity(constraint, entity)
+      );
+    })
+  )
+    return;
+  parameterClient.setMappings(parameterClient.mappings().filter((mapping) => mapping.source !== entity.name));
+  midiFileClient.removeTrackBinding(entity.name);
 
   if (activeRotationMover === entity) {
     closeRotationEditor();
@@ -4155,19 +4202,21 @@ function deleteSelectedEntity() {
 }
 
 function nextSourceName() {
-  const usedNames = new Set(state.sources.map((source) => source.name));
+  const usedNames = new Set([...state.sources, ...state.movingObjects].map((object) => object.name));
   for (let index = 0; index < 26; index += 1) {
     const candidate = String.fromCharCode(65 + index);
     if (!usedNames.has(candidate)) {
       return candidate;
     }
   }
-  return `S${state.sources.length + 1}`;
+  let index = state.sources.length + 1;
+  while (usedNames.has(`S${index}`)) index++;
+  return `S${index}`;
 }
 
 function nextMoverName() {
   let index = state.movingObjects.length + 1;
-  const usedNames = new Set(state.movingObjects.map((mover) => mover.name));
+  const usedNames = new Set([...state.sources, ...state.movingObjects].map((object) => object.name));
   while (usedNames.has(`M${index}`)) {
     index += 1;
   }
@@ -4256,12 +4305,6 @@ function canvasClickDistance(event) {
 }
 
 function handleEntityDoubleClick(entity) {
-  if (usePackageEngine && entity !== state.listener) {
-    setConstraintStatus(
-      "Inspectors are available in standard mode. Drag to play, or use the trace and mute controls."
-    );
-    return Boolean(entity);
-  }
   if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
     openRotationEditor(entity);
     selectedEntity = entity;
@@ -4603,7 +4646,6 @@ function togglePatchJsonEditor() {
 }
 
 function openPatchInspector() {
-  if (usePackageEngine) return setConstraintStatus("Use standard mode to edit patches.");
   patchInspector.hidden = false;
   setPatchInspectorPressedState(true);
   updatePatchInspector({ refreshJson: false });
@@ -4653,7 +4695,11 @@ function applyPatchJsonEditor() {
     patch.key = `edited-${slugify(patch.name)}-${Date.now()}`;
   }
 
-  if (!loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: true })) return;
+  const previous = clonePatch(serializePatch());
+  if (!loadPatch(clonePatch(patch), { preserveAsActive: true, clearUndo: false })) return;
+  undoStack.push({ reason: "edit patch JSON", patch: previous });
+  if (undoStack.length > 60) undoStack.shift();
+  updateUndoStatus();
   stopAnimation();
   selectPatchOptionForPatch(patch);
   patchJsonTextarea.value = JSON.stringify(currentPatchSnapshot(), null, 2);
@@ -5120,15 +5166,14 @@ async function initializeApp() {
     if (usePackageEngine) {
       const notice = document.getElementById("package-engine-notice");
       notice.hidden = false;
-      uiModeEditButton.disabled = true;
-      uiModeEditButton.title = "Use standard mode for editing";
-      for (const button of toolButtons) button.disabled = true;
       try {
         await scene.initialize();
       } catch (error) {
         document.getElementById("package-engine-message").textContent =
           "Package unavailable. Run npm run build --prefix packages/musicspace-engine, then reload.";
         loadingOption.textContent = "Package engine unavailable";
+        uiModeEditButton.disabled = true;
+        for (const button of toolButtons) button.disabled = true;
         canvas.style.pointerEvents = "none";
         canvas.tabIndex = -1;
         resetButton.disabled = true;

@@ -59,10 +59,11 @@ port, so environments that prohibit local servers need permission to run it.
   through dragging, center motion, simulation, residuals, velocities and continued
   motion after save/load. Focused cases cover bounds, paused propagation, spring
   rest lengths, name collisions, independent context data and invalid exports.
-- `test/workbench-play.test.cjs` compares the Play bridge with the original model
+- `test/workbench-play.test.cjs` compares the workbench bridge with the original model
   across all 23 patches and both solvers. It rejects any use of presentation
   solvers/ticks and verifies stable view objects, settings, traces, handles and
-  failed-load preservation.
+  failed-load preservation. Authoring checks exercise stable inspector references,
+  failed-edit rollback and package-owned motion after creation or parameter edits.
 - `test/browser.test.cjs` uses the standalone SVG playground to verify dragging,
   indirect movement, JSON save/load, rotation, spring release and the absence of
   global MusicSpace objects or browser exceptions.
@@ -75,12 +76,19 @@ npx prettier --check 'packages/musicspace-engine/src/*' 'packages/musicspace-eng
 ```
 
 Package tests rebuild ignored `dist/` files and the license copy. Keep generated
-bundles, `.tgz` archives and test screenshots out of commits. The default UI and experimental Play mode both remain
+bundles, `.tgz` archives and test screenshots out of commits. The default UI and experimental package mode both remain
 covered. `npm run smoke` builds the package before running the original browser
 suite plus `tests/browser-package.spec.js`: default-mode independence, import
 failure, all-patch parity, traces/undo, sound backends, mappings and fullscreen
 touch drag/release. These checks do not cover external MIDI hardware or subjective
 audio quality.
+
+`tests/browser-edit.spec.js` exercises both engines through source creation,
+spring and mass editing, trajectory editors, source renames, deletion, empty-scene
+save/load, JSON validation and undo. It compares all 11 constraint tools and all
+five trajectory tools with both solvers. Additional package checks cover rollback
+and audio/generator/MIDI reference updates across rename, delete and undo.
+
 
 ## Benchmarks
 

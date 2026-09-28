@@ -1,6 +1,6 @@
-// Transitional Play adapter: package-owned simulation, existing presentation objects.
-(function exposePlayEngine(global) {
-  function createPlayScene({ createView, onStatus = () => {}, loadModules } = {}) {
+// Transitional workbench adapter: package-owned simulation, existing presentation objects.
+(function exposePackageScene(global) {
+  function createPackageScene({ createView, onStatus = () => {}, loadModules } = {}) {
     const view = createView();
     const state = view.state;
     let modules,
@@ -16,6 +16,75 @@
           import("./packages/musicspace-engine/dist/index.mjs"),
           import("./packages/musicspace-engine/dist/legacy-patch.mjs")
         ]));
+
+    // Output clients own these blocks and merge their current state in the UI.
+    // Keeping old bindings here would invalidate a rename or deletion before the
+    // clients have had a chance to update their references.
+    function geometryPatch() {
+      const patch = view.serializePatch();
+      for (const key of [
+        "target",
+        "audioSynth",
+        "parameterMappings",
+        "audioMappings",
+        "sourceBindings",
+        "sourceGenerators",
+        "sourceGeneratorMappings",
+        "midiFile"
+      ])
+        delete patch[key];
+      return patch;
+    }
+    function editGeometry(mutate) {
+      if (!space) return false;
+      syncSettings();
+      const previousState = {
+        ...state,
+        gravity: { ...state.gravity },
+        sources: [...state.sources],
+        movingObjects: [...state.movingObjects],
+        constraints: [...state.constraints]
+      };
+      const objects = [
+        state.listener,
+        ...state.sources,
+        ...state.movingObjects,
+        ...state.constraints,
+        ...state.constraints.map((c) => c.node)
+      ];
+      const previousObjects = objects.map((object) => [
+        object,
+        Object.fromEntries(
+          Object.entries(object).map(([key, value]) => [
+            key,
+            ["trajectory", "dynamics"].includes(key)
+              ? structuredClone(value)
+              : Array.isArray(value)
+                ? [...value]
+                : value
+          ])
+        )
+      ]);
+      try {
+        mutate();
+        const imported = modules.importLegacyPatch(geometryPatch(), settings);
+        // Public restore validates a candidate before installing it. Authoring
+        // is synchronous, so no simulation frame can observe an incomplete edit.
+        space.restore(imported.scene);
+        context = imported.context;
+        released = false;
+      } catch (error) {
+        Object.assign(state, previousState);
+        for (const [object, properties] of previousObjects) {
+          for (const key of Object.keys(object)) delete object[key];
+          Object.assign(object, properties);
+        }
+        onStatus(error.message);
+        return false;
+      }
+      sync(null, false);
+      return true;
+    }
 
     function pointId(entity) {
       return entity &&
@@ -113,6 +182,7 @@
     return {
       ...view,
       engineKind: "package",
+      editGeometry,
       async initialize() {
         const [engine, adapter] = await load();
         modules = { ...engine, ...adapter };
@@ -155,7 +225,7 @@
         syncSettings();
         // Trace flags and node positions belong to the interface. Output clients
         // continue to merge their latest bindings in musicspace.js.
-        return modules.exportLegacyPatch(space.snapshot(), { ...context, patch: view.serializePatch() });
+        return modules.exportLegacyPatch(space.snapshot(), { ...context, patch: geometryPatch() });
       },
       moveEntity(entity, x, y, { bounds = null, skipPropagation = false } = {}) {
         if (!space) return null;
@@ -210,11 +280,12 @@
         return residuals();
       },
       initializeDynamics() {
-        throw new Error("Authoring is not available in package Play mode.");
+        // Body creation occurs while the package validates an authoring edit.
+        return editGeometry(() => {});
       }
     };
   }
-  const api = { createPlayScene };
+  const api = { createPackageScene };
   if (typeof module === "object" && module.exports) module.exports = api;
-  else global.MusicSpacePlayEngine = api;
+  else global.MusicSpacePackageScene = api;
 })(globalThis);

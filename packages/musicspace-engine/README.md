@@ -9,7 +9,7 @@ SVG, Canvas, DOM elements or a UI framework, and in Node without a browser.
 
 **Status: local alpha, not published on npm.** The name `@musicspace/engine` is a
 working name; npm scope availability has not been checked. The MusicSpace
-application offers an experimental Play mode using this package; its default
+application offers experimental Play and Edit modes using this package; its default
 engine is unchanged. There are no runtime dependencies.
 
 ## Try it
@@ -29,8 +29,8 @@ SVG interface using only the public API.
 
 The existing workbench can also use the package:
 <http://localhost:8000/musicspace.html?engine=package&patch=musical-spring>.
-This is an optional Play-only migration with a visible return link to standard
-mode. See [migration status](MIGRATION.md) for boundaries and remaining work.
+This is an optional migration supporting both Play and Edit, with a visible return
+link to standard mode. See [migration status](MIGRATION.md) for boundaries and remaining work.
 
 ## Install in another project
 
@@ -44,7 +44,7 @@ npm pack
 In the consuming project, install that archive by its actual path:
 
 ```sh
-npm install /path/to/musicspace-engine-0.1.0-alpha.3.tgz
+npm install /path/to/musicspace-engine-0.1.0-alpha.4.tgz
 ```
 
 Then import `createSpace` from `@musicspace/engine`. CommonJS `require` is also
@@ -170,10 +170,12 @@ duplicate exported names are rejected.
 
 The adapter captures computed invariant targets before movement. It preserves
 trace flags, stored constraint-node coordinates and custom fields; it does not
-recompute automatic node layout. A future renderer will own that layout and the
+recompute automatic node layout. The workbench adapter owns that layout and the
 editing of display metadata. Normalized defaults may be added on export, so
 round trips preserve meaning rather than JSON formatting or omitted defaults.
 Transient rotator `rotationDelta` is recomputed by the engine after loading.
+Version 1 legacy patches now accept an empty `sources` array, so deleting the last
+source does not prevent saving, undo or reloading. The array itself remains required.
 
 `importLegacyPatch(patch, {solver?, centerMode?})` defaults to `propagation` and
 `retarget`, matching the workbench. The general `createSpace` API defaults to

@@ -77,7 +77,7 @@ test("package Play supports dragging, traces, undo and return to the selected st
   page
 }) => {
   await ready(page, "engine=package&patch=angle-balance");
-  await expect(page.locator("#ui-mode-edit")).toBeDisabled();
+  await expect(page.locator("#ui-mode-edit")).toBeEnabled();
   const before = await page.evaluate(() => window.serializePatch());
   let box = await page.locator("#canvas").boundingBox();
   const source = before.sources[0];
@@ -122,7 +122,7 @@ test("package motion drives mappings and all bundled sound backends still start 
   const values = await page.evaluate(() => {
     window.stopAnimation();
     const a = scene.getObjectByName("A"),
-      mapping = scene.serializePatch().parameterMappings[0];
+      mapping = window.serializePatch().parameterMappings[0];
     scene.moveEntity(a, a.x, a.y + 60);
     return Array.from({ length: 60 }, () => {
       window.stepAnimation(1 / 60);

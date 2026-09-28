@@ -366,3 +366,20 @@ test("constraint metadata follows stable IDs when array order changes", () => {
     ]
   );
 });
+
+test("empty and mover-only legacy patches round-trip without placeholder sources", () => {
+  for (const movingObjects of [
+    [],
+    [{ name: "Mover", x: 20, y: 30, trajectory: { type: "translation", vx: 1, vy: 0 } }]
+  ]) {
+    const patch = { version: 1, listener: { x: 0, y: 0 }, sources: [], movingObjects, constraints: [] };
+    const { scene, context } = importLegacyPatch(patch);
+    const space = createSpace(scene);
+    space.step();
+    const saved = exportLegacyPatch(space.snapshot(), context);
+    assert.deepEqual(saved.sources, []);
+    assert.equal(saved.movingObjects.length, movingObjects.length);
+    assert.equal(modelFrom(saved).state.sources.length, 0);
+  }
+  assert.throws(() => importLegacyPatch({ listener: { x: 0, y: 0 }, constraints: [] }), /array/);
+});

@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const { createSceneModel } = require("../../../musicspace-model");
-const { createPlayScene } = require("../../../musicspace-play-engine");
+const { createPackageScene } = require("../../../musicspace-package-scene");
 const engine = require("../dist/index.cjs");
 const adapter = require("../dist/legacy-patch.cjs");
 const directory = path.resolve(__dirname, "../../../patches");
@@ -12,7 +12,7 @@ const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file)));
 async function setup(patch, solver = "propagation") {
   const view = createSceneModel();
   view.setSolverMode(solver);
-  const play = createPlayScene({ createView: () => view, loadModules: async () => [engine, adapter] });
+  const play = createPackageScene({ createView: () => view, loadModules: async () => [engine, adapter] });
   await play.initialize();
   assert.equal(play.loadPatch(patch), true, JSON.stringify(play.validation()));
   return { play, view };
@@ -115,4 +115,79 @@ test("Play uses runtime solver changes and click release skips refinement", asyn
   assert.equal(play.refineXpbdAfterDrag(), true);
   assert.equal(play.refineXpbdAfterDrag(), false);
   assert.equal(play.state.lastPropagationReport.solverMode, "xpbd");
+});
+
+test("authoring creates package-owned geometry while keeping inspector identities", async () => {
+  const { play, view } = await setup({ listener: { x: 400, y: 500 }, sources: [], constraints: [] });
+  const { SoundSource, MovingObject, SpringConstraint, PinConstraint } = play.classes;
+  const anchor = new SoundSource(300, 150, "Anchor"),
+    mass = new SoundSource(300, 300, "Mass");
+  const mover = new MovingObject(500, 200, "Mover", { type: "translation", vx: 1, vy: 0 });
+  const spring = new SpringConstraint(anchor, mass);
+  assert.equal(
+    play.editGeometry(() => {
+      play.state.sources.push(anchor, mass);
+      play.state.movingObjects.push(mover);
+      play.state.constraints.push(spring, new PinConstraint(anchor));
+    }),
+    true
+  );
+  for (const object of play.state.constraints)
+    object.enforce = () => {
+      throw Error("View solver called");
+    };
+  mover.tick = () => {
+    throw Error("View tick called");
+  };
+  view.loadPatch = () => {
+    throw Error("View recreated during editing");
+  };
+  assert.equal(
+    play.editGeometry(() => {
+      spring.stiffness = 80;
+      mass.dynamics.mass = 2;
+    }),
+    true
+  );
+  assert.equal(play.state.sources[1], mass);
+  assert.equal(play.state.constraints[0], spring);
+  play.moveEntity(mass, 300, 370);
+  play.step();
+  assert.ok(mass.y < 370);
+  assert.ok(mover.x > 500);
+  assert.equal(play.serializePatch().constraints[0].stiffness, 80);
+  assert.equal(play.serializePatch().sources[1].dynamics.mass, 2);
+});
+test("failed authoring restores nested fields, topology and the running engine", async () => {
+  const patch = read("simple-spring.json");
+  const { play } = await setup(patch),
+    { play: control } = await setup(patch);
+  const mass = play.state.sources[1],
+    node = play.state.constraints[0].node;
+  play.moveEntity(mass, mass.x, mass.y + 30);
+  control.moveEntity(control.state.sources[1], mass.x, mass.y);
+  const saved = play.serializePatch();
+  assert.equal(
+    play.editGeometry(() => {
+      mass.name = "Changed";
+      mass.dynamics.mass = -1;
+      node.x = 123;
+      play.state.sources.push(new play.classes.SoundSource(1, 2, "Extra"));
+    }),
+    false
+  );
+  assert.equal(play.state.sources[1], mass);
+  assert.deepEqual(play.serializePatch(), saved);
+  play.step();
+  control.step();
+  assert.deepEqual(play.serializePatch(), control.serializePatch());
+  assert.equal(
+    play.editGeometry(() => {
+      play.state.sources = [];
+      play.state.constraints = [];
+    }),
+    true
+  );
+  assert.equal(play.loadPatch(play.serializePatch()), true);
+  assert.deepEqual(play.state.sources, []);
 });

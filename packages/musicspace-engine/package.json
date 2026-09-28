@@ -1,6 +1,6 @@
 {
   "name": "@musicspace/engine",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "private": true,
   "description": "Geometry, constraints, trajectories and dynamics for custom interactive interfaces.",
   "license": "MIT",

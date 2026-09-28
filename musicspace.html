@@ -1576,10 +1576,6 @@
   <main>
     <header>
       <h1>MusicSpace</h1>
-      <p id="package-engine-notice" class="status" hidden>
-        <span id="package-engine-message">Experimental package engine · Play mode</span>
-        <a id="standard-engine-link" href="musicspace.html">Return to standard mode</a>
-      </p>
       <div class="toolbar" aria-label="MusicSpace controls">
         <div class="toolbar-group" aria-label="Workspace mode">
           <span class="toolbar-group-label">Mode</span>
@@ -1637,6 +1633,10 @@
           <button id="clear-trace" type="button">Clear Trace</button>
           <button id="save-trace" type="button">Save Trace</button>
         </div>
+        <p id="package-engine-notice" class="status" hidden>
+          <span id="package-engine-message">Experimental package engine · Play and Edit</span>
+          <a id="standard-engine-link" href="musicspace.html">Return to standard mode</a>
+        </p>
       </div>
     </header>
     <div class="workspace">
@@ -2101,7 +2101,7 @@
 <script src="musicspace-solvers.js"></script>
 <script src="musicspace-trajectories.js"></script>
 <script src="musicspace-model.js"></script>
-<script src="musicspace-play-engine.js"></script>
+<script src="musicspace-package-scene.js"></script>
 <script src="musicspace.js"></script>
 </body>
 </html>

@@ -66,19 +66,33 @@ constraint-node positions are retained; automatic display layout remains the
 host's responsibility.
 
 The workbench uses its original model by default. With `?engine=package`,
-`musicspace-play-engine.js` dynamically loads the public package and legacy adapter.
+`musicspace-package-scene.js` dynamically loads the public package and legacy adapter.
 It runs the simulation through the package and copies results into stable legacy
-objects used only for drawing and output feature lookup. It also maps diagnostic
+objects used for drawing, output feature lookup and editor drafts. It also maps diagnostic
 IDs to display constraints. Detailed propagation counts are not exposed by the
 public API. The UI still owns trace flags, manual constraint-node positions,
 output metadata and undo snapshots. Runtime solver/center/gravity changes preserve
 trajectory deltas, held bodies and paused propagation without rebuilding the scene.
 
-Experimental mode supports Play and disables authoring inspectors and tools.
-The listener inspector uses the same movement API. Default startup never requests
-package artifacts, and failed experimental imports display an error. This adapter
-is transitional: authoring migration and removal of presentation classes remain.
-See the
+Experimental mode supports Play and Edit. The UI's `editGeometry` helper records
+undo only after a successful edit. The adapter snapshots the presentation objects,
+lets the synchronous editor mutation build a draft, imports its geometry, then
+commits through the package's public `restore` operation. Rejected edits restore
+object fields and topology while leaving the package simulation untouched. Existing
+presentation identities are retained, so inspector references stay valid.
+
+Authoring replaces the package scene; positions, velocities and trajectory phases
+are preserved, while transient gesture/rotation deltas reset as on restore. It is
+not used for continuous dragging or frame stepping. Output clients apply renames
+and removals after geometry commits. The adapter serializes geometry/display data;
+the UI merges current audio/MIDI blocks, avoiding stale references from old patches.
+Deleting an endpoint freezes dependent shuttles at its last position and removes
+associated mappings. Empty source arrays are valid. JSON edits validate before
+loading, and successful JSON edits can be undone.
+
+Default startup never requests package artifacts, and failed experimental imports
+display an error. The adapter remains transitional: removal of the presentation
+classes and authoring performance measurements are still needed. See the
 [package contract and limitations](packages/musicspace-engine/README.md) and
 [migration stages](packages/musicspace-engine/MIGRATION.md).
 
