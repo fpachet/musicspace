@@ -367,7 +367,12 @@ test.describe("phone layout and touch interaction", () => {
     ]) {
       await page.setViewportSize(viewport);
       const canvasBox = await page.locator("#canvas").boundingBox();
-      expect(canvasBox.width / canvasBox.height).toBeCloseTo(4 / 3, 2);
+      expect(canvasBox.width).toBeCloseTo(viewport.width, 0);
+      expect(canvasBox.height).toBeCloseTo(viewport.height, 0);
+      const transform = await page.evaluate(() =>
+        document.getElementById("canvas").getContext("2d").getTransform().toJSON()
+      );
+      expect(transform.a).toBeCloseTo(transform.d, 2);
       expect(canvasBox.x).toBeGreaterThanOrEqual(0);
       expect(canvasBox.y).toBeGreaterThanOrEqual(0);
       expect(canvasBox.x + canvasBox.width).toBeLessThanOrEqual(viewport.width + 1);
@@ -389,6 +394,69 @@ test.describe("phone layout and touch interaction", () => {
     await page.locator("#patch-inspector-close").tap();
     await expect(page.locator("#patch-inspector")).toBeHidden();
   });
+
+  for (const fallback of [false, true]) {
+    test(`fullscreen touch uses the entire screen (${fallback ? "CSS fallback" : "browser API"})`, async ({
+      page,
+      context
+    }) => {
+      await page.goto("/musicspace.html");
+      await expect(page.locator("#patch-select")).toBeEnabled();
+      await page.locator("#patch-select").selectOption("musical-spring");
+      if (fallback) {
+        await page.evaluate(() => {
+          document.getElementById("stage").requestFullscreen = undefined;
+        });
+      }
+      const client = await context.newCDPSession(page);
+      const touch = (type, points) => client.send("Input.dispatchTouchEvent", { type, touchPoints: points });
+      for (const viewport of [
+        { width: 390, height: 844 },
+        { width: 844, height: 390 }
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.locator("#canvas-fullscreen").tap();
+        await expect(page.locator("#canvas-fullscreen")).toHaveText("Close");
+        if (!fallback) await page.waitForFunction(() => document.fullscreenElement?.id === "stage");
+        await page.evaluate(() => {
+          window.stopAnimation();
+          const source = scene.getObjectByName("A");
+          source.x = 250;
+          source.y = 300;
+          window.drawAll();
+        });
+        const box = await page.locator("#canvas").boundingBox();
+        expect(box.width).toBeCloseTo(viewport.width, 0);
+        expect(box.height).toBeCloseTo(viewport.height, 0);
+        const scale = Math.min(box.width / 800, box.height / 600);
+        const offsetX = (box.width - 800 * scale) / 2;
+        const offsetY = (box.height - 600 * scale) / 2;
+        const start = { id: 1, x: box.x + offsetX + 250 * scale, y: box.y + offsetY + 300 * scale };
+        // Reach above the old 4:3 rectangle in portrait, and to its left in landscape.
+        const end = { id: 1, x: box.x + (viewport.width < viewport.height ? 180 : 40), y: box.y + 100 };
+        await touch("touchStart", [start]);
+        expect(await page.evaluate(() => scene.state.draggedEntity?.name)).toBe("A");
+        await touch("touchMove", [end]);
+        await page.evaluate(() => window.stopAnimation());
+        const position = await page.evaluate(() => {
+          const a = scene.getObjectByName("A");
+          return { x: a.x, y: a.y };
+        });
+        expect(position.x).toBeCloseTo((end.x - box.x - offsetX) / scale, 0);
+        expect(position.y).toBeCloseTo((end.y - box.y - offsetY) / scale, 0);
+        await touch("touchEnd", []);
+        // The moved source stays visible and can be grabbed in the expanded area.
+        await touch("touchStart", [end]);
+        expect(await page.evaluate(() => scene.state.draggedEntity?.name)).toBe("A");
+        await page.evaluate(() => window.stopAnimation());
+        await page.screenshot({ path: test.info().outputPath(`fullscreen-${viewport.width}.png`) });
+        await touch("touchEnd", []);
+        await page.locator("#canvas-fullscreen").tap();
+        await expect(page.locator("#stage")).not.toHaveClass(/is-fullscreen/);
+      }
+      await client.detach();
+    });
+  }
 
   test("a finger near a mass can drag it, a second finger cannot steal it, and release resumes dynamics", async ({
     page,

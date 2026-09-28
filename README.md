@@ -98,7 +98,7 @@ Use **Play** mode, choose a patch, and tap **Play Sound** when available. Touch 
 an object and drag it; touch targets stay at least 44 screen pixels across even
 when the scene is scaled down. For springs, drag a red mass endpoint and release.
 
-Tap **Expand** on the canvas and turn the phone sideways for more space. **Close**
+Tap **Expand** to use the entire screen, in portrait or landscape. Objects keep their proportions, and you can drag them into the extra space around the patch. **Close**
 returns to the controls. The scene keeps its proportions in either orientation.
 **More** reveals drawing and trace controls. Selection help appears below the canvas.
 In **Edit** mode, creation tools sit below the scene and inspectors fit the screen.

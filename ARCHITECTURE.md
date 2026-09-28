@@ -30,6 +30,8 @@ if (!model.loadPatch(patch)) {
 }
 ```
 
+`moveEntity` accepts optional `bounds: { left, top, right, bottom }` in world coordinates. The browser uses these to allow dragging throughout the larger fullscreen view; the default remains the 800 × 600 patch area. Fullscreen changes the view transform, preserving patch coordinates and constraint distances.
+
 Run the complete example with `npm run example`. The primary operations are `loadPatch`, `serializePatch`, `getObjectByName`, `moveEntity`, `step`, `setSolverMode`, `measureConstraintResiduals`, and `getLastPropagationReport`.
 
 `loadPatch` validates before construction, constructs without asynchronous work, and restores prior state if construction fails. It returns a boolean. Snapshots deep-copy nested trajectories and retain aggregate constraint targets, so saving an unsatisfied scene does not silently redefine its constraints.

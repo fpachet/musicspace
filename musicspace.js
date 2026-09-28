@@ -376,6 +376,39 @@ let builtInPatches = [];
 
 let isCanvasFullscreen = false;
 
+// Keep patch coordinates unchanged while extending the visible world in fullscreen.
+// Rendering and pointer input share this transform so the extra area is interactive.
+function canvasViewport() {
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(1, rect.width || WIDTH);
+  const height = Math.max(1, rect.height || HEIGHT);
+  const scale = Math.min(width / WIDTH, height / HEIGHT);
+  const scaleX = isCanvasFullscreen ? scale : width / WIDTH;
+  const scaleY = isCanvasFullscreen ? scale : height / HEIGHT;
+  const offsetX = (width - WIDTH * scaleX) / 2;
+  const offsetY = (height - HEIGHT * scaleY) / 2;
+  return {
+    rect,
+    width,
+    height,
+    scaleX,
+    scaleY,
+    offsetX,
+    offsetY,
+    left: -offsetX / scaleX,
+    top: -offsetY / scaleY,
+    right: (width - offsetX) / scaleX,
+    bottom: (height - offsetY) / scaleY
+  };
+}
+
+function clearCanvasSurface(context, surface) {
+  context.save();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.clearRect(0, 0, surface.width, surface.height);
+  context.restore();
+}
+
 function configureCanvasResolution() {
   const rect = canvas.getBoundingClientRect();
   const cssWidth = Math.max(1, rect.width || WIDTH);
@@ -392,10 +425,19 @@ function configureCanvasResolution() {
     traceCanvas.height = backingHeight;
   }
 
-  const scaleX = backingWidth / WIDTH;
-  const scaleY = backingHeight / HEIGHT;
-  ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-  traceCtx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+  const view = canvasViewport();
+  const pixelX = backingWidth / cssWidth;
+  const pixelY = backingHeight / cssHeight;
+  for (const context of [ctx, traceCtx]) {
+    context.setTransform(
+      view.scaleX * pixelX,
+      0,
+      0,
+      view.scaleY * pixelY,
+      view.offsetX * pixelX,
+      view.offsetY * pixelY
+    );
+  }
   return didResize;
 }
 
@@ -513,9 +555,11 @@ function drawSourceExternalLabel(ctx, source, emitterCapability = { emits: false
   const paddingX = 5;
   const labelHeight = 16;
   const labelWidth = clamp(source.name.length * 7 + paddingX * 2, 30, 116);
-  const labelX = clamp(source.x - labelWidth / 2, 4, WIDTH - labelWidth - 4);
+  const view = canvasViewport();
+  const labelX = clamp(source.x - labelWidth / 2, view.left + 4, view.right - labelWidth - 4);
   const belowY = source.y + source.radius + 6;
-  const labelY = belowY + labelHeight <= HEIGHT - 4 ? belowY : source.y - source.radius - labelHeight - 6;
+  const labelY =
+    belowY + labelHeight <= view.bottom - 4 ? belowY : source.y - source.radius - labelHeight - 6;
 
   ctx.save();
   ctx.beginPath();
@@ -543,8 +587,9 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
 
   const badgeWidth = emitterCapability.audio && emitterCapability.midi ? 30 : 18;
   const badgeHeight = 16;
-  const badgeX = clamp(source.x + source.radius - 5, 4, WIDTH - badgeWidth - 4);
-  const badgeY = clamp(source.y - source.radius - 8, 4, HEIGHT - badgeHeight - 4);
+  const view = canvasViewport();
+  const badgeX = clamp(source.x + source.radius - 5, view.left + 4, view.right - badgeWidth - 4);
+  const badgeY = clamp(source.y - source.radius - 8, view.top + 4, view.bottom - badgeHeight - 4);
 
   ctx.save();
   ctx.beginPath();
@@ -1623,7 +1668,7 @@ function drawAll() {
   updateSelectionSummary();
   updateOpenSourceMappingReadouts();
   updateOpenPatchMappingReadouts();
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  clearCanvasSurface(ctx, canvas);
   if (uiMode === UI_MODE_EDIT) {
     drawGrid(ctx);
   }
@@ -1666,17 +1711,18 @@ function drawGrid(ctx) {
   ctx.strokeStyle = "rgba(148, 163, 184, 0.18)";
   ctx.lineWidth = 1;
 
-  for (let x = 40; x < WIDTH; x += 40) {
+  const view = canvasViewport();
+  for (let x = Math.floor(view.left / 40) * 40 + 40; x < view.right; x += 40) {
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, HEIGHT);
+    ctx.moveTo(x, view.top);
+    ctx.lineTo(x, view.bottom);
     ctx.stroke();
   }
 
-  for (let y = 40; y < HEIGHT; y += 40) {
+  for (let y = Math.floor(view.top / 40) * 40 + 40; y < view.bottom; y += 40) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WIDTH, y);
+    ctx.moveTo(view.left, y);
+    ctx.lineTo(view.right, y);
     ctx.stroke();
   }
 }
@@ -4101,16 +4147,16 @@ function nextMoverName() {
 }
 
 function getPointerPosition(event) {
-  const rect = canvas.getBoundingClientRect();
+  const view = canvasViewport();
   return {
-    x: ((event.clientX - rect.left) / rect.width) * WIDTH,
-    y: ((event.clientY - rect.top) / rect.height) * HEIGHT
+    x: (event.clientX - view.rect.left - view.offsetX) / view.scaleX,
+    y: (event.clientY - view.rect.top - view.offsetY) / view.scaleY
   };
 }
 
 function findEntityAt(x, y, pointerType = "mouse") {
   if (pointerType === "touch") {
-    const rect = canvas.getBoundingClientRect();
+    const view = canvasViewport();
     const entities = [
       state.listener,
       ...state.sources,
@@ -4122,10 +4168,7 @@ function findEntityAt(x, y, pointerType = "mouse") {
     let nearest = null;
     let nearestDistance = Infinity;
     for (const entity of entities) {
-      const distance = Math.hypot(
-        ((entity.x - x) * rect.width) / WIDTH,
-        ((entity.y - y) * rect.height) / HEIGHT
-      );
+      const distance = Math.hypot((entity.x - x) * view.scaleX, (entity.y - y) * view.scaleY);
       if ((distance <= 22 || entity.isInside(x, y)) && distance < nearestDistance) {
         nearest = entity;
         nearestDistance = distance;
@@ -4181,9 +4224,7 @@ function isRepeatedCanvasClick(event, x, y, entity) {
 }
 
 function canvasClickDistance(event) {
-  return event.pointerType === "touch"
-    ? (22 * WIDTH) / canvas.getBoundingClientRect().width
-    : DOUBLE_CLICK_DISTANCE;
+  return event.pointerType === "touch" ? 22 / canvasViewport().scaleX : DOUBLE_CLICK_DISTANCE;
 }
 
 function handleEntityDoubleClick(entity) {
@@ -4232,7 +4273,10 @@ function handleEntityDoubleClick(entity) {
 }
 
 function moveEntity(entity, x, y, options) {
-  scene.moveEntity(entity, x, y, options);
+  scene.moveEntity(entity, x, y, {
+    ...options,
+    bounds: isCanvasFullscreen ? canvasViewport() : null
+  });
   drawTracesForChangedEntities();
   drawAll();
 }
@@ -4459,7 +4503,7 @@ function toggleAnimation() {
 
 function clearTrace() {
   configureCanvasResolution();
-  traceCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  clearCanvasSurface(traceCtx, traceCanvas);
   syncTracePositions();
 }
 
@@ -4639,7 +4683,7 @@ function beginDrag(event) {
     offsetY: y - entity.y,
     startX: x,
     startY: y,
-    dragThreshold: event.pointerType === "touch" ? (6 * WIDTH) / canvas.getBoundingClientRect().width : 2,
+    dragThreshold: event.pointerType === "touch" ? 6 / canvasViewport().scaleX : 2,
     doubleClickEntity,
     didSnapshot: false,
     skipPropagation: false

@@ -82,7 +82,7 @@ checks the four patches, pointer hold/release, parameter editing, mass editing, 
 
 Phone regressions in `tests/browser-smoke.spec.js` use Chromium mobile emulation at
 320px/390px portrait widths and 844px landscape width. They check horizontal overflow,
-control sizing, selection-help placement, fullscreen proportions and touch exit,
+control sizing, selection-help placement, fullscreen proportions, touch dragging beyond the original patch area in portrait and landscape (native fullscreen and CSS fallback), and touch exit,
 inspector bounds, touch dragging near small objects, second-finger handling, and
 release into spring dynamics. These checks complement testing on physical iOS/Android
 devices; they do not verify device-specific browser chrome or audio policies.

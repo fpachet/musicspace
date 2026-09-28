@@ -1362,9 +1362,9 @@
       setConstraintStatus("");
     }
 
-    function moveEntity(entity, x, y, { skipPropagation = false } = {}) {
-      const nextX = clamp(x, 0, WIDTH);
-      const nextY = clamp(y, 0, HEIGHT);
+    function moveEntity(entity, x, y, { skipPropagation = false, bounds = null } = {}) {
+      const nextX = clamp(x, bounds?.left ?? 0, bounds?.right ?? WIDTH);
+      const nextY = clamp(y, bounds?.top ?? 0, bounds?.bottom ?? HEIGHT);
       translateEntity(entity, nextX - entity.x, nextY - entity.y);
       if (entity.dynamics) {
         entity.dynamics.vx = 0;
