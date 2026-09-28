@@ -52,7 +52,13 @@ port, so environments that prohibit local servers need permission to run it.
   rotators, springs, restoration, fixed-step timing and parity with the original
   product/limit fixture.
 - `test/install.test.cjs` packs the distribution, installs it offline into a
-  temporary independent project and exercises both ESM and CommonJS imports.
+  temporary independent project and exercises both ESM and CommonJS imports,
+  including the legacy-patch entry.
+- `test/legacy-patch.test.cjs` imports and exports all 23 library patches, preserving
+  output and display metadata. It compares both solvers against the original model
+  through dragging, center motion, simulation, residuals, velocities and continued
+  motion after save/load. Focused cases cover bounds, paused propagation, spring
+  rest lengths, name collisions, independent context data and invalid exports.
 - `test/browser.test.cjs` uses the standalone SVG playground to verify dragging,
   indirect movement, JSON save/load, rotation, spring release and the absence of
   global MusicSpace objects or browser exceptions.

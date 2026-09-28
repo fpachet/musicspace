@@ -38,7 +38,7 @@ npm pack
 In the consuming project, install that archive by its actual path:
 
 ```sh
-npm install /path/to/musicspace-engine-0.1.0-alpha.1.tgz
+npm install /path/to/musicspace-engine-0.1.0-alpha.2.tgz
 ```
 
 Then import `createSpace` from `@musicspace/engine`. CommonJS `require` is also
@@ -95,7 +95,8 @@ See `dist/index.d.ts` for the complete typed contract.
 | `removePoint(id)` | Remove a point and dependent constraints |
 | `addConstraint(spec)` / `updateConstraint(id, changes)` / `removeConstraint(id)` | Author the graph |
 | `updateConstraint(id, {enabled: false})` | Disable a relation while retaining its target |
-| `move(id, x, y)` | Propose an interactive displacement and propagate |
+| `move(id, x, y, options?)` | Propose a displacement; optional bounds or paused propagation |
+| `resumePropagation()` | Resume a paused edit and retarget geometric constraints to the new layout |
 | `beginDrag(id)` / `endDrag()` | Hold a dynamic body during a pointer gesture; refine XPBD on release |
 | `solve(id = CENTER)` | Propagate from a chosen object without moving it first |
 | `positions()` / `getPoint(id)` | Read coordinates |
@@ -124,6 +125,59 @@ An observer that throws propagates its exception to the caller after the edit ha
 committed. Do not write back to the engine unconditionally from its own observer.
 Render events from `step` are position deltas; inspect `snapshot()` after authoring
 operations when you need the graph or trajectory definitions.
+
+`move` is unbounded by default. Supply `bounds: {left, top, right, bottom}` to clamp
+the proposed position; these bounds do not constrain other points moved by the
+solver. `skipPropagation: true` supports Shift-style editing: it moves the point
+without solving and pauses dynamics. `resumePropagation()` retargets geometric
+relations to the edited layout; spring rest lengths remain unchanged. A normal
+`move` resumes solving against the existing targets instead. `diagnostics()` exposes
+`propagationPaused`, and `endDrag()` does not refine XPBD while propagation is paused.
+
+## Existing MusicSpace patches
+
+The optional `@musicspace/engine/legacy-patch` entry imports workbench patches while
+keeping their audio/MIDI bindings, mappings, display settings and unknown metadata
+in a separate, JSON-compatible context. It does not start audio, load media or
+fetch URLs. The current workbench still uses its original model.
+
+```js
+import { createSpace } from '@musicspace/engine';
+import { importLegacyPatch, exportLegacyPatch } from '@musicspace/engine/legacy-patch';
+
+const { scene, context } = importLegacyPatch(patch);
+const space = createSpace(scene);
+const firstName = patch.sources[0].name;
+space.move(context.pointIds[firstName], 220, 300);
+
+const savedPatch = exportLegacyPatch(space.snapshot(), context);
+// Save savedPatch using the application's existing JSON persistence.
+```
+
+Keep `context` with the scene, including across undo/snapshot storage. Contexts,
+scenes and exported patches are independent copies. Object names map to neutral
+point IDs, including names that would otherwise conflict with package reserved
+IDs. Constraint IDs map to the original array entries, preserving their metadata
+even if constraints are reordered or removed. New point IDs become legacy names;
+duplicate exported names are rejected.
+
+The adapter captures computed invariant targets before movement. It preserves
+trace flags, stored constraint-node coordinates and custom fields; it does not
+recompute automatic node layout. A future renderer will own that layout and the
+editing of display metadata. Normalized defaults may be added on export, so
+round trips preserve meaning rather than JSON formatting or omitted defaults.
+Transient rotator `rotationDelta` is recomputed by the engine after loading.
+
+`importLegacyPatch(patch, {solver?, centerMode?})` defaults to `propagation` and
+`retarget`, matching the workbench. The general `createSpace` API defaults to
+`preserve`. Solver choice, center mode, clock and current gesture state are not
+fields in legacy patch files and must be managed by the host.
+
+Export validates the complete patch. Removing a point while retained output
+bindings still reference it raises an error; bindings are never silently removed.
+Disabled constraints also raise an error because the legacy reader would silently
+activate them. Enable or remove them before exporting. The alpha does not yet
+offer a public API to edit output metadata or constraint-node handles.
 
 ## Constraints
 
@@ -196,9 +250,9 @@ even when geometric propagation is selected.
   controls and priority policies need further API work.
 - Topology/authoring edits validate and rebuild the model from a snapshot. Use
   `move` or `step` for continuous interaction; those do not rebuild the graph.
-- The scene JSON is a package-specific format. It does not load the application’s
-  audio/MIDI patches directly. Constraint IDs, state isolation and neutral point
-  names are part of the public facade; internal classes are not exported.
+- The scene JSON is a package-specific format. Use the optional legacy-patch
+  adapter above to preserve workbench audio/MIDI patches. Constraint IDs, state
+  isolation and neutral point names are public; internal classes are not exported.
 
 ## Development and migration safety
 
@@ -213,6 +267,13 @@ private module scopes. Generated files live in `dist` and are not committed. The
 is no fork of the solver code to maintain and no change to how the current app runs.
 The archive is standalone once built. Tests compare the packaged API with the
 existing engine and install the archive into a temporary independent project.
+
+The compatibility suite covers all 23 library patches: normalized round trips,
+both solvers, dragging/release, center movement, fixed-step animation, residuals,
+dynamic velocities and continued motion after saving/loading. Focused tests cover
+paused edits, bounds, metadata, reserved names and explicit export failures. These
+tests establish engine compatibility for the exercised scenarios; they do not
+replace future UI migration tests for inspectors, undo, traces or audio playback.
 
 Migration of the current UI is a later step, after validating the public API with
 these examples and external usage. See `MIGRATION.md` for the staged approach.

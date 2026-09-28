@@ -82,6 +82,20 @@ test("plain-browser package supports dragging, animation and saved scenes", asyn
       (old) => document.querySelector('circle[data-id="B"]').parentNode.getAttribute("transform") !== old,
       released
     );
+    const importedPatch = await page.evaluate(async () => {
+      const { importLegacyPatch, exportLegacyPatch } = await import("/dist/legacy-patch.mjs");
+      const { createSpace } = await import("/dist/index.mjs");
+      const { scene, context } = importLegacyPatch({
+        listener: { x: 0, y: 0 },
+        sources: [{ name: "A", x: 10, y: 20 }],
+        note: "keep"
+      });
+      const space = createSpace(scene);
+      space.move(context.pointIds.A, 30, 40);
+      return exportLegacyPatch(space.snapshot(), context);
+    });
+    assert.equal(importedPatch.sources[0].x, 30);
+    assert.equal(importedPatch.note, "keep");
     assert.deepEqual(errors, []);
     assert.equal(
       await page.evaluate(() => Object.keys(window).some((key) => key.startsWith("MusicSpace"))),

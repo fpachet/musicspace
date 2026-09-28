@@ -57,8 +57,13 @@ Interactive moves and simulation steps operate directly on the current model.
 Events contain independent position data and residual diagnostics, including IDs
 of unsatisfied constraints. The host owns rendering and animation scheduling.
 
-The package currently has a scene format separate from the workbench's audio/MIDI
-patch format. The workbench continues to use the original model directly. A future
+The package has a scene format separate from the workbench's audio/MIDI patch
+format. The optional `./legacy-patch` entry converts between them and retains
+non-geometric data in a serializable context. Stable package IDs map back to
+workbench names and constraint entries. Export validates retained bindings and
+rejects disabled constraints, which the legacy format cannot represent. Stored
+constraint-node positions are retained; automatic display layout remains the
+host's responsibility. The workbench continues to use the original model. A future
 migration must preserve inspectors, constraint-node handles, undo, traces, output
 metadata and legacy patch compatibility through an explicit adapter. See the
 [package contract and limitations](packages/musicspace-engine/README.md) and

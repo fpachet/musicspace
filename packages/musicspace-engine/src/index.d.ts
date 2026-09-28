@@ -94,6 +94,7 @@ export interface Diagnostics {
   residuals: Residual[];
   hitStepCap: boolean;
   hitEntityCap: boolean;
+  propagationPaused: boolean;
   solver: Solver;
 }
 export interface Change {
@@ -102,6 +103,12 @@ export interface Change {
   changed: PointPosition[];
   removed: string[];
   diagnostics: Diagnostics;
+}
+export interface MoveOptions {
+  /** Bounds clamp the proposed position, not every point moved by propagation. */
+  bounds?: { left: number; top: number; right: number; bottom: number };
+  /** Move directly and pause propagation/dynamics until resumed or a normal move. */
+  skipPropagation?: boolean;
 }
 export interface Space {
   /** Independent JSON-compatible snapshot, including invariant targets and velocities. */
@@ -120,8 +127,10 @@ export interface Space {
   addConstraint(constraint: Constraint): Change;
   updateConstraint(id: string, changes: Partial<Constraint>): Change;
   removeConstraint(id: string): Change;
-  /** Move without canvas bounds and solve the affected graph. */
-  move(id: string, x: number, y: number): Change;
+  /** Propose a displacement and solve; defaults to unbounded coordinates. */
+  move(id: string, x: number, y: number, options?: MoveOptions): Change;
+  /** Resume after a paused edit, retargeting geometric constraints to the current layout. Spring rest lengths remain unchanged. */
+  resumePropagation(): Change;
   beginDrag(id: string): void;
   endDrag(): Change;
   solve(id?: string): Change;

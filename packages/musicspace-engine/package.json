@@ -1,6 +1,6 @@
 {
   "name": "@musicspace/engine",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "description": "Geometry, constraints, trajectories and dynamics for custom interactive interfaces.",
   "license": "MIT",
@@ -12,6 +12,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
+    },
+    "./legacy-patch": {
+      "types": "./dist/legacy-patch.d.ts",
+      "import": "./dist/legacy-patch.mjs",
+      "require": "./dist/legacy-patch.cjs"
     }
   },
   "files": [

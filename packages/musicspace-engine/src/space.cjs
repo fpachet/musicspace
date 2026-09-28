@@ -239,11 +239,13 @@ function createSpace(initial = {}) {
     const report = model.getLastPropagationReport();
     const hitStepCap = Boolean(report?.hitStepCap);
     const hitEntityCap = Boolean(report?.hitEntityCap);
+    const propagationPaused = model.state.propagationPaused;
     return {
-      satisfied: !residuals.length && !hitStepCap && !hitEntityCap,
+      satisfied: !residuals.length && !hitStepCap && !hitEntityCap && !propagationPaused,
       residuals,
       hitStepCap,
       hitEntityCap,
+      propagationPaused,
       solver: model.getSolverMode()
     };
   }
@@ -319,13 +321,24 @@ function createSpace(initial = {}) {
     removeConstraint(id) {
       return edit("removeConstraint", (s) => s.constraints.splice(constraintIndex(s, id), 1));
     },
-    move(id, x, y) {
+    move(id, x, y, { bounds = FREE_BOUNDS, skipPropagation = false } = {}) {
       finite(x, "x");
       finite(y, "y");
+      if (bounds !== FREE_BOUNDS) {
+        for (const key of ["left", "top", "right", "bottom"]) finite(bounds?.[key], `bounds.${key}`);
+        if (bounds.left > bounds.right || bounds.top > bounds.bottom)
+          throw new TypeError("Invalid bounds ordering.");
+      }
+      if (typeof skipPropagation !== "boolean") throw new TypeError("skipPropagation must be boolean.");
       const p = entity(id),
         before = positions();
-      model.moveEntity(p, x, y, { bounds: FREE_BOUNDS });
+      model.moveEntity(p, x, y, { bounds, skipPropagation });
       return publish("move", before);
+    },
+    resumePropagation() {
+      const before = positions();
+      model.resumePropagationAfterPausedDrag();
+      return publish("resumePropagation", before);
     },
     beginDrag(id) {
       model.beginDrag(entity(id));
@@ -336,7 +349,8 @@ function createSpace(initial = {}) {
       const p = dragging ? entity(dragging) : null;
       model.endDrag();
       dragging = null;
-      if (p && model.getSolverMode() === "xpbd") model.refineXpbdAfterDrag(p);
+      if (p && model.getSolverMode() === "xpbd" && !model.state.propagationPaused)
+        model.refineXpbdAfterDrag(p);
       return publish("endDrag", before);
     },
     solve(id = CENTER) {

@@ -27,15 +27,24 @@ test("packed archive installs and works without the source repository", () => {
       { ...options, cwd: consumer, stdio: "pipe" }
     );
     const code = `const {createSpace} = LIBRARY;
+      const {importLegacyPatch, exportLegacyPatch} = ADAPTER;
       const space = createSpace({points:[{id:'a',x:10,y:20}]});
       space.move('a', -500, 1000);
       if (space.getPoint('a').x !== -500) throw new Error('bad position');
+      const imported = importLegacyPatch({listener:{x:0,y:0},sources:[{name:'A',x:10,y:20}],custom:{keep:true}});
+      const legacySpace = createSpace(imported.scene);
+      legacySpace.move(imported.context.pointIds.A, 30, 40);
+      const saved = exportLegacyPatch(legacySpace.snapshot(), imported.context);
+      if (saved.sources[0].x !== 30 || !saved.custom.keep) throw new Error('bad legacy export');
       console.log('ok');`;
     for (const [args, library] of [
       [[], "require('@musicspace/engine')"],
       [["--input-type=module"], "await import('@musicspace/engine')"]
     ]) {
-      const output = execFileSync(process.execPath, [...args, "-e", code.replace("LIBRARY", library)], {
+      const script = code
+        .replace("LIBRARY", library)
+        .replace("ADAPTER", library.replace("@musicspace/engine", "@musicspace/engine/legacy-patch"));
+      const output = execFileSync(process.execPath, [...args, "-e", script], {
         ...options,
         cwd: consumer
       });

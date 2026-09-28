@@ -16,7 +16,7 @@ trajectories, linked rotations, spring dynamics, change notifications and scene
 save/restore. Your application supplies the rendering, gestures and parameter
 meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
 
-**Status: `0.1.0-alpha.1`, distributed locally, not published on npm.**
+**Status: `0.1.0-alpha.2`, distributed locally, not published on npm.**
 `@musicspace/engine` is a provisional package name. The existing workbench still
 uses its original modules; migration to the package is a later, separate step.
 
@@ -38,6 +38,11 @@ installable archive, the API and alpha limitations, and the
 [migration plan](packages/musicspace-engine/MIGRATION.md) for preserving current
 interfaces and saved patches. Current limitations include pixel-like units,
 fixed bounce bounds and one active drag per scene.
+
+An optional `@musicspace/engine/legacy-patch` adapter now imports and exports the
+existing workbench patches while preserving output bindings and display metadata.
+Equivalence tests cover all 23 library patches with both solvers; the workbench
+itself has not been migrated.
 
 ## Demo Snapshots
 
