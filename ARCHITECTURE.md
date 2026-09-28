@@ -67,9 +67,13 @@ host's responsibility.
 
 The workbench uses its original model by default. With `?engine=package`,
 `musicspace-package-scene.js` dynamically loads the public package and legacy adapter.
-It runs the simulation through the package and copies results into stable legacy
-objects used for drawing, output feature lookup and editor drafts. It also maps diagnostic
-IDs to display constraints. Detailed propagation counts are not exposed by the
+It runs the simulation through the package and copies results into stable plain
+records from `musicspace-presentation.js` for drawing, output feature lookup and
+editor drafts. The experimental UI creates no legacy model, constraint graph or
+solver. Records carry a `kind` tag and have no methods; a presentation schema
+owns references, scalar fields, initial node placement and geometry recapture.
+These helpers measure geometry without enforcing constraints. The adapter maps
+diagnostic IDs to display constraints. Detailed propagation counts are not exposed by the
 public API. The UI still owns trace flags, manual constraint-node positions,
 output metadata and undo snapshots. Runtime solver/center/gravity changes preserve
 trajectory deltas, held bodies and paused propagation without rebuilding the scene.
@@ -91,8 +95,13 @@ associated mappings. Empty source arrays are valid. JSON edits validate before
 loading, and successful JSON edits can be undone.
 
 Default startup never requests package artifacts, and failed experimental imports
-display an error. The adapter remains transitional: removal of the presentation
-classes and authoring performance measurements are still needed. See the
+display an error. Renderers are ordinary functions in `musicspace.js`; they no longer modify
+model prototypes. UI type checks, construction and node layout use presentation
+operations. A small `legacyPresentation` adapter supplies those operations for the
+standard engine. The package continues to bundle the shared solver core internally.
+
+The remaining migration work is incremental authoring and performance measurement;
+editing still restores a complete scene after validating a draft of plain records. See the
 [package contract and limitations](packages/musicspace-engine/README.md) and
 [migration stages](packages/musicspace-engine/MIGRATION.md).
 

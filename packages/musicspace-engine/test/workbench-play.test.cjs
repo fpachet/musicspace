@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const { createSceneModel } = require("../../../musicspace-model");
+const { createPresentation } = require("../../../musicspace-presentation");
 const { createPackageScene } = require("../../../musicspace-package-scene");
 const engine = require("../dist/index.cjs");
 const adapter = require("../dist/legacy-patch.cjs");
@@ -10,7 +11,7 @@ const directory = path.resolve(__dirname, "../../../patches");
 const fixtures = JSON.parse(fs.readFileSync(path.join(directory, "index.json"))).patches;
 const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file)));
 async function setup(patch, solver = "propagation") {
-  const view = createSceneModel();
+  const view = createPresentation();
   view.setSolverMode(solver);
   const play = createPackageScene({ createView: () => view, loadModules: async () => [engine, adapter] });
   await play.initialize();
@@ -119,16 +120,16 @@ test("Play uses runtime solver changes and click release skips refinement", asyn
 
 test("authoring creates package-owned geometry while keeping inspector identities", async () => {
   const { play, view } = await setup({ listener: { x: 400, y: 500 }, sources: [], constraints: [] });
-  const { SoundSource, MovingObject, SpringConstraint, PinConstraint } = play.classes;
-  const anchor = new SoundSource(300, 150, "Anchor"),
-    mass = new SoundSource(300, 300, "Mass");
-  const mover = new MovingObject(500, 200, "Mover", { type: "translation", vx: 1, vy: 0 });
-  const spring = new SpringConstraint(anchor, mass);
+  const create = play.createObject;
+  const anchor = create("SoundSource", 300, 150, "Anchor"),
+    mass = create("SoundSource", 300, 300, "Mass");
+  const mover = create("MovingObject", 500, 200, "Mover", { type: "translation", vx: 1, vy: 0 });
+  const spring = create("SpringConstraint", anchor, mass);
   assert.equal(
     play.editGeometry(() => {
       play.state.sources.push(anchor, mass);
       play.state.movingObjects.push(mover);
-      play.state.constraints.push(spring, new PinConstraint(anchor));
+      play.state.constraints.push(spring, create("PinConstraint", anchor));
     }),
     true
   );
@@ -172,7 +173,7 @@ test("failed authoring restores nested fields, topology and the running engine",
       mass.name = "Changed";
       mass.dynamics.mass = -1;
       node.x = 123;
-      play.state.sources.push(new play.classes.SoundSource(1, 2, "Extra"));
+      play.state.sources.push(play.createObject("SoundSource", 1, 2, "Extra"));
     }),
     false
   );

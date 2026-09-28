@@ -196,3 +196,64 @@ test.describe("package touch", () => {
     await client.detach();
   });
 });
+
+test("package UI renders and edits without legacy model, graph or solver globals", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(error.message));
+  for (const file of ["musicspace-model.js", "musicspace-graph.js", "musicspace-solvers.js"])
+    await page.route(`**/${file}`, (route) =>
+      route.fulfill({
+        contentType: "application/javascript",
+        body: "// Legacy runtime intentionally unavailable in this test."
+      })
+    );
+  await ready(page);
+  await page.locator("#ui-mode-edit").click();
+  for (const fixture of fixtures) {
+    await page.locator("#patch-select").selectOption(fixture.key);
+    await page.evaluate(() => {
+      window.stopAnimation();
+      const source = state.sources[0];
+      scene.moveEntity(source, source.x + 5, source.y + 3);
+      for (let i = 0; i < 3; i++) scene.step();
+      window.drawAll();
+    });
+  }
+  await page.locator("#patch-select").selectOption("simple-spring");
+  await page.evaluate(() => {
+    window.stopAnimation();
+    window.openSourceEditor(scene.getObjectByName("Mass"));
+  });
+  await page.locator("#source-name").fill("Renamed Mass");
+  await page.locator("#source-apply").click();
+  const result = await page.evaluate(() => {
+    const objects = [
+      state.listener,
+      ...state.sources,
+      ...state.movingObjects,
+      ...state.constraints,
+      ...state.constraints.map((c) => c.node)
+    ];
+    return {
+      noModel: typeof globalThis.MusicSpaceModel === "undefined",
+      noGraph: typeof globalThis.MusicSpaceGraph === "undefined",
+      noSolver: typeof globalThis.MusicSpaceSolvers === "undefined",
+      noClasses: scene.classes === undefined,
+      plain: objects.every(
+        (object) =>
+          Object.getPrototypeOf(object) === Object.prototype &&
+          !Object.values(object).some((value) => typeof value === "function")
+      ),
+      renamed: scene.getObjectByName("Renamed Mass")?.kind
+    };
+  });
+  expect(result).toEqual({
+    noModel: true,
+    noGraph: true,
+    noSolver: true,
+    noClasses: true,
+    plain: true,
+    renamed: "SoundSource"
+  });
+  expect(failures).toEqual([]);
+});

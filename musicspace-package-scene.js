@@ -1,4 +1,4 @@
-// Transitional workbench adapter: package-owned simulation, existing presentation objects.
+// Package-owned simulation with plain workbench display records.
 (function exposePackageScene(global) {
   function createPackageScene({ createView, onStatus = () => {}, loadModules } = {}) {
     const view = createView();
@@ -153,7 +153,7 @@
           target.fixedX = spec.x;
           target.fixedY = spec.y;
         }
-        target.updateNode?.();
+        view.updateNode(target);
       });
       const diagnostics = event?.diagnostics || space.diagnostics();
       state.propagationPaused = diagnostics.propagationPaused;

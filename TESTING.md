@@ -61,7 +61,7 @@ port, so environments that prohibit local servers need permission to run it.
   rest lengths, name collisions, independent context data and invalid exports.
 - `test/workbench-play.test.cjs` compares the workbench bridge with the original model
   across all 23 patches and both solvers. It rejects any use of presentation
-  solvers/ticks and verifies stable view objects, settings, traces, handles and
+  simulation operations and verifies stable view objects, settings, traces, handles and
   failed-load preservation. Authoring checks exercise stable inspector references,
   failed-edit rollback and package-owned motion after creation or parameter edits.
 - `test/browser.test.cjs` uses the standalone SVG playground to verify dragging,
@@ -88,6 +88,12 @@ spring and mass editing, trajectory editors, source renames, deletion, empty-sce
 save/load, JSON validation and undo. It compares all 11 constraint tools and all
 five trajectory tools with both solvers. Additional package checks cover rollback
 and audio/generator/MIDI reference updates across rename, delete and undo.
+
+`tests/presentation.test.js` compares the plain display records with the original
+model for all 23 patches: serialized constraints, references, labels, glyphs,
+colors, node layout, recapture and hit areas. The package browser suite also runs
+with the legacy model, graph and solver scripts replaced by empty responses,
+checking rendering, motion and editing without those globals.
 
 
 ## Benchmarks

@@ -223,6 +223,7 @@ function createEngineHarness() {
   const sandbox = {
     MusicSpaceMapping: require("../../musicspace-mapping"),
     MusicSpaceModel: require("../../musicspace-model"),
+    MusicSpacePresentation: require("../../musicspace-presentation"),
     MusicSpaceClock: require("../../musicspace-clock"),
     Blob,
     URL,

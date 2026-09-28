@@ -662,29 +662,25 @@ const sceneOptions = {
 };
 const scene = usePackageEngine
   ? globalThis.MusicSpacePackageScene.createPackageScene({
-      createView: () => MusicSpaceModel.createSceneModel(sceneOptions),
+      createView: () => globalThis.MusicSpacePresentation.createPresentation(sceneOptions),
       onStatus: setConstraintStatus
     })
   : MusicSpaceModel.createSceneModel(sceneOptions);
 const state = scene.state;
+const presentation = usePackageEngine ? scene : globalThis.MusicSpacePresentation.legacyPresentation(scene);
 const {
-  Entity,
-  Listener,
-  SoundSource,
-  MovingObject,
-  ConstraintNode,
-  AngleConstraint,
-  SumConstraint,
-  ProductConstraint,
-  RadialLimitConstraint,
-  FixedDistanceConstraint,
-  SpringConstraint,
-  DistanceRatioConstraint,
-  PinConstraint,
-  SolidAttachmentConstraint,
-  MinimumSeparationConstraint,
-  AngleSectorConstraint
-} = scene.classes;
+  createObject: createViewObject,
+  isKind: isViewKind,
+  kindOf: viewKind,
+  updateNode: updateConstraintNode,
+  refresh: recaptureConstraint,
+  affectedEntities: constraintEntities
+} = presentation;
+const containsPoint = globalThis.MusicSpacePresentation.containsPoint;
+const renderers = {};
+function drawObject(object, ctx, ...args) {
+  renderers[viewKind(object)](object, ctx, ...args);
+}
 const {
   constraintReferencesEntity,
   distanceBetween,
@@ -699,43 +695,43 @@ const {
   measureConstraintResiduals,
   validatePatch
 } = scene;
-Entity.prototype.draw = function (ctx) {
+renderers.Entity = function (object, ctx) {
   ctx.beginPath();
-  ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-  ctx.fillStyle = this.color;
+  ctx.arc(object.x, object.y, object.radius, 0, Math.PI * 2);
+  ctx.fillStyle = object.color;
   ctx.fill();
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.stroke();
 };
 
-Listener.prototype.draw = function (ctx) {
-  Entity.prototype.draw.call(this, ctx);
-  drawListenerGlyph(ctx, this.x, this.y);
+renderers.Listener = function (object, ctx) {
+  renderers.Entity(object, ctx);
+  drawListenerGlyph(ctx, object.x, object.y);
 };
 
-SoundSource.prototype.draw = function (ctx, emitterCapability = sourceEmitterCapability(this)) {
-  drawSourceBody(ctx, this, emitterCapability);
+renderers.SoundSource = function (object, ctx, emitterCapability = sourceEmitterCapability(object)) {
+  drawSourceBody(ctx, object, emitterCapability);
   if (emitterCapability.partial) {
     return;
   }
-  if (this.name.length <= 2) {
+  if (object.name.length <= 2) {
     ctx.fillStyle = emitterCapability.emits ? "#ffffff" : "#991b1b";
     ctx.font = "700 12px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.name, this.x, this.y);
+    ctx.fillText(object.name, object.x, object.y);
   } else {
-    drawSourceExternalLabel(ctx, this, emitterCapability);
+    drawSourceExternalLabel(ctx, object, emitterCapability);
   }
 
-  drawSourceEmitterBadge(ctx, this, emitterCapability);
+  drawSourceEmitterBadge(ctx, object, emitterCapability);
 };
 
-MovingObject.prototype.draw = function (ctx) {
-  if (this.trajectory?.type === "rotator") {
+renderers.MovingObject = function (object, ctx) {
+  if (object.trajectory?.type === "rotator") {
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
+    ctx.arc(object.x, object.y, object.radius + 3, 0, Math.PI * 2);
     ctx.fillStyle = "#f97316";
     ctx.fill();
     ctx.strokeStyle = "#fed7aa";
@@ -743,11 +739,11 @@ MovingObject.prototype.draw = function (ctx) {
     ctx.stroke();
   } else {
     ctx.save();
-    ctx.translate(this.x, this.y);
+    ctx.translate(object.x, object.y);
     ctx.rotate(Math.PI / 4);
     ctx.beginPath();
-    ctx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
-    ctx.fillStyle = this.color;
+    ctx.rect(-object.radius, -object.radius, object.radius * 2, object.radius * 2);
+    ctx.fillStyle = object.color;
     ctx.fill();
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
@@ -759,128 +755,128 @@ MovingObject.prototype.draw = function (ctx) {
   ctx.font = "700 10px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(this.trajectory?.type === "rotator" ? "R" : "M", this.x, this.y);
+  ctx.fillText(object.trajectory?.type === "rotator" ? "R" : "M", object.x, object.y);
 
   ctx.fillStyle = "#0f172a";
   ctx.font = "12px sans-serif";
   ctx.textBaseline = "bottom";
-  ctx.fillText(this.name, this.x, this.y - 18);
+  ctx.fillText(object.name, object.x, object.y - 18);
 };
 
-ConstraintNode.prototype.draw = function (ctx) {
-  Entity.prototype.draw.call(this, ctx);
+renderers.ConstraintNode = function (object, ctx) {
+  renderers.Entity(object, ctx);
   ctx.fillStyle = "#111827";
   ctx.font = "12px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.fillText(this.label, this.x, this.y - 18);
+  ctx.fillText(object.label, object.x, object.y - 18);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 11px sans-serif";
   ctx.textBaseline = "middle";
-  ctx.fillText(this.glyph, this.x, this.y);
+  ctx.fillText(object.glyph, object.x, object.y);
 };
 
-AngleConstraint.prototype.draw = function (ctx) {
-  drawConnector(ctx, this.node, this.a, "#2563eb");
-  drawConnector(ctx, this.node, this.b, "#2563eb");
-  drawConnector(ctx, this.node, this.listener, "#2563eb");
-  this.node.draw(ctx);
+renderers.AngleConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.a, "#2563eb");
+  drawConnector(ctx, object.node, object.b, "#2563eb");
+  drawConnector(ctx, object.node, object.listener, "#2563eb");
+  drawObject(object.node, ctx);
 };
 
-SumConstraint.prototype.draw = function (ctx) {
-  for (const source of this.sources) {
-    drawConnector(ctx, this.node, source, "#059669");
+renderers.SumConstraint = function (object, ctx) {
+  for (const source of object.sources) {
+    drawConnector(ctx, object.node, source, "#059669");
   }
-  drawConnector(ctx, this.node, this.listener, "#059669");
-  this.node.draw(ctx);
+  drawConnector(ctx, object.node, object.listener, "#059669");
+  drawObject(object.node, ctx);
 };
 
-ProductConstraint.prototype.draw = function (ctx) {
-  for (const source of this.sources) {
-    drawConnector(ctx, this.node, source, "#7c3aed");
+renderers.ProductConstraint = function (object, ctx) {
+  for (const source of object.sources) {
+    drawConnector(ctx, object.node, source, "#7c3aed");
   }
-  drawConnector(ctx, this.node, this.listener, "#7c3aed");
-  this.node.draw(ctx);
+  drawConnector(ctx, object.node, object.listener, "#7c3aed");
+  drawObject(object.node, ctx);
 };
 
-RadialLimitConstraint.prototype.draw = function (ctx) {
-  drawRadialLimit(ctx, this.listener, this.minDistance, this.maxDistance, "#ea580c");
-  drawConnector(ctx, this.node, this.source, "#ea580c");
-  drawConnector(ctx, this.node, this.listener, "#ea580c");
-  this.node.draw(ctx);
+renderers.RadialLimitConstraint = function (object, ctx) {
+  drawRadialLimit(ctx, object.listener, object.minDistance, object.maxDistance, "#ea580c");
+  drawConnector(ctx, object.node, object.source, "#ea580c");
+  drawConnector(ctx, object.node, object.listener, "#ea580c");
+  drawObject(object.node, ctx);
 };
 
-SpringConstraint.prototype.draw = function (ctx) {
-  const dx = this.target.x - this.anchor.x;
-  const dy = this.target.y - this.anchor.y;
+renderers.SpringConstraint = function (object, ctx) {
+  const dx = object.target.x - object.anchor.x;
+  const dy = object.target.y - object.anchor.y;
   const length = Math.hypot(dx, dy);
   const nx = length ? -dy / length : 0;
   const ny = length ? dx / length : 1;
   ctx.beginPath();
-  ctx.moveTo(this.anchor.x, this.anchor.y);
+  ctx.moveTo(object.anchor.x, object.anchor.y);
   for (let i = 1; i < 16; i += 1) {
     const offset = i === 1 || i === 15 ? 0 : (i % 2 ? -1 : 1) * Math.min(7, length / 10);
-    ctx.lineTo(this.anchor.x + (dx * i) / 16 + nx * offset, this.anchor.y + (dy * i) / 16 + ny * offset);
+    ctx.lineTo(object.anchor.x + (dx * i) / 16 + nx * offset, object.anchor.y + (dy * i) / 16 + ny * offset);
   }
-  ctx.lineTo(this.target.x, this.target.y);
-  ctx.strokeStyle = this.node.color;
+  ctx.lineTo(object.target.x, object.target.y);
+  ctx.strokeStyle = object.node.color;
   ctx.lineWidth = 2;
   ctx.stroke();
-  if (this.node.isManual) {
-    drawConnector(ctx, this.node, this.anchor, this.node.color);
-    drawConnector(ctx, this.node, this.target, this.node.color);
+  if (object.node.isManual) {
+    drawConnector(ctx, object.node, object.anchor, object.node.color);
+    drawConnector(ctx, object.node, object.target, object.node.color);
   }
-  this.node.draw(ctx);
+  drawObject(object.node, ctx);
 };
 
-FixedDistanceConstraint.prototype.draw = function (ctx) {
-  drawConnector(ctx, this.node, this.anchor, "#0f766e");
-  drawConnector(ctx, this.node, this.target, "#0f766e");
-  this.node.draw(ctx);
+renderers.FixedDistanceConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.anchor, "#0f766e");
+  drawConnector(ctx, object.node, object.target, "#0f766e");
+  drawObject(object.node, ctx);
 };
 
-DistanceRatioConstraint.prototype.draw = function (ctx) {
-  drawConnector(ctx, this.node, this.a, "#9333ea");
-  drawConnector(ctx, this.node, this.b, "#9333ea");
-  drawConnector(ctx, this.node, this.listener, "#9333ea");
-  this.node.draw(ctx);
+renderers.DistanceRatioConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.a, "#9333ea");
+  drawConnector(ctx, object.node, object.b, "#9333ea");
+  drawConnector(ctx, object.node, object.listener, "#9333ea");
+  drawObject(object.node, ctx);
 };
 
-PinConstraint.prototype.draw = function (ctx) {
-  drawConnector(ctx, this.node, this.target, "#475569");
-  this.node.draw(ctx);
+renderers.PinConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.target, "#475569");
+  drawObject(object.node, ctx);
 };
 
-SolidAttachmentConstraint.prototype.draw = function (ctx) {
-  if (isPartialSource(this.attached) || isPartialSource(this.carrier)) {
+renderers.SolidAttachmentConstraint = function (object, ctx) {
+  if (isPartialSource(object.attached) || isPartialSource(object.carrier)) {
     ctx.save();
     ctx.strokeStyle = "rgba(3, 105, 161, 0.28)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(this.carrier.x, this.carrier.y);
-    ctx.lineTo(this.attached.x, this.attached.y);
+    ctx.moveTo(object.carrier.x, object.carrier.y);
+    ctx.lineTo(object.attached.x, object.attached.y);
     ctx.stroke();
     ctx.restore();
     return;
   }
 
-  drawConnector(ctx, this.node, this.carrier, "#0369a1");
-  drawConnector(ctx, this.node, this.attached, "#0369a1");
-  this.node.draw(ctx);
+  drawConnector(ctx, object.node, object.carrier, "#0369a1");
+  drawConnector(ctx, object.node, object.attached, "#0369a1");
+  drawObject(object.node, ctx);
 };
 
-MinimumSeparationConstraint.prototype.draw = function (ctx) {
-  drawConnector(ctx, this.node, this.a, "#be123c");
-  drawConnector(ctx, this.node, this.b, "#be123c");
-  this.node.draw(ctx);
+renderers.MinimumSeparationConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.a, "#be123c");
+  drawConnector(ctx, object.node, object.b, "#be123c");
+  drawObject(object.node, ctx);
 };
 
-AngleSectorConstraint.prototype.draw = function (ctx) {
-  drawAngleSector(ctx, this.listener, this.centerAngle, this.width, "#c2410c");
-  drawConnector(ctx, this.node, this.source, "#c2410c");
-  drawConnector(ctx, this.node, this.listener, "#c2410c");
-  this.node.draw(ctx);
+renderers.AngleSectorConstraint = function (object, ctx) {
+  drawAngleSector(ctx, object.listener, object.centerAngle, object.width, "#c2410c");
+  drawConnector(ctx, object.node, object.source, "#c2410c");
+  drawConnector(ctx, object.node, object.listener, "#c2410c");
+  drawObject(object.node, ctx);
 };
 let dragged = null;
 
@@ -1607,11 +1603,11 @@ function selectedEntitySummary(entity) {
     };
   }
 
-  if (entity instanceof SoundSource) {
+  if (isViewKind(entity, "SoundSource")) {
     return selectedSourceSummary(entity);
   }
 
-  if (entity instanceof MovingObject) {
+  if (isViewKind(entity, "MovingObject")) {
     return {
       title: `Mover: ${entity.name}`,
       lines: [
@@ -1621,7 +1617,7 @@ function selectedEntitySummary(entity) {
     };
   }
 
-  if (entity instanceof ConstraintNode) {
+  if (isViewKind(entity, "ConstraintNode")) {
     const constraint = findConstraintForNode(entity);
     const spec = constraint ? constraintEditorSpec(constraint) : null;
     return {
@@ -1713,7 +1709,7 @@ function drawAll() {
   generatorClient.updateSpatial();
 
   for (const constraint of state.constraints) {
-    constraint.draw(ctx);
+    drawObject(constraint, ctx);
   }
   drawConstraintDiagnostics(ctx);
 
@@ -1725,12 +1721,12 @@ function drawAll() {
   }
 
   for (const mover of state.movingObjects) {
-    mover.draw(ctx);
+    drawObject(mover, ctx);
   }
 
-  state.listener.draw(ctx);
+  drawObject(state.listener, ctx);
   for (const source of state.sources) {
-    source.draw(ctx, sourceEmitterCapability(source));
+    drawObject(source, ctx, sourceEmitterCapability(source));
     drawSourceMuteCue(ctx, source);
   }
 
@@ -1841,7 +1837,7 @@ function drawListenerGlyph(ctx, x, y) {
 
 function drawSelection(ctx, entity) {
   ctx.beginPath();
-  const radius = entity instanceof SoundSource ? sourceVisualRadius(entity) : entity.radius;
+  const radius = isViewKind(entity, "SoundSource") ? sourceVisualRadius(entity) : entity.radius;
   ctx.arc(entity.x, entity.y, radius + 6, 0, Math.PI * 2);
   ctx.strokeStyle = "#f59e0b";
   ctx.lineWidth = 3;
@@ -2121,7 +2117,7 @@ function canUseEntityForTool(tool, entity) {
 
 function handleToolClick(x, y, entity) {
   if (activeTool === "source") {
-    const source = new SoundSource(x, y, nextSourceName());
+    const source = createViewObject("SoundSource", x, y, nextSourceName());
     if (!editGeometry("create source", () => state.sources.push(source))) return true;
     selectedEntity = source;
     setActiveTool(TOOL_SELECT);
@@ -2130,7 +2126,7 @@ function handleToolClick(x, y, entity) {
   }
 
   if (activeTool === "mover") {
-    const mover = new MovingObject(x, y, nextMoverName(), { type: "free" });
+    const mover = createViewObject("MovingObject", x, y, nextMoverName(), { type: "free" });
     if (!editGeometry("create mover", () => state.movingObjects.push(mover))) return true;
     selectedEntity = mover;
     setActiveTool(TOOL_SELECT);
@@ -2139,8 +2135,9 @@ function handleToolClick(x, y, entity) {
   }
 
   if (isTrajectoryTool(activeTool)) {
-    const mover =
-      entity instanceof MovingObject ? entity : new MovingObject(x, y, nextMoverName(), { type: "free" });
+    const mover = isViewKind(entity, "MovingObject")
+      ? entity
+      : createViewObject("MovingObject", x, y, nextMoverName(), { type: "free" });
     const tool = activeTool;
     if (
       !editGeometry("assign trajectory", () => {
@@ -2224,20 +2221,21 @@ function handleToolButtonClick(tool) {
 
 function createConstraintFromTool(tool, entities) {
   if (tool === "angle") {
-    return new AngleConstraint(state.listener, entities[0], entities[1]);
+    return createViewObject("AngleConstraint", state.listener, entities[0], entities[1]);
   }
 
   if (tool === "sum") {
-    return new SumConstraint(state.listener, entities);
+    return createViewObject("SumConstraint", state.listener, entities);
   }
 
   if (tool === "product") {
-    return new ProductConstraint(state.listener, entities);
+    return createViewObject("ProductConstraint", state.listener, entities);
   }
 
   if (tool === "radialLimit") {
     const distance = distanceBetween(entities[0], state.listener);
-    return new RadialLimitConstraint(
+    return createViewObject(
+      "RadialLimitConstraint",
       state.listener,
       entities[0],
       Math.max(MIN_DISTANCE, distance * 0.55),
@@ -2246,27 +2244,28 @@ function createConstraintFromTool(tool, entities) {
   }
 
   if (tool === "spring") {
-    return new SpringConstraint(entities[0], entities[1]);
+    return createViewObject("SpringConstraint", entities[0], entities[1]);
   }
 
   if (tool === "fixedDistance") {
-    return new FixedDistanceConstraint(entities[0], entities[1]);
+    return createViewObject("FixedDistanceConstraint", entities[0], entities[1]);
   }
 
   if (tool === "distanceRatio") {
-    return new DistanceRatioConstraint(state.listener, entities[0], entities[1]);
+    return createViewObject("DistanceRatioConstraint", state.listener, entities[0], entities[1]);
   }
 
   if (tool === "pin") {
-    return new PinConstraint(entities[0]);
+    return createViewObject("PinConstraint", entities[0]);
   }
 
   if (tool === "solid") {
-    return new SolidAttachmentConstraint(entities[0], entities[1]);
+    return createViewObject("SolidAttachmentConstraint", entities[0], entities[1]);
   }
 
   if (tool === "separation") {
-    return new MinimumSeparationConstraint(
+    return createViewObject(
+      "MinimumSeparationConstraint",
       entities[0],
       entities[1],
       Math.max(50, distanceBetween(entities[0], entities[1]))
@@ -2274,7 +2273,7 @@ function createConstraintFromTool(tool, entities) {
   }
 
   if (tool === "angleSector") {
-    return new AngleSectorConstraint(state.listener, entities[0]);
+    return createViewObject("AngleSectorConstraint", state.listener, entities[0]);
   }
 
   return null;
@@ -2492,7 +2491,7 @@ function closeListenerEditor() {
 }
 
 function openRotationEditor(mover) {
-  if (!(mover instanceof MovingObject)) {
+  if (!isViewKind(mover, "MovingObject")) {
     return;
   }
 
@@ -2555,7 +2554,7 @@ function closeRotationEditor() {
 }
 
 function openShuttleEditor(mover) {
-  if (!(mover instanceof MovingObject)) {
+  if (!isViewKind(mover, "MovingObject")) {
     return;
   }
 
@@ -2690,40 +2689,38 @@ function findConstraintForNode(node) {
 }
 
 function constraintEditorSpec(constraint) {
-  if (constraint instanceof AngleConstraint) {
+  if (isViewKind(constraint, "AngleConstraint")) {
     return {
       summary: `Angle between ${entityLabel(constraint.a)} and ${entityLabel(constraint.b)} around Listener.`,
       valueA: { label: "Angle (deg)", value: radiansToDegrees(constraint.angle), min: -360, step: 0.1 }
     };
   }
-  if (constraint instanceof SumConstraint) {
+  if (isViewKind(constraint, "SumConstraint")) {
     return {
       summary: `Sum of distances for ${constraint.sources.map(entityLabel).join(", ")}.`,
       valueA: { label: "Total distance", value: constraint.totalDistance, min: 0, step: 1 }
     };
   }
-  if (constraint instanceof ProductConstraint) {
+  if (isViewKind(constraint, "ProductConstraint")) {
     return {
       summary: `Product of distances for ${constraint.sources.map(entityLabel).join(", ")}.`,
       valueA: { label: "Distance product", value: constraint.product, min: MIN_DISTANCE, step: 1 }
     };
   }
-  if (constraint instanceof RadialLimitConstraint) {
+  if (isViewKind(constraint, "RadialLimitConstraint")) {
     return {
       summary: `${entityLabel(constraint.source)} distance from Listener.`,
       valueA: { label: "Minimum distance", value: constraint.minDistance, min: 0, step: 1 },
       valueB: { label: "Maximum distance", value: constraint.maxDistance, min: 0, step: 1 }
     };
   }
-  if (constraint instanceof SpringConstraint) {
-    const movableEndpoints = constraint
-      .affectedEntities()
-      .filter(
-        (entity) =>
-          entity !== state.listener &&
-          !(entity instanceof MovingObject && entity.trajectory.type !== "free") &&
-          !state.constraints.some((other) => other instanceof PinConstraint && other.target === entity)
-      );
+  if (isViewKind(constraint, "SpringConstraint")) {
+    const movableEndpoints = constraintEntities(constraint).filter(
+      (entity) =>
+        entity !== state.listener &&
+        !(isViewKind(entity, "MovingObject") && entity.trajectory.type !== "free") &&
+        !state.constraints.some((other) => isViewKind(other, "PinConstraint") && other.target === entity)
+    );
     const gesture = movableEndpoints.length
       ? `Drag ${movableEndpoints.map(entityLabel).join(" or ")} and release to oscillate.`
       : "Both endpoints are fixed.";
@@ -2734,39 +2731,39 @@ function constraintEditorSpec(constraint) {
       valueC: { label: "Damping", value: constraint.damping, min: 0, step: 0.1 }
     };
   }
-  if (constraint instanceof FixedDistanceConstraint) {
+  if (isViewKind(constraint, "FixedDistanceConstraint")) {
     return {
       summary: `${entityLabel(constraint.target)} fixed from ${entityLabel(constraint.anchor)}.`,
       valueA: { label: "Distance", value: constraint.distance, min: MIN_DISTANCE, step: 1 }
     };
   }
-  if (constraint instanceof DistanceRatioConstraint) {
+  if (isViewKind(constraint, "DistanceRatioConstraint")) {
     return {
       summary: `${entityLabel(constraint.a)} / ${entityLabel(constraint.b)} distance ratio from Listener.`,
       valueA: { label: "Ratio", value: constraint.ratio, min: 0.001, step: 0.001 }
     };
   }
-  if (constraint instanceof PinConstraint) {
+  if (isViewKind(constraint, "PinConstraint")) {
     return {
       summary: `${entityLabel(constraint.target)} pinned position.`,
       valueA: { label: "Pinned X", value: constraint.fixedX, step: 1 },
       valueB: { label: "Pinned Y", value: constraint.fixedY, step: 1 }
     };
   }
-  if (constraint instanceof SolidAttachmentConstraint) {
+  if (isViewKind(constraint, "SolidAttachmentConstraint")) {
     return {
       summary: `${entityLabel(constraint.attached)} follows ${entityLabel(constraint.carrier)}.`,
       valueA: { label: "Offset X", value: constraint.offsetX, step: 1 },
       valueB: { label: "Offset Y", value: constraint.offsetY, step: 1 }
     };
   }
-  if (constraint instanceof MinimumSeparationConstraint) {
+  if (isViewKind(constraint, "MinimumSeparationConstraint")) {
     return {
       summary: `${entityLabel(constraint.a)} and ${entityLabel(constraint.b)} minimum distance.`,
       valueA: { label: "Minimum distance", value: constraint.minDistance, min: 0, step: 1 }
     };
   }
-  if (constraint instanceof AngleSectorConstraint) {
+  if (isViewKind(constraint, "AngleSectorConstraint")) {
     return {
       summary: `${entityLabel(constraint.source)} angle sector around Listener.`,
       valueA: { label: "Center angle (deg)", value: radiansToDegrees(constraint.centerAngle), step: 0.1 },
@@ -2839,7 +2836,7 @@ function applyConstraintEditor() {
       constraint.node.x = clampNumberInput(constraintNodeXInput.value, 0, WIDTH, constraint.node.x);
       constraint.node.y = clampNumberInput(constraintNodeYInput.value, 0, HEIGHT, constraint.node.y);
       if (!constraint.node.isManual) {
-        constraint.updateNode?.();
+        updateConstraintNode(constraint);
       }
     })
   )
@@ -2858,7 +2855,7 @@ function readConstraintEditorValues(constraint) {
   const valueB = Number(constraintValueBInput.value);
   const valueC = Number(constraintValueCInput.value);
   if (
-    constraint instanceof SpringConstraint &&
+    isViewKind(constraint, "SpringConstraint") &&
     [valueA, valueB, valueC].some((value) => !Number.isFinite(value) || value < 0)
   )
     return { ok: false, message: "Spring parameters must be finite and nonnegative." };
@@ -2869,18 +2866,18 @@ function readConstraintEditorValues(constraint) {
   if (!constraintValueBRow.hidden && !Number.isFinite(valueB)) {
     return { ok: false, message: `${constraintValueBLabel.textContent} must be a number.` };
   }
-  if (constraint instanceof RadialLimitConstraint && valueA > valueB) {
+  if (isViewKind(constraint, "RadialLimitConstraint") && valueA > valueB) {
     return { ok: false, message: "Minimum distance must be less than or equal to maximum distance." };
   }
   if (
-    (constraint instanceof ProductConstraint ||
-      constraint instanceof FixedDistanceConstraint ||
-      constraint instanceof DistanceRatioConstraint) &&
+    (isViewKind(constraint, "ProductConstraint") ||
+      isViewKind(constraint, "FixedDistanceConstraint") ||
+      isViewKind(constraint, "DistanceRatioConstraint")) &&
     valueA <= 0
   ) {
     return { ok: false, message: `${constraintValueALabel.textContent} must be positive.` };
   }
-  if (constraint instanceof AngleSectorConstraint && valueB <= 0) {
+  if (isViewKind(constraint, "AngleSectorConstraint") && valueB <= 0) {
     return { ok: false, message: "Width must be positive." };
   }
 
@@ -2888,32 +2885,32 @@ function readConstraintEditorValues(constraint) {
 }
 
 function applyConstraintEditorValues(constraint, values) {
-  if (constraint instanceof AngleConstraint) {
+  if (isViewKind(constraint, "AngleConstraint")) {
     constraint.angle = degreesToRadians(values.valueA);
-  } else if (constraint instanceof SumConstraint) {
+  } else if (isViewKind(constraint, "SumConstraint")) {
     constraint.totalDistance = Math.max(0, values.valueA);
-  } else if (constraint instanceof ProductConstraint) {
+  } else if (isViewKind(constraint, "ProductConstraint")) {
     constraint.product = Math.max(MIN_DISTANCE, values.valueA);
-  } else if (constraint instanceof RadialLimitConstraint) {
+  } else if (isViewKind(constraint, "RadialLimitConstraint")) {
     constraint.minDistance = Math.max(0, values.valueA);
     constraint.maxDistance = Math.max(constraint.minDistance, values.valueB);
-  } else if (constraint instanceof SpringConstraint) {
+  } else if (isViewKind(constraint, "SpringConstraint")) {
     constraint.restLength = values.valueA;
     constraint.stiffness = values.valueB;
     constraint.damping = values.valueC;
-  } else if (constraint instanceof FixedDistanceConstraint) {
+  } else if (isViewKind(constraint, "FixedDistanceConstraint")) {
     constraint.distance = Math.max(MIN_DISTANCE, values.valueA);
-  } else if (constraint instanceof DistanceRatioConstraint) {
+  } else if (isViewKind(constraint, "DistanceRatioConstraint")) {
     constraint.ratio = Math.max(0.001, values.valueA);
-  } else if (constraint instanceof PinConstraint) {
+  } else if (isViewKind(constraint, "PinConstraint")) {
     constraint.fixedX = clamp(values.valueA, 0, WIDTH);
     constraint.fixedY = clamp(values.valueB, 0, HEIGHT);
-  } else if (constraint instanceof SolidAttachmentConstraint) {
+  } else if (isViewKind(constraint, "SolidAttachmentConstraint")) {
     constraint.offsetX = values.valueA;
     constraint.offsetY = values.valueB;
-  } else if (constraint instanceof MinimumSeparationConstraint) {
+  } else if (isViewKind(constraint, "MinimumSeparationConstraint")) {
     constraint.minDistance = Math.max(0, values.valueA);
-  } else if (constraint instanceof AngleSectorConstraint) {
+  } else if (isViewKind(constraint, "AngleSectorConstraint")) {
     constraint.centerAngle = degreesToRadians(values.valueA);
     constraint.width = degreesToRadians(Math.max(0.1, values.valueB));
   }
@@ -2925,7 +2922,8 @@ function recaptureConstraintFromGeometry() {
     return;
   }
 
-  if (!editGeometry(`recapture ${constraint.node.label} constraint`, () => constraint.refresh?.())) return;
+  if (!editGeometry(`recapture ${constraint.node.label} constraint`, () => recaptureConstraint(constraint)))
+    return;
   openConstraintEditor(constraint);
   updatePatchInspector();
   drawAll();
@@ -2939,26 +2937,26 @@ function closeConstraintEditor() {
 }
 
 function primaryEntityForConstraint(constraint) {
-  if (constraint instanceof RadialLimitConstraint || constraint instanceof AngleSectorConstraint) {
+  if (isViewKind(constraint, "RadialLimitConstraint") || isViewKind(constraint, "AngleSectorConstraint")) {
     return constraint.source;
   }
   if (
-    constraint instanceof FixedDistanceConstraint ||
-    constraint instanceof SpringConstraint ||
-    constraint instanceof PinConstraint
+    isViewKind(constraint, "FixedDistanceConstraint") ||
+    isViewKind(constraint, "SpringConstraint") ||
+    isViewKind(constraint, "PinConstraint")
   ) {
     return constraint.target;
   }
-  if (constraint instanceof SolidAttachmentConstraint) {
+  if (isViewKind(constraint, "SolidAttachmentConstraint")) {
     return constraint.carrier;
   }
-  if (constraint instanceof DistanceRatioConstraint || constraint instanceof AngleConstraint) {
+  if (isViewKind(constraint, "DistanceRatioConstraint") || isViewKind(constraint, "AngleConstraint")) {
     return constraint.a;
   }
-  if (constraint instanceof MinimumSeparationConstraint) {
+  if (isViewKind(constraint, "MinimumSeparationConstraint")) {
     return constraint.a;
   }
-  if (constraint instanceof SumConstraint || constraint instanceof ProductConstraint) {
+  if (isViewKind(constraint, "SumConstraint") || isViewKind(constraint, "ProductConstraint")) {
     return constraint.sources[0];
   }
   return null;
@@ -3863,7 +3861,7 @@ function clampIntegerInput(value, min, max, fallback) {
 }
 
 function openSourceEditor(source) {
-  if (!(source instanceof SoundSource)) {
+  if (!isViewKind(source, "SoundSource")) {
     return;
   }
 
@@ -4188,7 +4186,7 @@ function deleteSelectedEntity() {
   if (activeSourceEditorSource === entity) {
     closeSourceEditor();
   }
-  if (entity instanceof SoundSource) {
+  if (isViewKind(entity, "SoundSource")) {
     sourceAudioClient.removeBinding(entity.name);
     generatorClient.removeGenerator(entity.name);
   }
@@ -4246,31 +4244,31 @@ function findEntityAt(x, y, pointerType = "mouse") {
     let nearestDistance = Infinity;
     for (const entity of entities) {
       const distance = Math.hypot((entity.x - x) * view.scaleX, (entity.y - y) * view.scaleY);
-      if ((distance <= 22 || entity.isInside(x, y)) && distance < nearestDistance) {
+      if ((distance <= 22 || containsPoint(entity, x, y)) && distance < nearestDistance) {
         nearest = entity;
         nearestDistance = distance;
       }
     }
     return nearest;
   }
-  if (state.listener.isInside(x, y)) {
+  if (containsPoint(state.listener, x, y)) {
     return state.listener;
   }
 
   for (const source of state.sources) {
-    if (source.isInside(x, y)) {
+    if (containsPoint(source, x, y)) {
       return source;
     }
   }
 
   for (const mover of state.movingObjects) {
-    if (mover.isInside(x, y)) {
+    if (containsPoint(mover, x, y)) {
       return mover;
     }
   }
 
   for (const constraint of state.constraints) {
-    if (constraint.node.isInside(x, y)) {
+    if (containsPoint(constraint.node, x, y)) {
       return constraint.node;
     }
   }
@@ -4281,7 +4279,7 @@ function findEntityAt(x, y, pointerType = "mouse") {
 function findDoubleClickEntityAt(x, y) {
   for (const mover of state.movingObjects) {
     const trajectoryType = mover.trajectory?.type;
-    if ((trajectoryType === "rotator" || trajectoryType === "shuttle") && mover.isInside(x, y)) {
+    if ((trajectoryType === "rotator" || trajectoryType === "shuttle") && containsPoint(mover, x, y)) {
       return mover;
     }
   }
@@ -4305,26 +4303,26 @@ function canvasClickDistance(event) {
 }
 
 function handleEntityDoubleClick(entity) {
-  if (entity instanceof MovingObject && entity.trajectory?.type === "rotator") {
+  if (isViewKind(entity, "MovingObject") && entity.trajectory?.type === "rotator") {
     openRotationEditor(entity);
     selectedEntity = entity;
     drawAll();
     return true;
   }
 
-  if (entity instanceof MovingObject && entity.trajectory?.type === "shuttle") {
+  if (isViewKind(entity, "MovingObject") && entity.trajectory?.type === "shuttle") {
     openShuttleEditor(entity);
     selectedEntity = entity;
     drawAll();
     return true;
   }
 
-  if (entity instanceof MovingObject) {
+  if (isViewKind(entity, "MovingObject")) {
     setConstraintStatus("Use Spin to convert this mover into a rotative object.");
     return true;
   }
 
-  if (entity instanceof SoundSource) {
+  if (isViewKind(entity, "SoundSource")) {
     openSourceEditor(entity);
     selectedEntity = entity;
     drawAll();
@@ -4392,7 +4390,7 @@ function updateTraceSelectedButton() {
 }
 
 function toggleSelectedSourceMute() {
-  if (!(selectedEntity instanceof SoundSource)) {
+  if (!isViewKind(selectedEntity, "SoundSource")) {
     setConstraintStatus("Select a source to mute or unmute.");
     return;
   }
@@ -4507,11 +4505,11 @@ function drawTraceSegment(entity, nextX = entity.x, nextY = entity.y, color = tr
 }
 
 function traceColorForEntity(entity) {
-  if (entity instanceof MovingObject) {
+  if (isViewKind(entity, "MovingObject")) {
     return "rgba(8, 145, 178, 0.45)";
   }
 
-  if (entity instanceof ConstraintNode) {
+  if (isViewKind(entity, "ConstraintNode")) {
     return "rgba(124, 58, 237, 0.45)";
   }
 

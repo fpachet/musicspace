@@ -30,9 +30,9 @@ before deployment. No npm publication or Orbit-specific integration is included.
 
 - `musicspace-package-scene.js` owns the package scene and uses its public API for
   movement, solving, held bodies, stepping, release and resumed propagation.
-- Existing model objects remain as a presentation mirror and editor drafts because drawing,
-  inspectors and output feature lookup still depend on their classes. Their identities stay
-  stable during gestures. Their solvers and trajectory ticks are never called.
+- Plain presentation records provide drawing data, output feature lookup and editor
+  drafts. Their identities stay stable during gestures. The experimental UI creates
+  no legacy model or simulation objects outside the package.
 - The mirror copies positions, velocities, trajectories, constraint invariants
   and diagnostics. Constraint handles and trace flags remain display metadata.
   Output clients retain their existing mappings and lifecycle.
@@ -61,15 +61,32 @@ before deployment. No npm publication or Orbit-specific integration is included.
   but resetting transient drag/rotation deltas. This is a compatibility step;
   direct incremental authoring operations and frame-cost profiling remain ahead.
 
+### Plain presentation records and renderer functions
+
+- `musicspace-presentation.js` creates plain points, constraint handles and
+  constraint records with explicit `kind` tags. A schema describes references,
+  editable scalar fields, display layout and measurements used by recapture.
+  It contains no model, graph, solver or trajectory stepping operations.
+- Rendering uses ordinary functions; the UI no longer attaches drawing methods to
+  model prototypes or uses legacy constructors and `instanceof` in its editors.
+  The standard engine is supported through a small presentation compatibility adapter.
+- The package path retains only the package simulation and plain display records.
+  Browser coverage renders all 23 patches and edits with the legacy model, graph
+  and solver globals unavailable. Display fixtures compare labels, glyphs, colors,
+  hit areas, node positions and recaptured invariants with the original model.
+- Shared constants, patch validation and trajectory normalization remain reusable
+  helpers. The package still bundles the existing solver internally; this stage
+  removes the UI dependency on its classes, not the solver implementation.
+
 ## Remaining work
 
 1. Try the experimental mode during actual musical sessions, including external
    MIDI hardware and user patches. Automated browser audio checks verify startup,
    mappings and shutdown; they do not establish listening quality or device parity.
-2. Replace the presentation model and mutable editor drafts with plain view data,
-   renderer helpers and direct public authoring operations. Preserve transaction
-   validation, reference updates and undo. Profile editing and frame costs on large
-   user scenes before switching the default.
+2. Profile editing and frame costs on large scenes. Move suitable editor operations
+   from full-scene restoration to incremental public package operations, preserving
+   validation, reference updates and undo. Plain records and renderer helpers now
+   provide the boundary needed for this work.
 3. Switch the default only after parity. Keep the standard path until the migrated
    interface and saved user patches are validated in real use.
 4. Settle the public contract through standalone consumers, then publish a versioned

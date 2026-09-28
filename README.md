@@ -39,6 +39,8 @@ a patch, or `&solver=xpbd` to compare solvers. A banner identifies this experime
 mode. Both **Play** and **Edit** are available: create/delete controls and constraints,
 edit trajectories and source bindings, change JSON, and undo edits. Invalid geometry
 edits leave the scene and undo history intact. Empty patches can be saved and loaded.
+The experimental UI uses plain display records and renderer functions, with all
+simulation owned by the package. The standard engine remains the default.
 The return link reloads the selected built-in patch with the standard engine;
 it does not transfer live changes. Without `?engine=package`, no package artifacts
 are loaded and no build is needed.

@@ -1,5 +1,5 @@
 // These bindings are provided by musicspace.js inside page.evaluate callbacks.
-/* global scene, state, SpringConstraint */
+/* global scene, state, isViewKind */
 const { expect, test } = require("@playwright/test");
 
 test("musicspace page loads and core controls respond", async ({ page }) => {
@@ -311,7 +311,7 @@ test("spring patches animate, drag, edit and drive existing musical mappings", a
   });
   expect(releasedY).toBeLessThan(held.y - 10);
   await page.evaluate(() =>
-    window.openConstraintEditor(state.constraints.find((c) => c instanceof SpringConstraint))
+    window.openConstraintEditor(state.constraints.find((c) => isViewKind(c, "SpringConstraint")))
   );
   await expect(page.locator("#constraint-value-c-row")).toBeVisible();
   await page.locator("#constraint-value-a").fill("150");
