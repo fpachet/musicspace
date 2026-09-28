@@ -192,3 +192,88 @@ test("failed authoring restores nested fields, topology and the running engine",
   assert.equal(play.loadPatch(play.serializePatch()), true);
   assert.deepEqual(play.state.sources, []);
 });
+
+const { performanceScenes } = require("../../../scripts/performance-scenes");
+for (const { key, patch } of performanceScenes())
+  for (const solver of ["propagation", "xpbd"])
+    test(`large scene stays equivalent after movement and editing: ${key}/${solver}`, async () => {
+      const { play } = await setup(patch, solver);
+      const standard = createSceneModel();
+      standard.setSolverMode(solver);
+      assert.equal(standard.loadPatch(patch), true);
+      const a = play.state.sources[0],
+        b = standard.state.sources[0];
+      play.beginDrag(a);
+      standard.beginDrag(b);
+      for (let i = 0; i < 10; i++) {
+        play.moveEntity(a, 85 + i, 65 + i);
+        standard.moveEntity(b, 85 + i, 65 + i);
+        play.step();
+        standard.step();
+        compare(play, standard);
+      }
+      play.endDrag();
+      standard.endDrag();
+      if (solver === "xpbd") standard.refineXpbdAfterDrag(b);
+      compare(play, standard);
+      const saved = play.serializePatch();
+      assert.equal(
+        play.editGeometry(() => {
+          a.name = "Renamed";
+        }),
+        true
+      );
+      const expected = standard.serializePatch();
+      expected.sources[0].name = "Renamed";
+      for (const c of expected.constraints)
+        for (const field of ["anchor", "target"]) if (c[field] === b.name) c[field] = "Renamed";
+      assert.equal(standard.loadPatch(expected), true);
+      play.step();
+      standard.step();
+      compare(play, standard);
+      assert.equal(play.loadPatch(saved), true);
+      assert.equal(standard.loadPatch(saved), true);
+      play.step();
+      standard.step();
+      compare(play, standard);
+    });
+
+test("saving copies synchronized geometry without rebuilding a solver and captures drag velocity reset", async () => {
+  let space;
+  const view = createPresentation();
+  const play = createPackageScene({
+    createView: () => view,
+    loadModules: async () => [
+      {
+        ...engine,
+        createSpace: (definition) => {
+          space = engine.createSpace(definition);
+          return space;
+        }
+      },
+      {
+        ...adapter,
+        exportLegacyPatch: () => {
+          throw Error("Save rebuilt a solver");
+        }
+      }
+    ]
+  });
+  await play.initialize();
+  for (const fixture of fixtures) {
+    assert.equal(play.loadPatch(read(fixture.file)), true);
+    for (let i = 0; i < 3; i++) play.step();
+    const point = play.state.sources[0];
+    play.beginDrag(point);
+    const patch = play.serializePatch();
+    const imported = adapter.importLegacyPatch(patch, {
+      solver: space.snapshot().solver,
+      centerMode: space.snapshot().centerMode
+    });
+    const expected = adapter.exportLegacyPatch(space.snapshot(), imported.context);
+    assert.deepEqual(patch, expected, fixture.file);
+    patch.sources[0].x = -999;
+    assert.notEqual(play.serializePatch().sources[0].x, -999);
+    play.endDrag({ refine: false });
+  }
+});

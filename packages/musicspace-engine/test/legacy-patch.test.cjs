@@ -383,3 +383,28 @@ test("empty and mover-only legacy patches round-trip without placeholder sources
   }
   assert.throws(() => importLegacyPatch({ listener: { x: 0, y: 0 }, constraints: [] }), /array/);
 });
+
+test("import retains public endpoint and configuration validation", () => {
+  const patch = { listener: { x: 0, y: 0 }, sources: [{ name: "A", x: 10, y: 20 }], constraints: [] };
+  for (const constraint of [
+    { type: "fixedDistance", anchor: "A", target: "A", distance: 10 },
+    { type: "solid", carrier: "A", attached: "A" },
+    { type: "sum", sources: ["A", "A"], totalDistance: 20 },
+    { type: "pin", target: "A", x: "10", y: 20 }
+  ])
+    assert.throws(() => importLegacyPatch({ ...patch, constraints: [constraint] }), TypeError);
+  assert.throws(
+    () =>
+      importLegacyPatch({
+        listener: { x: 0, y: 0 },
+        sources: [
+          { name: "A", x: 1e308, y: 0 },
+          { name: "B", x: -1e308, y: 0 }
+        ],
+        constraints: [{ type: "fixedDistance", anchor: "A", target: "B" }]
+      }),
+    TypeError
+  );
+  for (const options of [{ solver: "unknown" }, { centerMode: "unknown" }])
+    assert.throws(() => importLegacyPatch(patch, options), TypeError);
+});

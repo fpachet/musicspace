@@ -69,6 +69,8 @@ function createSpace(initial = {}) {
   let model;
   let definition;
   let dragging = null;
+  let pointsById = new Map();
+  let activeConstraintIds = new Map();
   const subscribers = new Set();
   const clock = createClock();
 
@@ -191,6 +193,11 @@ function createSpace(initial = {}) {
     else dragging = null;
     model = candidate;
     definition = next;
+    pointsById = new Map(entities().map((point) => [publicId(point.name), point]));
+    const activeSpecs = next.constraints.filter((spec) => spec.enabled);
+    activeConstraintIds = new Map(
+      candidate.state.constraints.map((constraint, index) => [constraint, activeSpecs[index].id])
+    );
   }
   function entities() {
     return [model.state.listener, ...model.state.sources, ...model.state.movingObjects];
@@ -199,7 +206,7 @@ function createSpace(initial = {}) {
     return entities().map((entity) => ({ id: publicId(entity.name), x: entity.x, y: entity.y }));
   }
   function entity(id) {
-    const value = model.getObjectByName(coreId(id));
+    const value = pointsById.get(id);
     if (!value) throw new TypeError(`Unknown point: ${id}`);
     return value;
   }
@@ -220,7 +227,9 @@ function createSpace(initial = {}) {
       id: name,
       ...(p.trajectory ? { trajectory: trajectoryFromCore(p.trajectory) } : {})
     }));
-    return clone({
+    // serializePatch already owns all nested data. The transformed records below
+    // can be returned directly without a second whole-scene clone.
+    return {
       version: 1,
       center: { x: patch.listener.x, y: patch.listener.y },
       points,
@@ -228,12 +237,11 @@ function createSpace(initial = {}) {
       solver: model.getSolverMode(),
       centerMode: model.state.listenerMode,
       gravity: patch.gravity || { x: 0, y: 0 }
-    });
+    };
   }
   function diagnostics() {
-    const active = definition.constraints.filter((c) => c.enabled);
     const residuals = model.measureConstraintResiduals().map(({ constraint, measurement }) => ({
-      id: active[model.state.constraints.indexOf(constraint)].id,
+      id: activeConstraintIds.get(constraint),
       ...measurement
     }));
     const report = model.getLastPropagationReport();
@@ -251,8 +259,13 @@ function createSpace(initial = {}) {
   }
   function publish(reason, before) {
     const after = positions();
-    const changed = after.filter((p) => !before.some((b) => b.id === p.id && b.x === p.x && b.y === p.y));
-    const removed = before.filter((b) => !after.some((p) => p.id === b.id)).map((p) => p.id);
+    const beforeById = new Map(before.map((point) => [point.id, point]));
+    const afterIds = new Set(after.map((point) => point.id));
+    const changed = after.filter((point) => {
+      const previous = beforeById.get(point.id);
+      return !previous || previous.x !== point.x || previous.y !== point.y;
+    });
+    const removed = before.filter((point) => !afterIds.has(point.id)).map((point) => point.id);
     const event = { reason, positions: after, changed, removed, diagnostics: diagnostics() };
     // Each observer receives its own data; mutating it cannot change the engine.
     for (const listener of subscribers) listener(clone(event));

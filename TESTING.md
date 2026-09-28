@@ -101,12 +101,22 @@ checking rendering, motion and editing without those globals.
 ```sh
 npm run benchmark
 npm run benchmark:browser
+npm run benchmark:package
 node scripts/browser-benchmark.js --baseline=32c1a5fa
 ```
 
 The Node benchmark warms up before reporting median, p95 and maximum movement times. It includes the mocked UI path for continuity with the initial review baseline, so it is not an isolated solver benchmark.
 
 The browser benchmark serves either the working tree or a supplied Git revision on an ephemeral loopback port. It uses the same Chromium runtime for both revisions, separates solver and drawing measurements, counts DOM allocations and propagation constraint visits, and checks final residual counts. Fixtures include Product + Limit, Granular Cloud, Rotating Partials and 100 independent fixed-distance links. The `--baseline` flag without a revision uses HEAD. It does not change the checkout.
+
+The package benchmark loads **every preset** and four synthetic scenes (up to
+1,000 points, plus a connected grid and spring systems), with both solvers. It
+measures movement, stepping/drawing, saving and renaming. Invalid saves, failed
+edits, nonfinite coordinates and browser exceptions fail the run. A saved runtime
+baseline additionally checks exact final geometry. See
+[package performance](benchmarks/package-performance.md) for commands and results.
+The package test suite reuses these large fixtures for numerical parity after
+movement, editing and restoration, and checks snapshot isolation and save behavior.
 
 Recorded results live in `benchmarks/`. Browser timer precision and machine load limit comparisons for tiny solver steps. Prefer repeated measurements and work/allocation counts over a single elapsed-time threshold. The original Node baseline includes a VM-loaded engine; extraction changed that execution boundary, so do not interpret its timing reduction as browser speedup.
 

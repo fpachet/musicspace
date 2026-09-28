@@ -100,8 +100,18 @@ model prototypes. UI type checks, construction and node layout use presentation
 operations. A small `legacyPresentation` adapter supplies those operations for the
 standard engine. The package continues to bundle the shared solver core internally.
 
-The remaining migration work is incremental authoring and performance measurement;
-editing still restores a complete scene after validating a draft of plain records. See the
+Point lookup, movement notifications and diagnostic mapping use indexes rebuilt on
+successful scene replacement. The display adapter also caches point and constraint
+references between edits. Package snapshots return already detached serialized data
+without cloning the complete scene twice. Legacy import translates the validated,
+normalized model once; public export still validates external scene/context data.
+The workbench saves its synchronized display records directly, including velocity
+resets at drag start, instead of reconstructing solver models during each save.
+
+[Large-scene measurements](benchmarks/package-performance.md) cover all 23 presets
+and four synthetic scenes with both solvers. Editing still restores a complete
+scene after validating a draft of plain records; incremental authoring remains a
+possible next step if larger real projects justify it. See the
 [package contract and limitations](packages/musicspace-engine/README.md) and
 [migration stages](packages/musicspace-engine/MIGRATION.md).
 

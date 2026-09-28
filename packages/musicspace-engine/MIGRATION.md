@@ -59,7 +59,7 @@ before deployment. No npm publication or Orbit-specific integration is included.
   trajectories and output bindings from a complete patch snapshot.
 - Authoring restores the complete scene, retaining positions, phases and velocities
   but resetting transient drag/rotation deltas. This is a compatibility step;
-  direct incremental authoring operations and frame-cost profiling remain ahead.
+  direct incremental authoring operations remain a possible follow-up.
 
 ### Plain presentation records and renderer functions
 
@@ -78,15 +78,30 @@ before deployment. No npm publication or Orbit-specific integration is included.
   helpers. The package still bundles the existing solver internally; this stage
   removes the UI dependency on its classes, not the solver implementation.
 
+### Large scenes and performance (alpha.5)
+
+- All 23 presets and four larger scenes run through movement, stepping, drawing,
+  saving and renaming with both solvers. The largest has 1,000 points and 500 links;
+  others cover a connected 225-point grid and 100 spring pairs.
+- Browser comparisons check exact final geometry against the previous milestone.
+  Node regressions compare large-scene motion, editing and restored motion with
+  the original model. Intentional conflicts and existing solver residuals remain visible.
+- Indexed point/constraint lookup removes repeated array searches. Saving uses
+  synchronized display records; import and snapshots avoid redundant model
+  construction and copying. Edits retain candidate validation and rollback.
+- See the repository's `benchmarks/package-performance.md` for measurements,
+  methodology and reproduction commands. Full-scene restoration is still used
+  for authoring; these improvements do not change solver algorithms or budgets.
+
 ## Remaining work
 
 1. Try the experimental mode during actual musical sessions, including external
    MIDI hardware and user patches. Automated browser audio checks verify startup,
    mappings and shutdown; they do not establish listening quality or device parity.
-2. Profile editing and frame costs on large scenes. Move suitable editor operations
-   from full-scene restoration to incremental public package operations, preserving
-   validation, reference updates and undo. Plain records and renderer helpers now
-   provide the boundary needed for this work.
+2. Measure actual large user projects with audio enabled. If editing costs still
+   matter, move suitable operations from full-scene restoration to incremental
+   public package operations, preserving validation, reference updates and undo.
+   Dense connected graphs may also need separate solver convergence work.
 3. Switch the default only after parity. Keep the standard path until the migrated
    interface and saved user patches are validated in real use.
 4. Settle the public contract through standalone consumers, then publish a versioned

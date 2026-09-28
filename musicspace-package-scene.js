@@ -9,6 +9,17 @@
       lastValidation = [],
       released = false;
     let settings = {};
+    let pointsById = new Map();
+    let namesById = new Map();
+    let constraintsById = new Map();
+    function indexPresentation() {
+      const byName = new Map(
+        [state.listener, ...state.sources, ...state.movingObjects].map((point) => [point.name, point])
+      );
+      namesById = new Map(Object.entries(context.pointIds).map(([name, id]) => [id, name]));
+      pointsById = new Map(Object.entries(context.pointIds).map(([name, id]) => [id, byName.get(name)]));
+      constraintsById = new Map(context.constraintIds.map((id, index) => [id, state.constraints[index]]));
+    }
     const load =
       loadModules ||
       (() =>
@@ -72,6 +83,7 @@
         // is synchronous, so no simulation frame can observe an incomplete edit.
         space.restore(imported.scene);
         context = imported.context;
+        indexPresentation();
         released = false;
       } catch (error) {
         Object.assign(state, previousState);
@@ -105,16 +117,15 @@
     function residuals(diagnostics = space?.diagnostics()) {
       if (!diagnostics) return [];
       return diagnostics.residuals.map(({ id, ...measurement }) => ({
-        constraint: state.constraints[context.constraintIds.indexOf(id)],
+        constraint: constraintsById.get(id),
         measurement
       }));
     }
     function sync(event, notify = true) {
       const snapshot = space.snapshot();
-      const names = new Map(Object.entries(context.pointIds).map(([name, id]) => [id, name]));
       Object.assign(state.listener, snapshot.center);
       for (const point of snapshot.points) {
-        const target = view.getObjectByName(names.get(point.id));
+        const target = pointsById.get(point.id);
         target.x = point.x;
         target.y = point.y;
         if (point.dynamics) target.dynamics = { ...point.dynamics };
@@ -123,7 +134,7 @@
           target.trajectory = structuredClone(point.trajectory);
           for (const key of ["start", "end"])
             if (target.trajectory[key]?.type === "object") {
-              target.trajectory[key].name = names.get(target.trajectory[key].id);
+              target.trajectory[key].name = namesById.get(target.trajectory[key].id);
               delete target.trajectory[key].id;
             }
         }
@@ -161,7 +172,7 @@
         ...diagnostics,
         solverMode: diagnostics.solver,
         residuals: residuals(diagnostics),
-        movedEntities: (event?.changed || []).map((p) => view.getObjectByName(names.get(p.id))),
+        movedEntities: (event?.changed || []).map((p) => pointsById.get(p.id)),
         messages: diagnostics.propagationPaused
           ? ["Propagation paused (Shift). Constraints are not being enforced."]
           : [],
@@ -207,6 +218,7 @@
           }
           space = candidate;
           context = imported.context;
+          indexPresentation();
           settings = nextSettings;
           released = false;
           lastValidation = findings;
@@ -225,7 +237,14 @@
         syncSettings();
         // Trace flags and node positions belong to the interface. Output clients
         // continue to merge their latest bindings in musicspace.js.
-        return modules.exportLegacyPatch(space.snapshot(), { ...context, patch: geometryPatch() });
+        // The synchronized presentation already contains the current geometry.
+        // Saving must not construct solver models just to copy it back out.
+        const patch = geometryPatch();
+        for (const mover of patch.movingObjects) {
+          mover.trajectory = view.normalizeTrajectory(mover.trajectory, mover.x, mover.y);
+          delete mover.trajectory.rotationDelta;
+        }
+        return patch;
       },
       moveEntity(entity, x, y, { bounds = null, skipPropagation = false } = {}) {
         if (!space) return null;
@@ -251,7 +270,12 @@
         syncSettings();
         released = false;
         const id = pointId(entity);
-        if (id) space.beginDrag(id);
+        if (id) {
+          space.beginDrag(id);
+          // beginDrag resets body velocity. Keep undo/save data synchronized even
+          // before the first move or animation frame of the gesture.
+          sync(null, false);
+        }
         state.draggedEntity = entity;
       },
       endDrag({ refine = true } = {}) {

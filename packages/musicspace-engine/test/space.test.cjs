@@ -265,3 +265,70 @@ test("runtime settings validate atomically and preserve paused drags", () => {
   space.step();
   assert.ok(space.getPoint("a").y > 24);
 });
+
+test("nested snapshots remain detached from simulation and disabled definitions", () => {
+  const space = createSpace({
+    gravity: { x: 0, y: 20 },
+    points: [
+      { id: "a", x: 10, y: 20, dynamics: { mass: 2 } },
+      {
+        id: "b",
+        x: 30,
+        y: 40,
+        trajectory: {
+          type: "shuttle",
+          start: { type: "object", id: "a" },
+          end: { type: "fixed", x: 50, y: 60 }
+        }
+      }
+    ],
+    constraints: [
+      { id: "sum", type: "sum", points: ["a", "b"] },
+      { id: "disabled", type: "sum", points: ["a", "b"], enabled: false }
+    ]
+  });
+  const expected = space.snapshot(),
+    changed = space.snapshot();
+  changed.center.x = -999;
+  changed.gravity.y = -999;
+  changed.points[0].dynamics.mass = -999;
+  changed.points[1].trajectory.start.id = "missing";
+  changed.points[1].trajectory.end.x = -999;
+  for (const constraint of changed.constraints) constraint.points[0] = "missing";
+  assert.deepEqual(space.snapshot(), expected);
+});
+
+test("restoration and failed edits preserve point lookup and active diagnostic ids", () => {
+  const space = createSpace({ points: [{ id: "old", x: 10, y: 20 }] });
+  const event = space.restore({
+    points: [{ id: "new", x: 100, y: 0 }],
+    constraints: [
+      { id: "disabled", type: "pin", target: "new", x: 10, y: 0, enabled: false },
+      { id: "active", type: "pin", target: "new", x: 20, y: 0 }
+    ]
+  });
+  assert.deepEqual(event.removed, ["old"]);
+  assert.deepEqual(
+    event.changed.map((p) => p.id),
+    ["new"]
+  );
+  assert.deepEqual(
+    event.diagnostics.residuals.map((r) => r.id),
+    ["active"]
+  );
+  assert.throws(() => space.getPoint("old"));
+  assert.throws(() => space.updatePoint("new", { x: NaN }));
+  assert.equal(space.getPoint("new").x, 100);
+  assert.deepEqual(
+    space.diagnostics().residuals.map((r) => r.id),
+    ["active"]
+  );
+  space.updateConstraint("active", { enabled: false });
+  space.updateConstraint("disabled", { enabled: true });
+  assert.deepEqual(
+    space.diagnostics().residuals.map((r) => r.id),
+    ["disabled"]
+  );
+  space.move("new", 50, 0);
+  assert.equal(space.getPoint("new").x, 10);
+});

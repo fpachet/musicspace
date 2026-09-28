@@ -49,6 +49,9 @@ const constraintFields = [
   "centerAngle",
   "width"
 ];
+const numericConstraintFields = constraintFields.filter(
+  (field) => !["type", "sources", "source", ...referenceKeys].includes(field)
+);
 function extraFields(value, fields) {
   const result = clone(value || {});
   for (const field of fields) delete result[field];
@@ -83,9 +86,20 @@ function importLegacyPatch(patch, options = {}) {
     return pointIds[name];
   };
   const constraints = normalized.constraints.map(({ node: _node, sources, source, ...spec }, index) => {
+    for (const field of numericConstraintFields)
+      if (spec[field] !== undefined && !Number.isFinite(spec[field]))
+        throw new TypeError(`constraint.${field} must be finite.`);
     if (sources) spec.points = sources.map(id);
     if (source !== undefined) spec.point = id(source);
     for (const key of referenceKeys) if (spec[key] !== undefined) spec[key] = id(spec[key]);
+    // The legacy loader accepts self-links; the public package requires distinct
+    // endpoints. Keep that stricter boundary without constructing another model.
+    const refs = [
+      ...(spec.points || []),
+      ...(spec.point ? [spec.point] : []),
+      ...referenceKeys.filter((key) => spec[key] !== undefined).map((key) => spec[key])
+    ];
+    if (new Set(refs).size !== refs.length) throw new TypeError("Constraint endpoints must be distinct.");
     return { ...spec, id: `constraint-${index}` };
   });
   const points = objects.map((object) => {
@@ -102,15 +116,22 @@ function importLegacyPatch(patch, options = {}) {
     }
     return point;
   });
-  const scene = createSpace({
+  const solver = options.solver ?? "propagation";
+  const centerMode = options.centerMode ?? "retarget";
+  if (!["propagation", "xpbd"].includes(solver)) throw new TypeError("Unknown solver.");
+  if (!["preserve", "retarget"].includes(centerMode)) throw new TypeError("Unknown center mode.");
+  // readPatch has already validated and normalized the complete model, including
+  // invariants, trajectories and dynamic bodies. Translate that owned data once.
+  const scene = {
+    version: 1,
     center: { x: normalized.listener.x, y: normalized.listener.y },
     points,
-    constraints,
+    constraints: constraints.map((constraint) => ({ ...constraint, enabled: true })),
     gravity: normalized.gravity || { x: 0, y: 0 },
-    solver: options.solver ?? "propagation",
+    solver,
     // Match the workbench's default; createSpace itself defaults to preserve.
-    centerMode: options.centerMode ?? "retarget"
-  }).snapshot();
+    centerMode
+  };
   return {
     scene,
     context: {

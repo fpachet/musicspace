@@ -1,0 +1,2728 @@
+{
+  "commit": "924c9297",
+  "node": "v24.3.0",
+  "chromium": "149.0.7827.55",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M1 Pro",
+  "measuredAt": "2026-09-28T20:28:03.951Z",
+  "samples": {
+    "warmup": 20,
+    "move": 50,
+    "frame": 50,
+    "save": 6,
+    "edit": 6
+  },
+  "results": [
+    {
+      "variant": "baseline",
+      "records": [
+        {
+          "key": "angle-balance",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 3,
+          "loadMs": 1.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.5
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 1.1
+          },
+          "residuals": 0,
+          "geometryHash": "de207bacfb1eb4629710baaf4b4243ce7a47eb6fe92a72f8565e1738a8088979"
+        },
+        {
+          "key": "angle-balance",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 3,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.5,
+            "p95Ms": 0.5
+          },
+          "residuals": 0,
+          "geometryHash": "6ca5fe9641edd7c5bfaaa1b44eeb960cead599efe0e2fb0c605cf9ad47d81249"
+        },
+        {
+          "key": "product-limit",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 2,
+          "loadMs": 1.6,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.9
+          },
+          "residuals": 0,
+          "geometryHash": "f59482ff750bab612bc54facfa8bfd570c52c72b7ac09e7da3e3c62803cd289b"
+        },
+        {
+          "key": "product-limit",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 2,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 1
+          },
+          "residuals": 0,
+          "geometryHash": "1e4dce4dbb56e610ca92eb27f9393df4ea7402f68e032adbdedf9b4379d13ac0"
+        },
+        {
+          "key": "open-trio",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 1,
+          "loadMs": 1,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.6
+          },
+          "residuals": 0,
+          "geometryHash": "a9107ba386625fe0ffa5b49f6ad38878ae7dc162e4af41fc0c9fbb4a6297c6ba"
+        },
+        {
+          "key": "open-trio",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 1,
+          "loadMs": 0.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "614e77e2eb8a1a498a97f289dd98e3d4f45aa230cd12282b24a13590375caa92"
+        },
+        {
+          "key": "simple-rotator",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 2.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "b07a9ace17c68ecc2554289ad35f6cbd5bef4e3ac7c8c6144a6cc164bb923b3d"
+        },
+        {
+          "key": "simple-rotator",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 1.2
+          },
+          "residuals": 0,
+          "geometryHash": "873be570aec730a89b5c5d6a6d0519bc4da55ea67aa54bca52fd9e389e5f4118"
+        },
+        {
+          "key": "nested-rotators",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.4,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "21482630aeb37b4e9733d973d28f7483b8271cd7ac584461d431c5b043cba8a9"
+        },
+        {
+          "key": "nested-rotators",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "5a9dde802eecca1e42e2a1fcee0fa2a554a752e6854e7f3c23c56ef418384fb8"
+        },
+        {
+          "key": "cycloid-rotator",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.6,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 0.9
+          },
+          "residuals": 0,
+          "geometryHash": "7f9e9f1c0e7d438dc1e4a5e6effc0bf6fc7932400036140abbc9b35eedec64c0"
+        },
+        {
+          "key": "cycloid-rotator",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.4,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 1.7
+          },
+          "residuals": 0,
+          "geometryHash": "fa65c0ec97d99297eaa35a678ab5926511c8e8c1acd36ac85de30c429c05f815"
+        },
+        {
+          "key": "shuttle-spin",
+          "solver": "propagation",
+          "points": 7,
+          "constraints": 4,
+          "loadMs": 1.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 0.8
+          },
+          "residuals": 0,
+          "geometryHash": "ce019653866d12847f698f8635eb336f96334159c6cfd2acc93b41c2e3500fc3"
+        },
+        {
+          "key": "shuttle-spin",
+          "solver": "xpbd",
+          "points": 7,
+          "constraints": 4,
+          "loadMs": 1.4,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 0.8
+          },
+          "residuals": 0,
+          "geometryHash": "cdf1397ac8b5988bf9f9198d3ef4e1fdeab987a9dddac2d176bcc76e3fb92b9a"
+        },
+        {
+          "key": "bouncing-constellation",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 2.3,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.5
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 1
+          },
+          "residuals": 0,
+          "geometryHash": "c03d7991f102e2c219f98d9883c57c3ad1015b2ff023e9d705271d27fec0644b"
+        },
+        {
+          "key": "bouncing-constellation",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 4.5,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 1
+          },
+          "residuals": 0,
+          "geometryHash": "1d9d6002c3721be8902811ac6f5501674c70ad88131e0a0fac95af55d8e181a2"
+        },
+        {
+          "key": "cycloid-percussion",
+          "solver": "propagation",
+          "points": 6,
+          "constraints": 5,
+          "loadMs": 2,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 1.1
+          },
+          "residuals": 0,
+          "geometryHash": "99c18c2260af11deaca48015906dcc7ff4280f23902d31d55080613400599579"
+        },
+        {
+          "key": "cycloid-percussion",
+          "solver": "xpbd",
+          "points": 6,
+          "constraints": 5,
+          "loadMs": 2.6,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.9,
+            "p95Ms": 1.1
+          },
+          "residuals": 0,
+          "geometryHash": "7373c1eae4bd31a3c335cea70c2368342b3224496304052ba2af4e71ccd501d7"
+        },
+        {
+          "key": "openspace-ostinatos",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 2,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 0.9
+          },
+          "residuals": 0,
+          "geometryHash": "6e54bf25ff7d74cfca650744606331329e13a595b7c5281f7ae2a52f4a3b4c30"
+        },
+        {
+          "key": "openspace-ostinatos",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.4,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 1.6
+          },
+          "residuals": 0,
+          "geometryHash": "a07a5c3200f684fcd41cefd99ad02c1d91ad64b29fc57db456cc22b07cce1146"
+        },
+        {
+          "key": "rotating-partials",
+          "solver": "propagation",
+          "points": 45,
+          "constraints": 44,
+          "loadMs": 5.8,
+          "move": {
+            "medianMs": 0.4,
+            "p95Ms": 0.5
+          },
+          "frame": {
+            "medianMs": 0.5,
+            "p95Ms": 0.7
+          },
+          "save": {
+            "medianMs": 1.4,
+            "p95Ms": 1.5
+          },
+          "edit": {
+            "medianMs": 3.4,
+            "p95Ms": 4.2
+          },
+          "residuals": 0,
+          "geometryHash": "527a3710e0276c34b42cdf5600b94bb7a5ce1396cd30b71d25d2f8f1b9f8bcda"
+        },
+        {
+          "key": "rotating-partials",
+          "solver": "xpbd",
+          "points": 45,
+          "constraints": 44,
+          "loadMs": 5.1,
+          "move": {
+            "medianMs": 0.3,
+            "p95Ms": 0.5
+          },
+          "frame": {
+            "medianMs": 0.5,
+            "p95Ms": 0.7
+          },
+          "save": {
+            "medianMs": 1.4,
+            "p95Ms": 1.5
+          },
+          "edit": {
+            "medianMs": 3.4,
+            "p95Ms": 4
+          },
+          "residuals": 0,
+          "geometryHash": "ed76cd08db43d0370a401c25b2b545fe0e1958b18c3d59537c78a1490e8fa7ba"
+        },
+        {
+          "key": "beatles-trajectory-study",
+          "solver": "propagation",
+          "points": 6,
+          "constraints": 6,
+          "loadMs": 2.4,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 1.2
+          },
+          "residuals": 3,
+          "geometryHash": "0f3b712da84d742c7a83ae0ea6d24731ffd7986237d6bdb02d13864808686a60"
+        },
+        {
+          "key": "beatles-trajectory-study",
+          "solver": "xpbd",
+          "points": 6,
+          "constraints": 6,
+          "loadMs": 1.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 0.9
+          },
+          "residuals": 2,
+          "geometryHash": "6edfac0c0ff2a25d6ae365e685bf57f63d6430811bd39a68d71e6cf2058ba2cc"
+        },
+        {
+          "key": "jazz-trio-midi",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 3,
+          "loadMs": 3.5,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "34ed99dc1738ada15f4fb6ee747a0037dd52b735afe43187b4b29960b981ca51"
+        },
+        {
+          "key": "jazz-trio-midi",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 3,
+          "loadMs": 1.5,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "residuals": 0,
+          "geometryHash": "76f6560c448154d941f91fdefcfacf93cfe091369fc136d2d8622c82f1f3931a"
+        },
+        {
+          "key": "faust-control-study",
+          "solver": "propagation",
+          "points": 7,
+          "constraints": 7,
+          "loadMs": 4.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1,
+            "p95Ms": 1.1
+          },
+          "residuals": 0,
+          "geometryHash": "7800d1e7b540655ba03d7418ceb2dfd401fbc3147b550d70068721f4875c5212"
+        },
+        {
+          "key": "faust-control-study",
+          "solver": "xpbd",
+          "points": 7,
+          "constraints": 7,
+          "loadMs": 2.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1.1,
+            "p95Ms": 1.3
+          },
+          "residuals": 0,
+          "geometryHash": "643f435815b7cffd6ec5f2ddb8d7065ea0a59bd8cf3bc55a7f8f7b4b71be5727"
+        },
+        {
+          "key": "fm-space",
+          "solver": "propagation",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 6.1,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0.6,
+            "p95Ms": 0.8
+          },
+          "edit": {
+            "medianMs": 1.6,
+            "p95Ms": 5.8
+          },
+          "residuals": 1,
+          "geometryHash": "802997d115c4a2ca053aa9ca064fa71a50289dda9a0b6aacd365e3dc1f2fcda2"
+        },
+        {
+          "key": "fm-space",
+          "solver": "xpbd",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 5.9,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.3
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0.6,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1.3,
+            "p95Ms": 1.4
+          },
+          "residuals": 0,
+          "geometryHash": "673f7d57fb4e67b180d54a110834a2797097abf6a2243e28d9213dc4ec681fbe"
+        },
+        {
+          "key": "fm-harmonic-space",
+          "solver": "propagation",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 5.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1.3,
+            "p95Ms": 1.3
+          },
+          "residuals": 2,
+          "geometryHash": "684a85c56c1026e8065b8752babcb978ab60a6897ac790c15caaa21101ff199b"
+        },
+        {
+          "key": "fm-harmonic-space",
+          "solver": "xpbd",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 4.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1.3,
+            "p95Ms": 1.4
+          },
+          "residuals": 0,
+          "geometryHash": "3aa47d43cfe40ee59f565b31d32a9556e905e98ddd716a73010cdfe37e800d2e"
+        },
+        {
+          "key": "granular-cloud-study",
+          "solver": "propagation",
+          "points": 9,
+          "constraints": 9,
+          "loadMs": 3.5,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.5
+          },
+          "edit": {
+            "medianMs": 1.3,
+            "p95Ms": 2.3
+          },
+          "residuals": 1,
+          "geometryHash": "ef7e0dac6fcfb6914848afca13d3f4349dfc7e65743f417831ef17b1fd3bb0aa"
+        },
+        {
+          "key": "granular-cloud-study",
+          "solver": "xpbd",
+          "points": 9,
+          "constraints": 9,
+          "loadMs": 3.4,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 1.1,
+            "p95Ms": 1.5
+          },
+          "residuals": 0,
+          "geometryHash": "fee1d2c62b3984b6bf1faad16f0156ad106c380d78619f5c54ee775c9a9047f3"
+        },
+        {
+          "key": "chord-import",
+          "solver": "propagation",
+          "points": 1,
+          "constraints": 0,
+          "loadMs": 1.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "045ed7ecfe28106bc947b9349c3149d1ed467f9642eacc1b1aab8f88eb46805d"
+        },
+        {
+          "key": "chord-import",
+          "solver": "xpbd",
+          "points": 1,
+          "constraints": 0,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "045ed7ecfe28106bc947b9349c3149d1ed467f9642eacc1b1aab8f88eb46805d"
+        },
+        {
+          "key": "conflict-diagnostics",
+          "solver": "propagation",
+          "points": 1,
+          "constraints": 2,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 1,
+          "geometryHash": "c7280a7c586e315d551f8ba981cef3f6729e8b727468ba1bf04dd8a14831f37a"
+        },
+        {
+          "key": "conflict-diagnostics",
+          "solver": "xpbd",
+          "points": 1,
+          "constraints": 2,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 1,
+          "geometryHash": "88e03e11c2e59047e21c02c565bee88413a84b03c19d9c2cb5c1902e1656e97e"
+        },
+        {
+          "key": "simple-spring",
+          "solver": "propagation",
+          "points": 2,
+          "constraints": 2,
+          "loadMs": 2.4,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.5
+          },
+          "residuals": 0,
+          "geometryHash": "d011172eef7885dc9962a2421660022b90920d7c1dc57dbb57240183f7aa050c"
+        },
+        {
+          "key": "simple-spring",
+          "solver": "xpbd",
+          "points": 2,
+          "constraints": 2,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.5
+          },
+          "residuals": 0,
+          "geometryHash": "d011172eef7885dc9962a2421660022b90920d7c1dc57dbb57240183f7aa050c"
+        },
+        {
+          "key": "coupled-springs",
+          "solver": "propagation",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 1.5,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 1.8
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "15e3290fafa4145834a32efa50d9ca4784638b7f0ec7d817ae69bdaeceb21380"
+        },
+        {
+          "key": "coupled-springs",
+          "solver": "xpbd",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.9
+          },
+          "residuals": 0,
+          "geometryHash": "15e3290fafa4145834a32efa50d9ca4784638b7f0ec7d817ae69bdaeceb21380"
+        },
+        {
+          "key": "spring-pendulum",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 1.5,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "b233bfaf7f1c52a6c9e815eb57d982f1ebc8813ef7a6fe517b81cb2b9b851ba3"
+        },
+        {
+          "key": "spring-pendulum",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 1.1,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.4,
+            "p95Ms": 0.5
+          },
+          "edit": {
+            "medianMs": 0.8,
+            "p95Ms": 1.2
+          },
+          "residuals": 0,
+          "geometryHash": "b233bfaf7f1c52a6c9e815eb57d982f1ebc8813ef7a6fe517b81cb2b9b851ba3"
+        },
+        {
+          "key": "musical-spring",
+          "solver": "propagation",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 1.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 0.7,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "07830000a668615fce1767e70d732dc232961bb629766e4cb1f7704f9949d58e"
+        },
+        {
+          "key": "musical-spring",
+          "solver": "xpbd",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 1.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 2.2
+          },
+          "residuals": 0,
+          "geometryHash": "07830000a668615fce1767e70d732dc232961bb629766e4cb1f7704f9949d58e"
+        },
+        {
+          "key": "links-100",
+          "solver": "propagation",
+          "points": 200,
+          "constraints": 100,
+          "loadMs": 8.8,
+          "move": {
+            "medianMs": 0.5,
+            "p95Ms": 0.7
+          },
+          "frame": {
+            "medianMs": 1.3,
+            "p95Ms": 1.5
+          },
+          "save": {
+            "medianMs": 2.9,
+            "p95Ms": 2.9
+          },
+          "edit": {
+            "medianMs": 6.6,
+            "p95Ms": 6.9
+          },
+          "residuals": 0,
+          "geometryHash": "6f56aa84b6bbf7d7d3684c089916d8ddf928f64c63076287dad8eefe17a6ee51"
+        },
+        {
+          "key": "links-100",
+          "solver": "xpbd",
+          "points": 200,
+          "constraints": 100,
+          "loadMs": 7.6,
+          "move": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "frame": {
+            "medianMs": 1.2,
+            "p95Ms": 1.5
+          },
+          "save": {
+            "medianMs": 3.1,
+            "p95Ms": 3.2
+          },
+          "edit": {
+            "medianMs": 7,
+            "p95Ms": 7.9
+          },
+          "residuals": 0,
+          "geometryHash": "dfea1bcbf3fa98600f7089c3819653b882db34939458bbfb37b019a39677ea47"
+        },
+        {
+          "key": "links-500",
+          "solver": "propagation",
+          "points": 1000,
+          "constraints": 500,
+          "loadMs": 42.8,
+          "move": {
+            "medianMs": 4.1,
+            "p95Ms": 4.6
+          },
+          "frame": {
+            "medianMs": 8.4,
+            "p95Ms": 8.9
+          },
+          "save": {
+            "medianMs": 13.6,
+            "p95Ms": 14.4
+          },
+          "edit": {
+            "medianMs": 32,
+            "p95Ms": 32.7
+          },
+          "residuals": 0,
+          "geometryHash": "4fa5a4f8aba8e84dbbb87e617c173b401178b70d0a28c5f5f0cbc4baf8fe432f"
+        },
+        {
+          "key": "links-500",
+          "solver": "xpbd",
+          "points": 1000,
+          "constraints": 500,
+          "loadMs": 36.8,
+          "move": {
+            "medianMs": 4.2,
+            "p95Ms": 4.5
+          },
+          "frame": {
+            "medianMs": 8.3,
+            "p95Ms": 9.8
+          },
+          "save": {
+            "medianMs": 15.6,
+            "p95Ms": 16.1
+          },
+          "edit": {
+            "medianMs": 31.2,
+            "p95Ms": 32.7
+          },
+          "residuals": 0,
+          "geometryHash": "64fbad93249765e7bc09fba57899dc9b131e67e9a6932ae9987f77a8702e3a05"
+        },
+        {
+          "key": "springs-100",
+          "solver": "propagation",
+          "points": 200,
+          "constraints": 200,
+          "loadMs": 16.3,
+          "move": {
+            "medianMs": 0.8,
+            "p95Ms": 0.9
+          },
+          "frame": {
+            "medianMs": 3.6,
+            "p95Ms": 4.8
+          },
+          "save": {
+            "medianMs": 6.2,
+            "p95Ms": 6.8
+          },
+          "edit": {
+            "medianMs": 13.2,
+            "p95Ms": 13.6
+          },
+          "residuals": 0,
+          "geometryHash": "e3ba5d54bc90e9f69511f46657713708fdd205e45f4524b4806de6d93ec6a84b"
+        },
+        {
+          "key": "springs-100",
+          "solver": "xpbd",
+          "points": 200,
+          "constraints": 200,
+          "loadMs": 14.2,
+          "move": {
+            "medianMs": 0.7,
+            "p95Ms": 0.9
+          },
+          "frame": {
+            "medianMs": 3.4,
+            "p95Ms": 4
+          },
+          "save": {
+            "medianMs": 5.6,
+            "p95Ms": 6.3
+          },
+          "edit": {
+            "medianMs": 11.9,
+            "p95Ms": 12.8
+          },
+          "residuals": 0,
+          "geometryHash": "e3ba5d54bc90e9f69511f46657713708fdd205e45f4524b4806de6d93ec6a84b"
+        },
+        {
+          "key": "grid-225",
+          "solver": "propagation",
+          "points": 225,
+          "constraints": 420,
+          "loadMs": 19.9,
+          "move": {
+            "medianMs": 1.6,
+            "p95Ms": 2
+          },
+          "frame": {
+            "medianMs": 2.8,
+            "p95Ms": 3.3
+          },
+          "save": {
+            "medianMs": 8.9,
+            "p95Ms": 9
+          },
+          "edit": {
+            "medianMs": 18,
+            "p95Ms": 19.1
+          },
+          "residuals": 27,
+          "geometryHash": "3b5faca8820b448f5b2bd03a63bed3b295d327b62ad749b6a5aae943a57d079d"
+        },
+        {
+          "key": "grid-225",
+          "solver": "xpbd",
+          "points": 225,
+          "constraints": 420,
+          "loadMs": 18.8,
+          "move": {
+            "medianMs": 1.7,
+            "p95Ms": 2.1
+          },
+          "frame": {
+            "medianMs": 3,
+            "p95Ms": 3.7
+          },
+          "save": {
+            "medianMs": 9.1,
+            "p95Ms": 9.4
+          },
+          "edit": {
+            "medianMs": 19.9,
+            "p95Ms": 20.4
+          },
+          "residuals": 27,
+          "geometryHash": "3b5faca8820b448f5b2bd03a63bed3b295d327b62ad749b6a5aae943a57d079d"
+        }
+      ]
+    },
+    {
+      "variant": "current",
+      "records": [
+        {
+          "key": "angle-balance",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 3,
+          "loadMs": 1.4,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "de207bacfb1eb4629710baaf4b4243ce7a47eb6fe92a72f8565e1738a8088979"
+        },
+        {
+          "key": "angle-balance",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 3,
+          "loadMs": 0.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "6ca5fe9641edd7c5bfaaa1b44eeb960cead599efe0e2fb0c605cf9ad47d81249"
+        },
+        {
+          "key": "product-limit",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 2,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "f59482ff750bab612bc54facfa8bfd570c52c72b7ac09e7da3e3c62803cd289b"
+        },
+        {
+          "key": "product-limit",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 2,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "1e4dce4dbb56e610ca92eb27f9393df4ea7402f68e032adbdedf9b4379d13ac0"
+        },
+        {
+          "key": "open-trio",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 1,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "a9107ba386625fe0ffa5b49f6ad38878ae7dc162e4af41fc0c9fbb4a6297c6ba"
+        },
+        {
+          "key": "open-trio",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 1,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "614e77e2eb8a1a498a97f289dd98e3d4f45aa230cd12282b24a13590375caa92"
+        },
+        {
+          "key": "simple-rotator",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 2.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "b07a9ace17c68ecc2554289ad35f6cbd5bef4e3ac7c8c6144a6cc164bb923b3d"
+        },
+        {
+          "key": "simple-rotator",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.5
+          },
+          "residuals": 0,
+          "geometryHash": "873be570aec730a89b5c5d6a6d0519bc4da55ea67aa54bca52fd9e389e5f4118"
+        },
+        {
+          "key": "nested-rotators",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "21482630aeb37b4e9733d973d28f7483b8271cd7ac584461d431c5b043cba8a9"
+        },
+        {
+          "key": "nested-rotators",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "5a9dde802eecca1e42e2a1fcee0fa2a554a752e6854e7f3c23c56ef418384fb8"
+        },
+        {
+          "key": "cycloid-rotator",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "7f9e9f1c0e7d438dc1e4a5e6effc0bf6fc7932400036140abbc9b35eedec64c0"
+        },
+        {
+          "key": "cycloid-rotator",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 0.6,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "fa65c0ec97d99297eaa35a678ab5926511c8e8c1acd36ac85de30c429c05f815"
+        },
+        {
+          "key": "shuttle-spin",
+          "solver": "propagation",
+          "points": 7,
+          "constraints": 4,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "ce019653866d12847f698f8635eb336f96334159c6cfd2acc93b41c2e3500fc3"
+        },
+        {
+          "key": "shuttle-spin",
+          "solver": "xpbd",
+          "points": 7,
+          "constraints": 4,
+          "loadMs": 0.6,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.8
+          },
+          "residuals": 0,
+          "geometryHash": "cdf1397ac8b5988bf9f9198d3ef4e1fdeab987a9dddac2d176bcc76e3fb92b9a"
+        },
+        {
+          "key": "bouncing-constellation",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "c03d7991f102e2c219f98d9883c57c3ad1015b2ff023e9d705271d27fec0644b"
+        },
+        {
+          "key": "bouncing-constellation",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "1d9d6002c3721be8902811ac6f5501674c70ad88131e0a0fac95af55d8e181a2"
+        },
+        {
+          "key": "cycloid-percussion",
+          "solver": "propagation",
+          "points": 6,
+          "constraints": 5,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "99c18c2260af11deaca48015906dcc7ff4280f23902d31d55080613400599579"
+        },
+        {
+          "key": "cycloid-percussion",
+          "solver": "xpbd",
+          "points": 6,
+          "constraints": 5,
+          "loadMs": 0.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "7373c1eae4bd31a3c335cea70c2368342b3224496304052ba2af4e71ccd501d7"
+        },
+        {
+          "key": "openspace-ostinatos",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 1.6,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "6e54bf25ff7d74cfca650744606331329e13a595b7c5281f7ae2a52f4a3b4c30"
+        },
+        {
+          "key": "openspace-ostinatos",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 4,
+          "loadMs": 0.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "a07a5c3200f684fcd41cefd99ad02c1d91ad64b29fc57db456cc22b07cce1146"
+        },
+        {
+          "key": "rotating-partials",
+          "solver": "propagation",
+          "points": 45,
+          "constraints": 44,
+          "loadMs": 4,
+          "move": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "frame": {
+            "medianMs": 0.5,
+            "p95Ms": 0.7
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 1.5,
+            "p95Ms": 1.9
+          },
+          "residuals": 0,
+          "geometryHash": "527a3710e0276c34b42cdf5600b94bb7a5ce1396cd30b71d25d2f8f1b9f8bcda"
+        },
+        {
+          "key": "rotating-partials",
+          "solver": "xpbd",
+          "points": 45,
+          "constraints": 44,
+          "loadMs": 3.4,
+          "move": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "frame": {
+            "medianMs": 0.5,
+            "p95Ms": 0.7
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 1.7,
+            "p95Ms": 1.9
+          },
+          "residuals": 0,
+          "geometryHash": "ed76cd08db43d0370a401c25b2b545fe0e1958b18c3d59537c78a1490e8fa7ba"
+        },
+        {
+          "key": "beatles-trajectory-study",
+          "solver": "propagation",
+          "points": 6,
+          "constraints": 6,
+          "loadMs": 1.6,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.4,
+            "p95Ms": 0.5
+          },
+          "residuals": 3,
+          "geometryHash": "0f3b712da84d742c7a83ae0ea6d24731ffd7986237d6bdb02d13864808686a60"
+        },
+        {
+          "key": "beatles-trajectory-study",
+          "solver": "xpbd",
+          "points": 6,
+          "constraints": 6,
+          "loadMs": 1.1,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 2,
+          "geometryHash": "6edfac0c0ff2a25d6ae365e685bf57f63d6430811bd39a68d71e6cf2058ba2cc"
+        },
+        {
+          "key": "jazz-trio-midi",
+          "solver": "propagation",
+          "points": 3,
+          "constraints": 3,
+          "loadMs": 3.1,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "34ed99dc1738ada15f4fb6ee747a0037dd52b735afe43187b4b29960b981ca51"
+        },
+        {
+          "key": "jazz-trio-midi",
+          "solver": "xpbd",
+          "points": 3,
+          "constraints": 3,
+          "loadMs": 0.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "76f6560c448154d941f91fdefcfacf93cfe091369fc136d2d8622c82f1f3931a"
+        },
+        {
+          "key": "faust-control-study",
+          "solver": "propagation",
+          "points": 7,
+          "constraints": 7,
+          "loadMs": 3.2,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 1
+          },
+          "residuals": 0,
+          "geometryHash": "7800d1e7b540655ba03d7418ceb2dfd401fbc3147b550d70068721f4875c5212"
+        },
+        {
+          "key": "faust-control-study",
+          "solver": "xpbd",
+          "points": 7,
+          "constraints": 7,
+          "loadMs": 1.9,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.5,
+            "p95Ms": 0.5
+          },
+          "residuals": 0,
+          "geometryHash": "643f435815b7cffd6ec5f2ddb8d7065ea0a59bd8cf3bc55a7f8f7b4b71be5727"
+        },
+        {
+          "key": "fm-space",
+          "solver": "propagation",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 5.4,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 1.1
+          },
+          "residuals": 1,
+          "geometryHash": "802997d115c4a2ca053aa9ca064fa71a50289dda9a0b6aacd365e3dc1f2fcda2"
+        },
+        {
+          "key": "fm-space",
+          "solver": "xpbd",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 4.1,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 1.1
+          },
+          "residuals": 0,
+          "geometryHash": "673f7d57fb4e67b180d54a110834a2797097abf6a2243e28d9213dc4ec681fbe"
+        },
+        {
+          "key": "fm-harmonic-space",
+          "solver": "propagation",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 4.8,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 2,
+          "geometryHash": "684a85c56c1026e8065b8752babcb978ab60a6897ac790c15caaa21101ff199b"
+        },
+        {
+          "key": "fm-harmonic-space",
+          "solver": "xpbd",
+          "points": 12,
+          "constraints": 12,
+          "loadMs": 4.6,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.6,
+            "p95Ms": 0.7
+          },
+          "residuals": 0,
+          "geometryHash": "3aa47d43cfe40ee59f565b31d32a9556e905e98ddd716a73010cdfe37e800d2e"
+        },
+        {
+          "key": "granular-cloud-study",
+          "solver": "propagation",
+          "points": 9,
+          "constraints": 9,
+          "loadMs": 2.8,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.5,
+            "p95Ms": 0.5
+          },
+          "residuals": 1,
+          "geometryHash": "ef7e0dac6fcfb6914848afca13d3f4349dfc7e65743f417831ef17b1fd3bb0aa"
+        },
+        {
+          "key": "granular-cloud-study",
+          "solver": "xpbd",
+          "points": 9,
+          "constraints": 9,
+          "loadMs": 2,
+          "move": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "frame": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "residuals": 0,
+          "geometryHash": "fee1d2c62b3984b6bf1faad16f0156ad106c380d78619f5c54ee775c9a9047f3"
+        },
+        {
+          "key": "chord-import",
+          "solver": "propagation",
+          "points": 1,
+          "constraints": 0,
+          "loadMs": 1.3,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "residuals": 0,
+          "geometryHash": "045ed7ecfe28106bc947b9349c3149d1ed467f9642eacc1b1aab8f88eb46805d"
+        },
+        {
+          "key": "chord-import",
+          "solver": "xpbd",
+          "points": 1,
+          "constraints": 0,
+          "loadMs": 0.6,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "045ed7ecfe28106bc947b9349c3149d1ed467f9642eacc1b1aab8f88eb46805d"
+        },
+        {
+          "key": "conflict-diagnostics",
+          "solver": "propagation",
+          "points": 1,
+          "constraints": 2,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "residuals": 1,
+          "geometryHash": "c7280a7c586e315d551f8ba981cef3f6729e8b727468ba1bf04dd8a14831f37a"
+        },
+        {
+          "key": "conflict-diagnostics",
+          "solver": "xpbd",
+          "points": 1,
+          "constraints": 2,
+          "loadMs": 0.5,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "residuals": 1,
+          "geometryHash": "88e03e11c2e59047e21c02c565bee88413a84b03c19d9c2cb5c1902e1656e97e"
+        },
+        {
+          "key": "simple-spring",
+          "solver": "propagation",
+          "points": 2,
+          "constraints": 2,
+          "loadMs": 1.1,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.1
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "d011172eef7885dc9962a2421660022b90920d7c1dc57dbb57240183f7aa050c"
+        },
+        {
+          "key": "simple-spring",
+          "solver": "xpbd",
+          "points": 2,
+          "constraints": 2,
+          "loadMs": 0.5,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.2
+          },
+          "residuals": 0,
+          "geometryHash": "d011172eef7885dc9962a2421660022b90920d7c1dc57dbb57240183f7aa050c"
+        },
+        {
+          "key": "coupled-springs",
+          "solver": "propagation",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "15e3290fafa4145834a32efa50d9ca4784638b7f0ec7d817ae69bdaeceb21380"
+        },
+        {
+          "key": "coupled-springs",
+          "solver": "xpbd",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 0.6,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 1
+          },
+          "residuals": 0,
+          "geometryHash": "15e3290fafa4145834a32efa50d9ca4784638b7f0ec7d817ae69bdaeceb21380"
+        },
+        {
+          "key": "spring-pendulum",
+          "solver": "propagation",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 0.9,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "b233bfaf7f1c52a6c9e815eb57d982f1ebc8813ef7a6fe517b81cb2b9b851ba3"
+        },
+        {
+          "key": "spring-pendulum",
+          "solver": "xpbd",
+          "points": 5,
+          "constraints": 6,
+          "loadMs": 0.7,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "b233bfaf7f1c52a6c9e815eb57d982f1ebc8813ef7a6fe517b81cb2b9b851ba3"
+        },
+        {
+          "key": "musical-spring",
+          "solver": "propagation",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 2.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "residuals": 0,
+          "geometryHash": "07830000a668615fce1767e70d732dc232961bb629766e4cb1f7704f9949d58e"
+        },
+        {
+          "key": "musical-spring",
+          "solver": "xpbd",
+          "points": 4,
+          "constraints": 5,
+          "loadMs": 1.2,
+          "move": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "frame": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "save": {
+            "medianMs": 0,
+            "p95Ms": 0.1
+          },
+          "edit": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "residuals": 0,
+          "geometryHash": "07830000a668615fce1767e70d732dc232961bb629766e4cb1f7704f9949d58e"
+        },
+        {
+          "key": "links-100",
+          "solver": "propagation",
+          "points": 200,
+          "constraints": 100,
+          "loadMs": 5.2,
+          "move": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "frame": {
+            "medianMs": 1,
+            "p95Ms": 1.3
+          },
+          "save": {
+            "medianMs": 0.2,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 2.9,
+            "p95Ms": 3.7
+          },
+          "residuals": 0,
+          "geometryHash": "6f56aa84b6bbf7d7d3684c089916d8ddf928f64c63076287dad8eefe17a6ee51"
+        },
+        {
+          "key": "links-100",
+          "solver": "xpbd",
+          "points": 200,
+          "constraints": 100,
+          "loadMs": 4.1,
+          "move": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "frame": {
+            "medianMs": 1,
+            "p95Ms": 1.2
+          },
+          "save": {
+            "medianMs": 0.1,
+            "p95Ms": 0.2
+          },
+          "edit": {
+            "medianMs": 2.8,
+            "p95Ms": 3
+          },
+          "residuals": 0,
+          "geometryHash": "dfea1bcbf3fa98600f7089c3819653b882db34939458bbfb37b019a39677ea47"
+        },
+        {
+          "key": "links-500",
+          "solver": "propagation",
+          "points": 1000,
+          "constraints": 500,
+          "loadMs": 22.8,
+          "move": {
+            "medianMs": 1.4,
+            "p95Ms": 1.5
+          },
+          "frame": {
+            "medianMs": 5.4,
+            "p95Ms": 6
+          },
+          "save": {
+            "medianMs": 0.7,
+            "p95Ms": 0.9
+          },
+          "edit": {
+            "medianMs": 12.7,
+            "p95Ms": 13.7
+          },
+          "residuals": 0,
+          "geometryHash": "4fa5a4f8aba8e84dbbb87e617c173b401178b70d0a28c5f5f0cbc4baf8fe432f"
+        },
+        {
+          "key": "links-500",
+          "solver": "xpbd",
+          "points": 1000,
+          "constraints": 500,
+          "loadMs": 17,
+          "move": {
+            "medianMs": 1.3,
+            "p95Ms": 1.5
+          },
+          "frame": {
+            "medianMs": 5.4,
+            "p95Ms": 6
+          },
+          "save": {
+            "medianMs": 0.7,
+            "p95Ms": 0.7
+          },
+          "edit": {
+            "medianMs": 12.3,
+            "p95Ms": 12.7
+          },
+          "residuals": 0,
+          "geometryHash": "64fbad93249765e7bc09fba57899dc9b131e67e9a6932ae9987f77a8702e3a05"
+        },
+        {
+          "key": "springs-100",
+          "solver": "propagation",
+          "points": 200,
+          "constraints": 200,
+          "loadMs": 7.6,
+          "move": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "frame": {
+            "medianMs": 3.2,
+            "p95Ms": 3.6
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.3
+          },
+          "edit": {
+            "medianMs": 5,
+            "p95Ms": 5.4
+          },
+          "residuals": 0,
+          "geometryHash": "e3ba5d54bc90e9f69511f46657713708fdd205e45f4524b4806de6d93ec6a84b"
+        },
+        {
+          "key": "springs-100",
+          "solver": "xpbd",
+          "points": 200,
+          "constraints": 200,
+          "loadMs": 5.9,
+          "move": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "frame": {
+            "medianMs": 3.2,
+            "p95Ms": 3.8
+          },
+          "save": {
+            "medianMs": 0.3,
+            "p95Ms": 0.4
+          },
+          "edit": {
+            "medianMs": 5.5,
+            "p95Ms": 6.1
+          },
+          "residuals": 0,
+          "geometryHash": "e3ba5d54bc90e9f69511f46657713708fdd205e45f4524b4806de6d93ec6a84b"
+        },
+        {
+          "key": "grid-225",
+          "solver": "propagation",
+          "points": 225,
+          "constraints": 420,
+          "loadMs": 9.6,
+          "move": {
+            "medianMs": 1,
+            "p95Ms": 1.1
+          },
+          "frame": {
+            "medianMs": 2.3,
+            "p95Ms": 2.5
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.6
+          },
+          "edit": {
+            "medianMs": 7.4,
+            "p95Ms": 7.6
+          },
+          "residuals": 27,
+          "geometryHash": "3b5faca8820b448f5b2bd03a63bed3b295d327b62ad749b6a5aae943a57d079d"
+        },
+        {
+          "key": "grid-225",
+          "solver": "xpbd",
+          "points": 225,
+          "constraints": 420,
+          "loadMs": 9.5,
+          "move": {
+            "medianMs": 1,
+            "p95Ms": 1.1
+          },
+          "frame": {
+            "medianMs": 2.3,
+            "p95Ms": 2.7
+          },
+          "save": {
+            "medianMs": 0.5,
+            "p95Ms": 0.5
+          },
+          "edit": {
+            "medianMs": 7,
+            "p95Ms": 7.5
+          },
+          "residuals": 27,
+          "geometryHash": "3b5faca8820b448f5b2bd03a63bed3b295d327b62ad749b6a5aae943a57d079d"
+        }
+      ]
+    }
+  ]
+}

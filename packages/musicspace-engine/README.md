@@ -44,7 +44,7 @@ npm pack
 In the consuming project, install that archive by its actual path:
 
 ```sh
-npm install /path/to/musicspace-engine-0.1.0-alpha.4.tgz
+npm install /path/to/musicspace-engine-0.1.0-alpha.5.tgz
 ```
 
 Then import `createSpace` from `@musicspace/engine`. CommonJS `require` is also
