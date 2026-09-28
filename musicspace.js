@@ -37,6 +37,8 @@ const clearTraceButton = document.getElementById("clear-trace");
 const resetButton = document.getElementById("reset");
 
 const fullscreenToggleButton = document.getElementById("fullscreen-toggle");
+const canvasFullscreenButton = document.getElementById("canvas-fullscreen");
+const mobileToolsButton = document.getElementById("mobile-tools-toggle");
 
 const saveTraceButton = document.getElementById("save-trace");
 
@@ -403,6 +405,12 @@ function setCanvasFullscreen(enabled) {
   document.body?.classList?.toggle("is-canvas-fullscreen", isCanvasFullscreen);
   fullscreenToggleButton.setAttribute("aria-pressed", String(isCanvasFullscreen));
   fullscreenToggleButton.textContent = isCanvasFullscreen ? "Exit Fullscreen" : "Fullscreen";
+  canvasFullscreenButton.textContent = isCanvasFullscreen ? "Close" : "Expand";
+  canvasFullscreenButton.setAttribute(
+    "aria-label",
+    isCanvasFullscreen ? "Exit fullscreen canvas" : "Expand canvas"
+  );
+  canvasFullscreenButton.setAttribute("aria-pressed", String(isCanvasFullscreen));
   fullscreenToggleButton.title = isCanvasFullscreen
     ? "Exit fullscreen canvas mode"
     : "Use the full screen for the canvas";
@@ -4100,7 +4108,31 @@ function getPointerPosition(event) {
   };
 }
 
-function findEntityAt(x, y) {
+function findEntityAt(x, y, pointerType = "mouse") {
+  if (pointerType === "touch") {
+    const rect = canvas.getBoundingClientRect();
+    const entities = [
+      state.listener,
+      ...state.sources,
+      ...state.movingObjects,
+      ...state.constraints.map((constraint) => constraint.node)
+    ];
+    // Use screen pixels so a finger can grab a small object on a scaled canvas.
+    // Nearest wins when the enlarged touch targets overlap.
+    let nearest = null;
+    let nearestDistance = Infinity;
+    for (const entity of entities) {
+      const distance = Math.hypot(
+        ((entity.x - x) * rect.width) / WIDTH,
+        ((entity.y - y) * rect.height) / HEIGHT
+      );
+      if ((distance <= 22 || entity.isInside(x, y)) && distance < nearestDistance) {
+        nearest = entity;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
   if (state.listener.isInside(x, y)) {
     return state.listener;
   }
@@ -4144,8 +4176,14 @@ function isRepeatedCanvasClick(event, x, y, entity) {
 
   return (
     event.timeStamp - lastCanvasClick.time <= DOUBLE_CLICK_MS &&
-    Math.hypot(x - lastCanvasClick.x, y - lastCanvasClick.y) <= DOUBLE_CLICK_DISTANCE
+    Math.hypot(x - lastCanvasClick.x, y - lastCanvasClick.y) <= canvasClickDistance(event)
   );
+}
+
+function canvasClickDistance(event) {
+  return event.pointerType === "touch"
+    ? (22 * WIDTH) / canvas.getBoundingClientRect().width
+    : DOUBLE_CLICK_DISTANCE;
 }
 
 function handleEntityDoubleClick(entity) {
@@ -4567,9 +4605,10 @@ function updateHoverState(entity) {
 }
 
 function beginDrag(event) {
+  if (dragged || event.isPrimary === false) return;
   const { x, y } = getPointerPosition(event);
-  const entity = findEntityAt(x, y);
-  const doubleClickEntity = findDoubleClickEntityAt(x, y);
+  const entity = findEntityAt(x, y, event.pointerType);
+  const doubleClickEntity = event.pointerType === "touch" ? entity : findDoubleClickEntityAt(x, y);
 
   if (activeTool !== TOOL_SELECT) {
     lastCanvasClick = null;
@@ -4600,6 +4639,7 @@ function beginDrag(event) {
     offsetY: y - entity.y,
     startX: x,
     startY: y,
+    dragThreshold: event.pointerType === "touch" ? (6 * WIDTH) / canvas.getBoundingClientRect().width : 2,
     doubleClickEntity,
     didSnapshot: false,
     skipPropagation: false
@@ -4622,11 +4662,11 @@ function continueDrag(event) {
 
   const { x, y } = getPointerPosition(event);
   const dragDistance = Math.hypot(x - dragged.startX, y - dragged.startY);
-  if (!dragged.didSnapshot && dragDistance <= 2) {
+  if (!dragged.didSnapshot && dragDistance <= dragged.dragThreshold) {
     return;
   }
 
-  if (!dragged.didSnapshot && dragDistance > 2) {
+  if (!dragged.didSnapshot && dragDistance > dragged.dragThreshold) {
     pushUndoSnapshot(`move ${entityLabel(dragged.entity)}`);
     if (state.constraints.some((constraint) => constraint.node === dragged.entity)) {
       dragged.entity.isManual = true;
@@ -4659,7 +4699,11 @@ function endDrag(event) {
   stage.classList.remove("is-dragging");
   dragged = null;
   const { x, y } = getPointerPosition(event);
-  if (wasClick && Math.hypot(x - startX, y - startY) <= DOUBLE_CLICK_DISTANCE) {
+  if (
+    event.type === "pointerup" &&
+    wasClick &&
+    Math.hypot(x - startX, y - startY) <= canvasClickDistance(event)
+  ) {
     lastCanvasClick = {
       entity: clickEntity,
       time: event.timeStamp,
@@ -4691,6 +4735,7 @@ canvas.addEventListener("pointermove", continueDrag);
 canvas.addEventListener("pointerup", endDrag);
 
 canvas.addEventListener("pointercancel", endDrag);
+canvas.addEventListener("lostpointercapture", endDrag);
 
 canvas.addEventListener("pointerleave", () => {
   if (!dragged) {
@@ -4901,6 +4946,12 @@ resetButton.addEventListener("click", () => {
 });
 
 fullscreenToggleButton.addEventListener("click", toggleCanvasFullscreen);
+canvasFullscreenButton.addEventListener("click", toggleCanvasFullscreen);
+mobileToolsButton.addEventListener("click", () => {
+  const expanded = mobileToolsButton.getAttribute("aria-expanded") !== "true";
+  mobileToolsButton.setAttribute("aria-expanded", String(expanded));
+  document.body.classList.toggle("mobile-tools-open", expanded);
+});
 
 rotationApplyButton.addEventListener("click", applyRotationEditor);
 

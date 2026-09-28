@@ -92,6 +92,19 @@ npm run export:linkedin -- musicspace-musical-spring.webm
 
 ## Controls
 
+### On a phone
+
+Use **Play** mode, choose a patch, and tap **Play Sound** when available. Touch near
+an object and drag it; touch targets stay at least 44 screen pixels across even
+when the scene is scaled down. For springs, drag a red mass endpoint and release.
+
+Tap **Expand** on the canvas and turn the phone sideways for more space. **Close**
+returns to the controls. The scene keeps its proportions in either orientation.
+**More** reveals drawing and trace controls. Selection help appears below the canvas.
+In **Edit** mode, creation tools sit below the scene and inspectors fit the screen.
+
+### General controls
+
 - Use the patch menu to load built-in scenes, including constraint examples and trajectory studies.
 - Use **Play** mode for the selected patch: runtime transport, MIDI output, fullscreen, and trace controls are shown only when they apply.
 - Use **Edit** mode for authoring: the creation palette, solver, import, patch inspector, JSON editor, and save/load patch controls appear there.

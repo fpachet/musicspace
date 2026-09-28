@@ -1370,7 +1370,7 @@
 
       .tool-palette {
         display: grid;
-        grid-template-columns: minmax(90px, 0.4fr) minmax(110px, 0.5fr) minmax(350px, 1.55fr) minmax(220px, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: stretch;
         width: 100%;
         margin: 0 0 14px;
@@ -1494,6 +1494,82 @@
         flex-basis: 22px;
       }
     }
+    .stage-area { position: relative; }
+    #mobile-tools-toggle, #canvas-fullscreen { display: none; }
+    #canvas-fullscreen {
+      position: absolute;
+      top: max(8px, env(safe-area-inset-top));
+      right: max(8px, env(safe-area-inset-right));
+      z-index: 4;
+      min-height: 44px;
+      min-width: 44px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink);
+    }
+    .stage.is-fullscreen, .stage:fullscreen { height: 100dvh; }
+    .stage.is-fullscreen #canvas-fullscreen, .stage:fullscreen #canvas-fullscreen { display: block; }
+    .stage.is-fullscreen canvas, .stage:fullscreen canvas {
+      width: min(100vw, calc(100dvh * 4 / 3));
+      height: min(100dvh, calc(100vw * 3 / 4));
+      margin: auto;
+    }
+    body.is-canvas-fullscreen .selection-summary { display: none; }
+
+    @media (max-width: 720px), (max-width: 960px) and (pointer: coarse) {
+      main { padding: 8px 8px max(16px, env(safe-area-inset-bottom)); }
+      h1 { font-size: 19px; margin: 0 0 8px; }
+      h1::after { display: none; }
+      .toolbar { min-height: 0; gap: 5px; }
+      .toolbar-group { width: 100%; min-width: 0; max-width: 100%; }
+      .toolbar-group-label { display: none; }
+      .mode-group { width: auto; flex: 1; }
+      .toolbar button, .toolbar select, .editor-panel button,
+      .patch-inspector button, .editor-panel input, .editor-panel select {
+        min-height: 44px;
+      }
+      button { touch-action: manipulation; }
+      select, input, textarea, .editor-grid input, .editor-grid select,
+      .mapping-row input, .mapping-row select, .patch-json-editor textarea {
+        font-size: 16px;
+      }
+      #patch-select { flex: 1; width: 0; max-width: none; }
+      .toolbar-group > select { min-width: 0; max-width: 100%; }
+      #transport-toolbar-group > button { flex: 1; }
+      #mobile-tools-toggle, #canvas-fullscreen { display: block; }
+      body:not(.mobile-tools-open) #display-tools { display: none; }
+      .toolbar-group > button { min-width: 44px; }
+      .tool-palette { grid-row: 2; margin-top: 12px; grid-template-columns: 1fr; }
+      .canvas-column { grid-row: 1; min-width: 0; }
+      .patch-info { margin-top: 6px; line-height: 1.4; }
+      .patch-tag { display: none; }
+      .stage { border-radius: 10px; }
+      .selection-summary {
+        position: static;
+        max-width: none;
+        margin: 8px 0 0;
+        box-shadow: none;
+      }
+      .canvas-legend { display: none; }
+      .popup-panel, .patch-inspector.popup-panel, #source-editor, #listener-editor {
+        inset: auto 8px max(8px, env(safe-area-inset-bottom));
+        width: auto;
+        max-width: calc(100vw - 16px);
+        max-height: calc(100dvh - 32px);
+        border-radius: 14px;
+        overscroll-behavior: contain;
+      }
+      .editor-header, .inspector-header { flex-wrap: wrap; }
+      .inspector-actions { flex-wrap: wrap; }
+      .editor-actions {
+        position: sticky;
+        bottom: -12px;
+        padding: 8px 0;
+        background: #fff;
+      }
+      .editor-grid, .inspector-grid { grid-template-columns: minmax(0, 1fr); }
+      .mapping-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -1507,6 +1583,7 @@
             <button id="ui-mode-play" type="button">Play</button>
             <button id="ui-mode-edit" type="button">Edit</button>
           </div>
+          <button id="mobile-tools-toggle" data-ui-mode="play" type="button" aria-expanded="false" aria-controls="display-tools">More</button>
         </div>
         <div class="toolbar-group" aria-label="Patch controls">
           <span class="toolbar-group-label">Patch</span>
@@ -1548,7 +1625,7 @@
           <button id="patch-inspector-inline-toggle" type="button" aria-pressed="false">Patch Inspector</button>
           <button id="patch-json-inline-toggle" type="button" aria-pressed="false">Patch JSON</button>
         </div>
-        <div class="toolbar-group" data-ui-mode="play" aria-label="Display and trace controls">
+        <div id="display-tools" class="toolbar-group" data-ui-mode="play" aria-label="Display and trace controls">
           <span class="toolbar-group-label">Display</span>
           <button id="trace-selected" type="button" aria-pressed="false" title="Toggle drawing for the selected object">Draw Selected</button>
           <button id="trace-none" type="button" title="Turn drawing off for every object">Stop Drawing All</button>
@@ -1669,6 +1746,7 @@
           <p id="constraint-status" class="status" aria-live="polite"></p>
         </div>
         <p id="patch-info" class="patch-info" aria-live="polite"></p>
+        <div class="stage-area">
         <div id="stage" class="stage">
           <canvas id="trace" width="800" height="600"></canvas>
           <canvas
@@ -1678,12 +1756,14 @@
             tabindex="0"
             role="application"
             aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
-          <div id="selection-summary" class="canvas-overlay selection-summary" aria-live="polite" hidden></div>
+          <button id="canvas-fullscreen" type="button" aria-label="Expand canvas" aria-pressed="false">Expand</button>
           <div id="canvas-legend" class="canvas-overlay canvas-legend" aria-label="Canvas legend">
             <span class="legend-item"><span class="legend-mark" aria-hidden="true"></span>Control</span>
             <span class="legend-item"><span class="legend-mark audio" aria-hidden="true"></span>Audio</span>
             <span class="legend-item"><span class="legend-mark midi" aria-hidden="true"></span>MIDI</span>
           </div>
+        </div>
+          <div id="selection-summary" class="canvas-overlay selection-summary" aria-live="polite" hidden></div>
         </div>
       </div>
     </div>

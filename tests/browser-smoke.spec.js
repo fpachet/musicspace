@@ -330,3 +330,96 @@ test("spring patches animate, drag, edit and drive existing musical mappings", a
   expect(await page.evaluate(() => scene.getObjectByName("Mass").dynamics.mass)).toBe(2.5);
   expect(failures).toEqual([]);
 });
+
+test.describe("phone layout and touch interaction", () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test("phone controls fit, canvas expands without distortion, and inspectors remain reachable", async ({
+    page
+  }) => {
+    await page.goto("/musicspace.html");
+    await expect(page.locator("#patch-select")).toBeEnabled();
+    await page.locator("#patch-select").selectOption("musical-spring");
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      const stageBox = await page.locator("#stage").boundingBox();
+      expect(stageBox.y + stageBox.height).toBeLessThan(720);
+      expect(stageBox.width).toBeGreaterThan(width - 24);
+      expect((await page.locator("#target-toggle").boundingBox()).height).toBeGreaterThanOrEqual(44);
+      const summary = await page.locator("#selection-summary").boundingBox();
+      if (summary) expect(summary.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height);
+    }
+    await expect(page.locator("#display-tools")).toBeHidden();
+    await page.locator("#mobile-tools-toggle").tap();
+    await expect(page.locator("#display-tools")).toBeVisible();
+    await page.locator("#mobile-tools-toggle").tap();
+    await page.screenshot({ path: test.info().outputPath("phone-play.png"), fullPage: true });
+    // Exercise the CSS fallback used when a phone has no element fullscreen API.
+    await page.evaluate(() => {
+      document.getElementById("stage").requestFullscreen = undefined;
+    });
+    await page.locator("#canvas-fullscreen").tap();
+    await expect(page.locator("#canvas-fullscreen")).toHaveText("Close");
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 844, height: 390 }
+    ]) {
+      await page.setViewportSize(viewport);
+      const canvasBox = await page.locator("#canvas").boundingBox();
+      expect(canvasBox.width / canvasBox.height).toBeCloseTo(4 / 3, 2);
+      expect(canvasBox.x).toBeGreaterThanOrEqual(0);
+      expect(canvasBox.y).toBeGreaterThanOrEqual(0);
+      expect(canvasBox.x + canvasBox.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(viewport.height + 1);
+    }
+    await page.screenshot({ path: test.info().outputPath("phone-landscape.png") });
+    await page.locator("#canvas-fullscreen").tap();
+    await expect(page.locator("#stage")).not.toHaveClass(/is-fullscreen/);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator("#ui-mode-edit").tap();
+    const canvasBox = await page.locator("#stage").boundingBox();
+    const toolsBox = await page.locator(".tool-palette").boundingBox();
+    expect(toolsBox.y).toBeGreaterThan(canvasBox.y + canvasBox.height);
+    await page.locator("#patch-inspector-toggle").tap();
+    const panel = await page.locator("#patch-inspector").boundingBox();
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(390);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(844);
+    await page.locator("#patch-inspector-close").tap();
+    await expect(page.locator("#patch-inspector")).toBeHidden();
+  });
+
+  test("a finger near a mass can drag it, a second finger cannot steal it, and release resumes dynamics", async ({
+    page,
+    context
+  }) => {
+    await page.goto("/musicspace.html");
+    await expect(page.locator("#patch-select")).toBeEnabled();
+    await page.locator("#patch-select").selectOption("simple-spring");
+    await page.evaluate(() => window.stopAnimation());
+    const canvasBox = await page.locator("#canvas").boundingBox();
+    const x = canvasBox.x + canvasBox.width / 2 - 18;
+    const y = canvasBox.y + canvasBox.height / 2;
+    const client = await context.newCDPSession(page);
+    const send = (type, touchPoints) => client.send("Input.dispatchTouchEvent", { type, touchPoints });
+    const finger = (id, x, y) => ({ id, x, y });
+    await send("touchStart", [finger(1, x, y)]);
+    expect(await page.evaluate(() => scene.state.draggedEntity?.name)).toBe("Mass");
+    await send("touchMove", [finger(1, x, y + 30)]);
+    await page.evaluate(() => window.stopAnimation());
+    const heldY = await page.evaluate(() => scene.getObjectByName("Mass").y);
+    expect(heldY).toBeGreaterThan(340);
+    await send("touchStart", [finger(1, x, y + 30), finger(2, x + 70, y)]);
+    expect(await page.evaluate(() => scene.state.draggedEntity?.name)).toBe("Mass");
+    await send("touchEnd", []);
+    expect(await page.evaluate(() => scene.state.draggedEntity)).toBeNull();
+    const releasedY = await page.evaluate(() => {
+      for (let i = 0; i < 20; i += 1) scene.step();
+      return scene.getObjectByName("Mass").y;
+    });
+    expect(releasedY).toBeLessThan(heldY - 10);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    await client.detach();
+  });
+});

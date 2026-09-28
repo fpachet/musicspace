@@ -79,3 +79,10 @@ input validation, Shift-drag, and musical mapping coverage. These tests use expl
 simulation steps rather than wall-clock timing. Inspector coverage is in
 `tests/constraint-engine.test.js`; Chromium coverage in `tests/browser-smoke.spec.js`
 checks the four patches, pointer hold/release, parameter editing, mass editing, and sound enablement.
+
+Phone regressions in `tests/browser-smoke.spec.js` use Chromium mobile emulation at
+320px/390px portrait widths and 844px landscape width. They check horizontal overflow,
+control sizing, selection-help placement, fullscreen proportions and touch exit,
+inspector bounds, touch dragging near small objects, second-finger handling, and
+release into spring dynamics. These checks complement testing on physical iOS/Android
+devices; they do not verify device-specific browser chrome or audio policies.
