@@ -6,6 +6,15 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 - Consider a richer transport display now that mover stop/start preserves position and resets the elapsed-time clock.
 
+## Engine Package
+
+- Exercise the local `@musicspace/engine` alpha in independent interfaces and collect API feedback before stabilizing names or publishing on npm.
+- Expose configurable world bounds and solver tolerances; document a consistent unit convention beyond the current pixel-like geometry.
+- Define batch movement and priority policies for simultaneous control changes and multiple pointers.
+- Profile authoring operations, which currently validate and rebuild the scene, separately from continuous movement and simulation.
+- Check TypeScript declarations with a consuming TypeScript project in CI.
+- Follow [the staged migration plan](packages/musicspace-engine/MIGRATION.md) before moving the existing interface onto the public API. Preserve inspectors, traces, undo, audio/MIDI metadata and saved patches.
+
 ## Interaction Model
 
 - Expand the patch menu with more built-in scenes as new constraints and trajectories are introduced.
@@ -53,7 +62,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 - Keep the GitHub Pages workflow as the public-demo gate: run syntax, engine, and browser smoke tests before deployment; extend the smoke test as important UI workflows stabilize.
 - Keep the README focused on running, controls, built-in patches, and repository orientation. Move longer research notes or design rationale into dedicated docs when the background/features sections grow again.
 - Refresh the README screenshot gallery and demo videos when the source/mover visual language changes. The video capture script records canvas motion plus the explicit Web Audio capture bus for audio-producing demos.
-- Keep the app as a static prototype. The headless CommonJS/browser model is available; stabilize its authoring API before publishing it as a package.
+- Keep the workbench usable as a static application while the standalone package API matures. The local alpha and examples live in `packages/musicspace-engine`; npm publication and UI migration remain separate milestones.
 
 ## Open Questions
 

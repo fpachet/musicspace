@@ -19,6 +19,7 @@ npm run check
 npm run format:check
 npm test
 npm run smoke
+npm test --prefix packages/musicspace-engine
 ```
 
 `check` runs ESLint, including syntax, undefined-name, unused-variable and recommended correctness rules. `format:check` checks JavaScript formatting; `npm run format` applies it. The browser suite starts its own loopback HTTP server when one is not already running.
@@ -37,6 +38,36 @@ The GitHub workflow runs checks for pull requests and before publishing the main
 - `tests/browser-smoke.spec.js` covers real Chromium controls, invalid JSON edits, MusicXML chord and voice timing, stable parameter-monitor DOM rows all bundled audio backends, and delayed Faust startup cancellation.
 
 `examples/chord.musicxml` and `tests/fixtures/voices.musicxml` provide small inspectable notation fixtures. External MIDI hardware and subjective sound quality still require manual checks.
+
+## Standalone package checks
+
+`npm test --prefix packages/musicspace-engine` builds the package from the shared
+sources, then runs its Node and Chromium tests. Use the root development setup
+above; the package has no runtime dependencies, while its browser test uses the
+repository's Playwright installation. The test server binds an ephemeral loopback
+port, so environments that prohibit local servers need permission to run it.
+
+- `test/space.test.cjs` covers authoring, propagation, center motion, invalid-edit
+  rollback, independent notifications, constraint activation, diagnostics,
+  rotators, springs, restoration, fixed-step timing and parity with the original
+  product/limit fixture.
+- `test/install.test.cjs` packs the distribution, installs it offline into a
+  temporary independent project and exercises both ESM and CommonJS imports.
+- `test/browser.test.cjs` uses the standalone SVG playground to verify dragging,
+  indirect movement, JSON save/load, rotation, spring release and the absence of
+  global MusicSpace objects or browser exceptions.
+
+The root `format:check` script targets the workbench files. Check package formatting
+separately when changing its sources:
+
+```sh
+npx prettier --check 'packages/musicspace-engine/src/*' 'packages/musicspace-engine/scripts/*.cjs' 'packages/musicspace-engine/test/*.cjs' 'packages/musicspace-engine/examples/*' 'packages/musicspace-engine/package.json'
+```
+
+Package tests rebuild ignored `dist/` files and the license copy. Keep generated
+bundles, `.tgz` archives and test screenshots out of commits. The current UI is not
+migrated, so the existing application suites remain necessary alongside the new
+package suite.
 
 ## Benchmarks
 

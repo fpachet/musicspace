@@ -46,6 +46,9 @@ jobs:
       - name: Run browser smoke test
         run: npm run smoke
 
+      - name: Test standalone engine package
+        run: npm test --prefix packages/musicspace-engine
+
       - name: Collect diagnostic benchmarks
         if: github.event_name == 'workflow_dispatch'
         run: node scripts/browser-benchmark.js > benchmark-results.json

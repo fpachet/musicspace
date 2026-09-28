@@ -1,0 +1,32 @@
+{
+  "name": "@musicspace/engine",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Geometry, constraints, trajectories and dynamics for custom interactive interfaces.",
+  "license": "MIT",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "MIGRATION.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

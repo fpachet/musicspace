@@ -8,6 +8,37 @@ MusicSpace now includes two interactive solver modes: the default bounded propag
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
+## Build your own interface
+
+The [MusicSpace engine package](packages/musicspace-engine/README.md) exposes the
+shared constraint engine for custom interfaces: points, geometric relations,
+trajectories, linked rotations, spring dynamics, change notifications and scene
+save/restore. Your application supplies the rendering, gestures and parameter
+meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
+
+**Status: `0.1.0-alpha.1`, distributed locally, not published on npm.**
+`@musicspace/engine` is a provisional package name. The existing workbench still
+uses its original modules; migration to the package is a later, separate step.
+
+Build and try the package from this repository:
+
+```sh
+npm run build --prefix packages/musicspace-engine
+node packages/musicspace-engine/examples/basic.mjs
+npm run serve
+```
+
+Open <http://localhost:8000/packages/musicspace-engine/examples/playground.html>
+for three interactive examples: balance around a movable center, a rotating
+constellation, and coupled springs. Building the package is required for these
+examples; the existing workbench continues to run without a build.
+
+See the [package guide](packages/musicspace-engine/README.md) for creating an
+installable archive, the API and alpha limitations, and the
+[migration plan](packages/musicspace-engine/MIGRATION.md) for preserving current
+interfaces and saved patches. Current limitations include pixel-like units,
+fixed bounce bounds and one active drag per scene.
+
 ## Demo Snapshots
 
 | Cycloid Percussion | OpenSpace Ostinatos |
@@ -172,6 +203,7 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 
 ## Repository Layout
 
+- `packages/musicspace-engine/` contains the standalone engine's public API, build script, TypeScript declarations, examples and distribution tests. Generated bundles and package archives are rebuilt locally and are not committed.
 - `musicspace.html` contains the static page structure and styling.
 - `musicspace.js` contains rendering, interaction, inspectors, undo commands, and output coordination.
 - `musicspace-model.js` owns the headless scene and edit operations; `musicspace-solvers.js` and `musicspace-graph.js` own solving and indexed adjacency.

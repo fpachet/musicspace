@@ -38,6 +38,32 @@ Run the complete example with `npm run example`. The primary operations are `loa
 
 The authoring UI currently uses exposed `state` and `classes` for object creation and inspectors. Constraint-array replacement, push, splice and deletion automatically invalidate adjacency. Code that rebinds an existing constraint's entity references must call `model.graph.invalidate()`. This mutable authoring interface is intentionally documented as an internal API.
 
+## Standalone engine package
+
+`packages/musicspace-engine` adds a public facade over the shared model for custom
+interfaces. Its `createSpace` API exposes points with stable IDs, constraints,
+motion, drag lifecycle, diagnostics, independent snapshots and change events.
+The reference center is exposed as `CENTER`; internal model classes and mutable
+state are not part of the package API.
+
+The build reads the existing root model, solver, graph, trajectory, clock,
+validation and constants modules and bundles them in private module scopes. It
+produces standalone ESM and CommonJS entries plus TypeScript declarations, with
+no runtime dependencies or browser globals. Generated bundles are ignored by Git;
+the source repository is needed to build them, but not to use an installed archive.
+
+Authoring edits validate a candidate model before committing the replacement.
+Interactive moves and simulation steps operate directly on the current model.
+Events contain independent position data and residual diagnostics, including IDs
+of unsatisfied constraints. The host owns rendering and animation scheduling.
+
+The package currently has a scene format separate from the workbench's audio/MIDI
+patch format. The workbench continues to use the original model directly. A future
+migration must preserve inspectors, constraint-node handles, undo, traces, output
+metadata and legacy patch compatibility through an explicit adapter. See the
+[package contract and limitations](packages/musicspace-engine/README.md) and
+[migration stages](packages/musicspace-engine/MIGRATION.md).
+
 ## Simulation time
 
 `model.step()` advances exactly 1/60 second. The browser clock uses animation timestamps and accumulates fixed steps, giving equivalent geometry at 30, 60 and 120 Hz. At most eight steps run per animation frame. Longer gaps discard excess time instead of blocking the UI with catch-up work. Hidden pages reset the clock; returning to the page or restarting movers preserves their current positions without advancing through paused wall time.
