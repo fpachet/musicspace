@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Living springs — Orbit × MusicSpace</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./constellation.css" />
+    <link rel="stylesheet" href="./living-springs.css" />
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <a class="wordmark" href="./"
+          ><span class="orbit-mark">◎</span> ORBIT <span class="times">×</span> MUSICSPACE</a
+        >
+        <nav class="study-nav">
+          <a href="./">01 · Connections</a><a href="./constellation.html">02 · Constellation</a
+          ><a href="./living-springs.html" aria-current="page">03 · Living springs</a>
+        </nav>
+      </header>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">FOURTEEN SPRINGS · TWO MOTORS · CONTINUOUS MOTION</p>
+          <h1>A little restless by nature.</h1>
+          <p class="lead">
+            Two moving anchors keep a web of springs alive. Pluck a control and let it dance.
+          </p>
+        </div>
+        <div class="listen">
+          <button id="audio" class="primary" disabled>▶ Start sound</button
+          ><span id="audio-status" role="status">Loading instrument…</span>
+        </div>
+      </section>
+      <div class="workspace dense-workspace">
+        <section class="instrument">
+          <div class="panel-heading">
+            <span><i class="live-dot"></i> LIVING SPRINGS</span
+            ><span id="motion-status">Moving · sound off</span>
+          </div>
+          <div class="view-options">
+            <label><input id="connections" type="checkbox" checked /> Show springs</label
+            ><label><input id="trails" type="checkbox" checked /> Motion trails</label
+            ><button id="freeze" aria-pressed="false">Ⅱ Freeze motion</button>
+          </div>
+          <div id="orbit" aria-label="Ten Faust controls connected by moving springs"></div>
+          <div class="instrument-footer">
+            <span>10 sound controls · 14 springs · 2 motors</span
+            ><span id="network-status">Motors feeding the network</span>
+          </div>
+          <div id="readouts" class="readouts dense-readouts"></div>
+        </section>
+        <aside class="motion-rail">
+          <div class="rail-heading">
+            <h2>It keeps moving.</h2>
+            <p>The motors keep supplying energy. The springs turn it into overlapping, elastic gestures.</p>
+          </div>
+          <section class="motor-card">
+            <div class="relationship-top">
+              <span class="motor-diamond">◇</span>
+              <h3>Two restless anchors</h3>
+              <button
+                id="motors"
+                class="switch"
+                role="switch"
+                aria-checked="true"
+                aria-label="Power the motors"
+              ></button>
+            </div>
+            <p>
+              One travels in a circle. The other shuttles back and forth. Their different periods keep the web
+              changing.
+            </p>
+            <div class="motor-key">
+              <span id="orbit-period">◇ Orbit · 7.3 s</span
+              ><span id="shuttle-period">◇ Shuttle · 10.8 s</span>
+            </div>
+          </section>
+          <section class="feel">
+            <h3>Shape the movement</h3>
+            <label for="speed">Motor speed <output id="speed-value">1.00×</output></label
+            ><input id="speed" type="range" min="0.35" max="2" step="0.05" value="1" />
+            <div class="range-ends"><span>Drifting</span><span>Restless</span></div>
+            <label for="stiffness">Spring tension <output id="stiffness-value">28</output></label
+            ><input id="stiffness" type="range" min="8" max="65" step="1" value="28" />
+            <div class="range-ends"><span>Loose</span><span>Taut</span></div>
+            <label for="damping">Damping <output id="damping-value">1.2</output></label
+            ><input id="damping" type="range" min="0.3" max="5" step="0.1" value="1.2" />
+            <div class="range-ends"><span>Bouncy</span><span>Calm</span></div>
+          </section>
+          <section class="motion-presets">
+            <h3>Three ways to move</h3>
+            <div>
+              <button data-feel="Float">Float</button
+              ><button data-feel="Wiggle" class="selected">Wiggle</button
+              ><button data-feel="Flutter">Flutter</button>
+            </div>
+          </section>
+          <section class="pluck-note">
+            <span>↗</span>
+            <div>
+              <h3>Give it a pluck</h3>
+              <p>Grab any dot, pull it away, then release. Its neighbors react through the spring network.</p>
+            </div>
+          </section>
+          <div class="history">
+            <button id="undo" disabled>↶ Undo</button><button id="redo" disabled>↷ Redo</button
+            ><button id="reset">Reset</button>
+          </div>
+        </aside>
+      </div>
+      <p id="message" class="message" role="status">
+        Already moving. Start sound to hear the motion, or drag any control to disturb the web.
+      </p>
+      <details class="about">
+        <summary>Why it keeps wiggling</summary>
+        <div class="about-content">
+          <div>
+            <h3>Energy comes from the motors</h3>
+            <p>
+              Ten Faust controls form an elastic ring. Four more springs connect the ring to two moving
+              anchors, shown as diamonds. These anchors are MusicSpace trajectories: an offset circular motion
+              and a shuttle. Different masses, speeds and damping create a constantly changing response.
+            </p>
+            <p>
+              Switch the motors off to let the springs settle. Freeze motion to stop the entire simulation
+              immediately. Audio has its own start/pause button.
+            </p>
+          </div>
+          <div>
+            <h3>The sound follows the geometry</h3>
+            <p>
+              The same real Faust synth as Study 02 supplies bass, body and upper voices, resonant filtering,
+              tremolo and stereo pan. Distances to Orbit’s center control the sound. Faint trails show where
+              the dots have been.
+            </p>
+            <p>
+              Motion starts automatically; audio starts only when you click. Background tabs pause the
+              simulation. Undo restores the full scene and freezes it for inspection.
+              <a href="./README.md#study-03-living-springs">Technical notes</a>
+            </p>
+          </div>
+        </div>
+      </details>
+      <footer><span>MusicSpace × Faust Orbit</span><span>Study 03 · Motion you can hear</span></footer>
+    </main>
+    <script type="module" src="./living-springs.mjs"></script>
+  </body>
+</html>

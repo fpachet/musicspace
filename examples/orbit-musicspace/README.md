@@ -19,7 +19,8 @@ Open <http://localhost:8000>. AudioWorklet requires **localhost or HTTPS**.
 Opening `index.html` directly with `file://` will not work.
 
 The header links to **Study 02: Constellation**, also directly available at
-`constellation.html` in this folder.
+`constellation.html` in this folder, and **Study 03: Living springs** at
+`living-springs.html`.
 
 From the MusicSpace repository root, `npm run serve` serves the demo at
 <http://localhost:8000/examples/orbit-musicspace/>. A static HTTPS host can serve
@@ -181,3 +182,44 @@ parameter-step tolerances, especially during motion.
 the constraints; `constellation.mjs` connects gestures, history and audio. The new
 DSP is `audio/constellation.dsp`, with compiled JSON/WASM alongside it. The shared
 audio runtime now accepts a DSP URL; Study 01 retains its original default.
+
+## Study 03: Living springs
+
+Open `living-springs.html`. Motion starts immediately, while audio starts only
+when you click **Start sound**. The page reuses Study 02's real compiled Faust
+synth; this is a new geometric controller for that instrument.
+
+Ten Faust controls form a ring of ten springs. Four additional springs attach
+the ring to two non-audio motor points: an offset circular trajectory with a
+7.3-second base period, and a shuttle with an approximately 10.8-second base
+period. The motors use the public MusicSpace trajectory API. Their unequal
+periods continuously supply energy; moving positions are not decorative jitter.
+Both trajectories change distances from Orbit's center, producing audible
+parameter changes. Ten radial limits bound the sound controls.
+
+- **Pluck:** drag any sound-control dot, then release it into the network.
+- **Motor speed, spring tension, damping:** shape the response. Parameter changes
+  preserve positions, velocities and spring rest lengths.
+- **Float / Wiggle / Flutter:** three choices of speed, stiffness and damping.
+- **Motor power:** off replaces the trajectories with pinned anchors so the
+  springs can settle; on resumes trajectory motion from the anchored positions.
+- **Freeze motion:** pauses the entire simulation without changing audio state.
+- **Show springs / Motion trails:** control the overlay independently of physics.
+- **Undo / redo:** restore the complete engine state and freeze it for inspection.
+
+The two motors are drawn as gold diamonds with dashed paths; their four springs
+are gold. The other coils change tint with extension/compression. Faint traces
+show the last few seconds of control movement. Motors are animation sources, not
+additional Faust parameters. There are no sum/balance constraints in this study;
+all ten sound parameters are free to evolve within their radial bounds.
+
+`living-springs-model.mjs` defines the spring network, masses and trajectories.
+`living-springs.mjs` hosts Orbit, renders the coils/trails and connects Faust audio.
+The engine runs fixed 1/60-second simulation steps through `advance(timestamp)`.
+Background tabs pause physics and resume without accumulating a catch-up burst.
+This is control-rate modulation; Faust smooths parameter changes on the audio thread.
+
+The test suite checks continued radial motion after 40 simulated seconds at
+three motor speeds, preservation of spring rest lengths when changing the feel,
+fixed anchors with motors off, automatic startup, exact freeze/resume, plucking
+and undo, sound output, and mobile layout.

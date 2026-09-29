@@ -235,3 +235,77 @@ test("Constellation remains usable on a narrow screen", async ({ page }) => {
   await expect(page.locator("#select-pulse")).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ path: "test-results/orbit-constellation-mobile.png", fullPage: true });
 });
+
+test("Living springs starts moving automatically, stays silent until asked, and freezes exactly", async ({
+  page
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/orbit-musicspace/living-springs.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  const before = await snapshot(page);
+  expect(before.engine.scene.constraints.filter((c) => c.type === "spring")).toHaveLength(14);
+  expect(before.engine.scene.points.filter((p) => p.id.startsWith("motor-"))).toHaveLength(2);
+  expect(await page.evaluate(() => window.orbitStudy.audioState)).toBe("idle");
+  await expect
+    .poll(async () => {
+      const now = await snapshot(page);
+      return Object.keys(before.params).filter(
+        (path) => Math.abs(now.params[path] - before.params[path]) > 0.01
+      ).length;
+    })
+    .toBeGreaterThan(5);
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.drawnSprings)).toBe(14);
+  await page.locator("#freeze").click();
+  const frozen = await snapshot(page);
+  await page.waitForTimeout(200);
+  expect((await snapshot(page)).engine.scene.points).toEqual(frozen.engine.scene.points);
+  await page.screenshot({ path: "test-results/orbit-living-springs.png", fullPage: true });
+  await page.locator("#connections").uncheck();
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.drawnSprings)).toBe(0);
+  expect((await snapshot(page)).engine.scene.constraints.filter((c) => c.type === "spring")).toHaveLength(14);
+  await page.locator("#freeze").click();
+  await expect
+    .poll(async () => JSON.stringify((await snapshot(page)).params))
+    .not.toBe(JSON.stringify(frozen.params));
+  expect(errors).toEqual([]);
+});
+
+test("Living springs supports motor power, feel controls, a pluck and undo with real audio", async ({
+  page
+}) => {
+  await page.goto("/examples/orbit-musicspace/living-springs.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  await page.locator("#motors").click();
+  const unpowered = await snapshot(page);
+  expect(unpowered.engine.settings.powered).toBe(false);
+  const anchors = unpowered.engine.scene.points.filter((p) => p.id.startsWith("motor-"));
+  await page.waitForTimeout(250);
+  const later = await snapshot(page);
+  for (const anchor of anchors) {
+    const now = later.engine.scene.points.find((p) => p.id === anchor.id);
+    expect(now.x).toBe(anchor.x);
+    expect(now.y).toBe(anchor.y);
+  }
+  await page.getByRole("button", { name: "Flutter", exact: true }).click();
+  const flutter = await snapshot(page);
+  expect(flutter.engine.settings).toEqual({ speed: 1.65, stiffness: 48, damping: 0.6, powered: true });
+  await page.locator("#freeze").click();
+  const before = await snapshot(page);
+  await dragDot(page, "Air", 0.65);
+  await page.locator("#undo").click();
+  expect((await snapshot(page)).params).toEqual(before.params);
+  await page.locator("#audio").click();
+  await expect(page.locator("#audio-status")).toContainText("live");
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.audioRms)).toBeGreaterThan(0.0001);
+  expect(await page.evaluate(() => window.orbitStudy.audioRms)).toBeLessThan(0.17);
+});
+
+test("Living springs fits a narrow screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/examples/orbit-musicspace/living-springs.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.locator("#freeze").click();
+  await page.screenshot({ path: "test-results/orbit-living-springs-mobile.png", fullPage: true });
+});
