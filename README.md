@@ -10,6 +10,12 @@ Live demo: <https://fpachet.github.io/musicspace/>
 
 ## Build your own interface
 
+Try the [Orbit × MusicSpace proof of concept](examples/orbit-musicspace/README.md):
+Yann Orlarey's Faust Orbit UI with linked dry/wet controls, spring dynamics and an
+automatic cutoff sweep, driving a real Faust WebAssembly instrument. Run
+`npm run serve`, then open `/examples/orbit-musicspace/`. The demo folder is
+self-contained and includes a walkthrough and the proposed Orbit integration patch.
+
 The [MusicSpace engine package](packages/musicspace-engine/README.md) exposes the
 shared constraint engine for custom interfaces: points, geometric relations,
 trajectories, linked rotations, spring dynamics, change notifications and scene

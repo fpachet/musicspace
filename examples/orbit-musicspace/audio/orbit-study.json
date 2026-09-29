@@ -1,0 +1,187 @@
+{
+  "name": "Orbit Study",
+  "filename": "orbit-study.dsp",
+  "version": "2.81.2",
+  "compile_options": "-lang wasm -ct 1 -es 1 -mcd 16 -mdd 1024 -mdy 33 -single -ftz 0",
+  "size": 262308,
+  "code": "ZGVjbGFyZSBuYW1lICJPcmJpdCBTdHVkeSI7CmRlY2xhcmUgYXV0aG9yICJNdXNpY1NwYWNlIC8gRmF1c3QgT3JiaXQgcHJvb2Ygb2YgY29uY2VwdCI7CmRlY2xhcmUgbGljZW5zZSAiTUlUIjsKaW1wb3J0KCJzdGRmYXVzdC5saWIiKTsKCi8vIEEgcXVpZXQsIHB1bHNlZCBtaW5vciBjaG9yZDogbm8gbWljcm9waG9uZSBvciBzYW1wbGUgZG93bmxvYWQgcmVxdWlyZWQuCmRyeSA9IGhzbGlkZXIoIkRyeSIsIDAuNTUsIDAsIDEsIDAuMDAxKSA6IHNpLnNtb287CndldCA9IGhzbGlkZXIoIldldCIsIDAuNDUsIDAsIDEsIDAuMDAxKSA6IHNpLnNtb287CmN1dG9mZiA9IGhzbGlkZXIoIkN1dG9mZiBbdW5pdDpIel0iLCAxODAwLCAxODAsIDYwMDAsIDEpIDogc2kuc21vbzsKcmVzb25hbmNlID0gaHNsaWRlcigiUmVzb25hbmNlIiwgMS41LCAwLjUsIDgsIDAuMDEpIDogc2kuc21vbzsKY2hvcmQgPSAob3Muc2F3dG9vdGgoMTEwKSArIG9zLnNhd3Rvb3RoKDEzMC44MTI4KSArIG9zLnNhd3Rvb3RoKDE2NC44MTM4KSkgLyAzOwpwdWxzZSA9IDAuMjUgKyAwLjc1ICogcG93KDAuNSArIDAuNSAqIG9zLm9zYygxLjUpLCAzKTsKc291cmNlID0gY2hvcmQgKiBwdWxzZTsKZmlsdGVyZWQgPSBzb3VyY2UgOiBmaS5yZXNvbmxwKGN1dG9mZiwgcmVzb25hbmNlLCAxKTsKbWl4ZWQgPSAoc291cmNlICogZHJ5ICsgZmlsdGVyZWQgKiB3ZXQpIDogbWEudGFuaCA6ICooMC4xNik7CnByb2Nlc3MgPSBtaXhlZCA8OiBfLF87Cg==",
+  "inputs": 0,
+  "outputs": 2,
+  "meta": [
+    {
+      "author": "MusicSpace / Faust Orbit proof of concept"
+    },
+    {
+      "basics.lib/name": "Faust Basic Element Library"
+    },
+    {
+      "basics.lib/version": "1.21.0"
+    },
+    {
+      "compile_options": "-lang wasm -ct 1 -es 1 -mcd 16 -mdd 1024 -mdy 33 -single -ftz 0"
+    },
+    {
+      "filename": "orbit-study.dsp"
+    },
+    {
+      "filters.lib/fir:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/fir:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/fir:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/iir:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/iir:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/iir:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/lowpass0_highpass1": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/name": "Faust Filters Library"
+    },
+    {
+      "filters.lib/resonlp:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/resonlp:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/resonlp:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/tf2:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/tf2:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/tf2:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/tf2s:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/tf2s:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/tf2s:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/version": "1.7.1"
+    },
+    {
+      "license": "MIT"
+    },
+    {
+      "maths.lib/author": "GRAME"
+    },
+    {
+      "maths.lib/copyright": "GRAME"
+    },
+    {
+      "maths.lib/license": "LGPL with exception"
+    },
+    {
+      "maths.lib/name": "Faust Math Library"
+    },
+    {
+      "maths.lib/version": "2.8.1"
+    },
+    {
+      "name": "Orbit Study"
+    },
+    {
+      "oscillators.lib/name": "Faust Oscillator Library"
+    },
+    {
+      "oscillators.lib/saw2ptr:author": "Julius O. Smith III"
+    },
+    {
+      "oscillators.lib/saw2ptr:license": "STK-4.3"
+    },
+    {
+      "oscillators.lib/version": "1.6.0"
+    },
+    {
+      "platform.lib/name": "Generic Platform Library"
+    },
+    {
+      "platform.lib/version": "1.3.0"
+    },
+    {
+      "signals.lib/name": "Faust Signal Routing Library"
+    },
+    {
+      "signals.lib/version": "1.6.0"
+    }
+  ],
+  "ui": [
+    {
+      "type": "vgroup",
+      "label": "Orbit Study",
+      "items": [
+        {
+          "type": "hslider",
+          "label": "Cutoff",
+          "varname": "fHslider2",
+          "shortname": "Cutoff",
+          "address": "/Orbit_Study/Cutoff",
+          "index": 262256,
+          "meta": [
+            {
+              "unit": "Hz"
+            }
+          ],
+          "init": 1800,
+          "min": 180,
+          "max": 6000,
+          "step": 1
+        },
+        {
+          "type": "hslider",
+          "label": "Dry",
+          "varname": "fHslider0",
+          "shortname": "Dry",
+          "address": "/Orbit_Study/Dry",
+          "index": 262156,
+          "init": 0.55,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Resonance",
+          "varname": "fHslider3",
+          "shortname": "Resonance",
+          "address": "/Orbit_Study/Resonance",
+          "index": 262268,
+          "init": 1.5,
+          "min": 0.5,
+          "max": 8,
+          "step": 0.01
+        },
+        {
+          "type": "hslider",
+          "label": "Wet",
+          "varname": "fHslider1",
+          "shortname": "Wet",
+          "address": "/Orbit_Study/Wet",
+          "index": 262240,
+          "init": 0.45,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ]
+    }
+  ]
+}

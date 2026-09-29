@@ -4,6 +4,8 @@
   "private": true,
   "description": "A static JavaScript prototype of the MusicSpace constraint-based spatialization interface.",
   "scripts": {
+    "build:orbit": "node scripts/build-orbit-poc.cjs",
+    "test:orbit": "npm run build:orbit && playwright test --config playwright.orbit.config.cjs",
     "check": "eslint .",
     "test": "node --test tests/*.test.js",
     "smoke": "node packages/musicspace-engine/scripts/build.cjs && playwright test",

@@ -1,0 +1,188 @@
+--- a/src/faust-orbit-ui.ts
++++ b/src/faust-orbit-ui.ts
+@@ -40,6 +40,11 @@
+ 
+ // Public constructor options for FaustOrbitUI.
+ export type FaustOrbitUIOptions = {
++  /** POC extension: solve geometry synchronously before publishing any values. */
++  resolveState?: (state: OrbitState, path: Path | null) => OrbitState;
++  /** External configurations (presets, undo, morphs) establish new geometric targets. */
++  onParamsApplied?: (state: OrbitState) => void;
++  drawRelations?: (ctx: CanvasRenderingContext2D, state: OrbitState) => void;
+   title?: string; // Optional panel title shown in the Orbit header.
+   onOrbitStateChange?: (state: OrbitState) => void; // Preferred callback notified when Orbit state changes.
+   onStateChange?: (state: OrbitState) => void; // Legacy alias for onOrbitStateChange.
+@@ -170,6 +175,7 @@
+  * ============================================================
+  */
+ export class FaustOrbitUI extends FaustUICore {
++  private extensions: Pick<FaustOrbitUIOptions, 'resolveState' | 'onParamsApplied' | 'drawRelations'>;
+   private onStateChange: ((state: OrbitState) => void) | null; // Subscriber callback for Orbit state snapshots.
+   private onInteractionStart: (() => void) | null; // Optional hook fired when user interaction begins.
+   private onInteractionEnd: (() => void) | null; // Optional hook fired when user interaction ends.
+@@ -213,6 +219,7 @@
+   // Builds and initializes the Orbit UI canvas, toolbar, and interactions.
+   constructor(root: HTMLElement, paramChangeByUI: ParamChangeByUI, options: FaustOrbitUIOptions = {}) {
+     super(root, paramChangeByUI);
++    this.extensions = options;
+     const title = typeof options.title === 'string' && options.title.trim() ? options.title.trim() : '';
+     this.onStateChange =
+       typeof options.onOrbitStateChange === 'function'
+@@ -472,6 +479,40 @@
+         this.setParamValue(path, value);
+       }
+     });
++    this.extensions.onParamsApplied?.(this.getOrbitState());
++  }
++
++  /** POC extension: apply a complete solved state, including during a drag.
++   * Update existing controls in place so detail-panel listeners stay valid. */
++  applyResolvedState(state: OrbitState, updateDetail = true): void {
++    this.state.center = { ...state.center };
++    this.state.innerRadius = state.innerRadius;
++    this.state.outerRadius = state.outerRadius;
++    for (const [path, point] of Object.entries(state.controls)) {
++      const control = this.state.controls[path];
++      if (control) { control.x = point.x; control.y = point.y; }
++    }
++    const changes: [Path, number][] = [];
++    for (const control of Object.values(this.state.controls)) {
++      const value = this._valueFromPosition(control, control.x, control.y);
++      if (this.paramValues[control.path] !== value) changes.push([control.path, value]);
++      this.paramValues[control.path] = value;
++    }
++    // All cached values are committed before observers see the first change.
++    for (const [path, value] of changes) this.paramChangeByUI(path, value);
++    this._requestRender();
++    this._requestStateEmit();
++    if (updateDetail) this._updateDetailPanel();
++    else if (this.activePath) {
++      // Motion must not replace a range input that currently owns pointer capture.
++      const control = this.state.controls[this.activePath];
++      const range = this.detailEl.querySelector<HTMLInputElement>('.orbit-detail-range');
++      const field = this.detailEl.querySelector<HTMLInputElement>('.orbit-detail-value');
++      const value = this.paramValues[this.activePath];
++      if (range) range.value = String(value);
++      const focused = this.root.getRootNode() as Document | ShadowRoot;
++      if (field && focused.activeElement !== field) field.value = this._formatValue(value, control.step, control.unit);
++    }
+   }
+ 
+   // Sets zoom percentage and updates the viewport transform.
+@@ -1127,8 +1168,12 @@
+   }
+ 
+   // Emits one control value to the host callback and updates cache.
+-  _emitValueForControl(control: OrbitControl): void {
++  _emitValueForControl(control: OrbitControl, updateDetail = true): void {
+     if (!control || !control.enabled) return;
++    if (this.extensions.resolveState) {
++      this.applyResolvedState(this.extensions.resolveState(this.getOrbitState(), control.path), updateDetail);
++      return;
++    }
+     const value = this._valueFromPosition(control, control.x, control.y);
+     this.paramValues[control.path] = value;
+     try {
+@@ -1141,6 +1186,10 @@
+ 
+   // Emits values for all controls (used when geometry changes globally).
+   _emitValuesForAllControls(): void {
++    if (this.extensions.resolveState) {
++      this.applyResolvedState(this.extensions.resolveState(this.getOrbitState(), null));
++      return;
++    }
+     for (const control of Object.values(this.state.controls)) {
+       this._emitValueForControl(control);
+     }
+@@ -1195,6 +1244,10 @@
+       ctx.lineTo(maxX, Math.round(y) + 0.5);
+       ctx.stroke();
+     }
++
++    ctx.save();
++    this.extensions.drawRelations?.(ctx, this.getOrbitState());
++    ctx.restore();
+ 
+     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+     ctx.beginPath();
+@@ -1359,17 +1412,14 @@
+     const clamped = clamp(value, control.min, control.max);
+     const p = this._positionFromValue(control.path, clamped);
+     if (!p) return;
++    this.onInteractionStart?.();
+     control.x = p.x;
+     control.y = p.y;
+-    this.paramValues[control.path] = clamped;
+-    try {
+-      this.paramChangeByUI(control.path, clamped);
+-    } catch {
+-      // ignore
+-    }
++    this._emitValueForControl(control);
+     this._requestRender();
+     this._requestStateEmit();
+     this._updateDetailPanel();
++    this.onInteractionEnd?.();
+   }
+ 
+   // Rebuilds the detail panel DOM for the currently active control.
+@@ -1540,12 +1590,7 @@
+         if (!p) return;
+         control.x = p.x;
+         control.y = p.y;
+-        this.paramValues[control.path] = clamped;
+-        try {
+-          this.paramChangeByUI(control.path, clamped);
+-        } catch {
+-          // ignore
+-        }
++        this._emitValueForControl(control, false);
+         if (valueInput instanceof HTMLInputElement) {
+           valueInput.value = this._formatValue(clamped, control.step, control.unit);
+         }
+--- a/src/orbit-ui.ts
++++ b/src/orbit-ui.ts
+@@ -16,7 +16,7 @@
+  *
+  * See ORBITUIAPISPEC.md and ORBITDATAMODELSPEC.md for the contract.
+  */
+-import { FaustOrbitUI } from './faust-orbit-ui.js';
++import { FaustOrbitUI, type FaustOrbitUIOptions, type OrbitState } from './faust-orbit-ui.js';
+ import { computeUIHashSync } from './orbit-hash.js';
+ import { OrbitCalque } from './orbit-calque.js';
+ import { extractParamSpecs, type ParamSpec } from './orbit-projection.js';
+@@ -40,6 +40,9 @@
+ const TRAJECTORY_MAX_EVENTS = 500;
+ 
+ export type OrbitUIOptions = {
++  resolveState?: FaustOrbitUIOptions['resolveState'];
++  onParamsApplied?: FaustOrbitUIOptions['onParamsApplied'];
++  drawRelations?: FaustOrbitUIOptions['drawRelations'];
+   /** Raw Faust UI descriptor (the `runtime.ui` array from faustwasm). */
+   uiDescriptor: unknown;
+ 
+@@ -243,6 +246,9 @@
+     this.inner = new FaustOrbitUI(this.shadowContainer, wrappedParamChange, {
+       onInteractionStart: wrappedStart,
+       onInteractionEnd: wrappedEnd,
++      resolveState: options.resolveState,
++      onParamsApplied: options.onParamsApplied,
++      drawRelations: options.drawRelations,
+       ...(options.tooltips ? { tooltips: options.tooltips } : {}),
+       ...(options.onOrbitStateChange ? { onOrbitStateChange: options.onOrbitStateChange } : {}),
+     });
+@@ -354,6 +360,14 @@
+     }
+     return items;
+   }
++
++  /** POC: host-driven motion shares the same atomic value/geometry update. */
++  applyResolvedState(state: OrbitState): void {
++    this.inner.applyResolvedState(state, false);
++    this.updatePresetsBadge();
++  }
++
++  getParamValues(): Record<string, number> { return this.inner.getParamValues(); }
+ 
+   setParams(config: Readonly<Record<string, number>>): void {
+     if (!config || typeof config !== 'object') return;

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Orbit × MusicSpace — Play the relationships</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='16' fill='none' stroke='%239cdbc8' stroke-width='3'/%3E%3Ccircle cx='30' cy='9' r='6' fill='%239cdbc8'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <a class="wordmark" href="./"
+          ><span class="orbit-mark" aria-hidden="true">◎</span> ORBIT
+          <span class="times">×</span> MUSICSPACE</a
+        >
+        <span class="edition">INTERACTION STUDY <b>01</b></span>
+      </header>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">A PROOF OF CONCEPT FOR YANN ORLAREY</p>
+          <h1>Play the relationships.</h1>
+          <p class="lead">Link a pair of controls. Pull on a spring. Let a gesture become a sound.</p>
+        </div>
+        <div class="listen">
+          <button id="audio" class="primary" disabled><span aria-hidden="true">▶</span> Start sound</button>
+          <span id="audio-status" role="status">Loading instrument…</span>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="instrument" aria-label="Interactive Faust instrument">
+          <div class="panel-heading">
+            <span><i class="live-dot"></i> ORBIT INSTRUMENT</span
+            ><span>Drag a dot toward the center to turn it up</span>
+          </div>
+          <div id="orbit" aria-label="Orbit parameter controls"></div>
+          <div id="readouts" class="readouts" aria-label="Parameter values"></div>
+          <div class="instrument-footer">
+            <span id="constraint-status">Dry + Wet = 1.000</span
+            ><canvas id="waveform" width="180" height="26" aria-label="Audio waveform"></canvas
+            ><span id="motion-status">Ready to play</span>
+          </div>
+        </section>
+
+        <aside class="relationships" aria-label="Relationships and motion">
+          <div class="rail-heading">
+            <h2>One gesture, more possibilities.</h2>
+            <p>Switch each relationship on and feel the difference.</p>
+          </div>
+          <section class="relationship" data-kind="balance">
+            <div class="relationship-top">
+              <span class="number">01</span>
+              <h3>Keep the balance</h3>
+              <button
+                id="balance"
+                class="switch"
+                role="switch"
+                aria-checked="true"
+                aria-label="Link dry and wet"
+              ></button>
+            </div>
+            <p>Turn up wet; dry makes room. The two controls always add up to one.</p>
+            <div class="relationship-diagram mint">
+              <span>DRY</span><span class="line">● ───── ●</span><span>WET</span>
+            </div>
+          </section>
+          <section class="relationship" data-kind="spring">
+            <div class="relationship-top">
+              <span class="number">02</span>
+              <h3>Give it a spring</h3>
+              <button
+                id="spring"
+                class="switch"
+                role="switch"
+                aria-checked="false"
+                aria-label="Spring between cutoff and resonance"
+              ></button>
+            </div>
+            <p>Pull cutoff away from resonance, then release. Listen as they settle together.</p>
+            <div class="relationship-diagram peach">
+              <span>CUTOFF</span><span class="line">● ∿∿∿∿ ●</span><span>RESO</span>
+            </div>
+          </section>
+          <section class="relationship" data-kind="motion">
+            <div class="relationship-top">
+              <span class="number">03</span>
+              <h3>Set it in motion</h3>
+            </div>
+            <p>A slow cutoff sweep. Add the spring to make resonance follow its movement.</p>
+            <button id="sweep" class="wide" aria-pressed="false">↔ &nbsp; Start sweep</button>
+          </section>
+          <div class="history">
+            <button id="undo" disabled>↶ Undo</button><button id="redo" disabled>↷ Redo</button
+            ><button id="reset">Reset</button>
+          </div>
+        </aside>
+      </div>
+
+      <section class="bottom-bar">
+        <div>
+          <span class="eyebrow">TRY A STARTING POINT</span>
+          <div id="presets" class="presets">
+            <button data-preset="Warm" class="selected">Warm</button><button data-preset="Open">Open</button
+            ><button data-preset="Hollow">Hollow</button>
+          </div>
+        </div>
+        <p>Orbit draws the controls.<br />MusicSpace connects them. Faust makes the sound.</p>
+        <div class="file-actions">
+          <button id="save">↓ Save session</button><button id="load">↑ Load session</button
+          ><input id="file" type="file" accept="application/json,.json" hidden />
+        </div>
+      </section>
+      <p id="message" role="status" class="message">Try dragging the green Wet dot. Dry will move with it.</p>
+      <details class="about">
+        <summary>About this experiment &amp; a 60-second walkthrough</summary>
+        <div class="about-content">
+          <div>
+            <h3>A short demonstration</h3>
+            <ol>
+              <li>Start sound and drag Wet. Dry compensates.</li>
+              <li>Disable the balance and compare independent control.</li>
+              <li>Enable the spring. Pull Cutoff and release.</li>
+              <li>Start the sweep. Watch Resonance respond.</li>
+              <li>Undo the last gesture, or save the complete session.</li>
+            </ol>
+          </div>
+          <div>
+            <h3>Built from the real packages</h3>
+            <p>
+              Uses Yann Orlarey’s Orbit UI, the standalone MusicSpace engine and a compiled Faust DSP running
+              in an AudioWorklet. Everything loads locally; no account or microphone is needed.
+            </p>
+            <p>
+              The Orbit copy has a small experimental extension for solving geometry before values are
+              emitted. The host records whole-scene undo, including dynamics. Preset recall restores the exact
+              sound and resets spring rest length; a recalled dry/wet mix becomes balanced on the next edit.
+            </p>
+            <p>
+              <a href="./README.md">Integration notes</a> ·
+              <a href="./vendor/orbit/musicspace.patch">Orbit patch</a> ·
+              <a href="./audio/orbit-study.dsp">Faust source</a> ·
+              <a href="https://github.com/orlarey/faust-orbit-ui">Original Orbit project</a>
+            </p>
+          </div>
+        </div>
+      </details>
+      <footer>
+        <span>MusicSpace × Faust Orbit</span><span>Experimental integration · September 2026</span>
+      </footer>
+    </main>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

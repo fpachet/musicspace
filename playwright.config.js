@@ -2,7 +2,12 @@ const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
   testDir: "tests",
-  testMatch: ["browser-smoke.spec.js", "browser-package.spec.js", "browser-edit.spec.js"],
+  testMatch: [
+    "browser-smoke.spec.js",
+    "browser-package.spec.js",
+    "browser-edit.spec.js",
+    "browser-orbit.spec.js"
+  ],
   timeout: 30000,
   use: {
     baseURL: "http://127.0.0.1:8000",

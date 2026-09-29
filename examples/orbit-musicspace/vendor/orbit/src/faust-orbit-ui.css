@@ -1,0 +1,377 @@
+/* ============================================================
+   Public theming surface — CSS custom properties exposed to hosts.
+   Hosts override these on the shadow-host element (the `<div>` they
+   pass to `new OrbitUI(container, …)`). Custom properties pierce the
+   shadow boundary, so a host's `.my-orbit { --orbit-pill-bg: … }`
+   reaches every styled element inside the shadow.
+   ============================================================ */
+/* The shadow host needs an explicit display + size so the chain of
+   `height: 100%` rules below resolves against a definite box, instead
+   of collapsing the orbit to a content-sized strip. Hosts can still
+   override on the outside (e.g. `position: absolute`, fixed pixel
+   sizes) — `:host` has the lowest specificity in the cascade. */
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  /* Backgrounds */
+  --orbit-bg: #0d1016;            /* canvas / main body */
+  --orbit-toolbar-bg: #141b25;    /* top toolbar + bottom detail panel */
+  --orbit-toolbar-line: #263242;  /* divider lines, slider track */
+
+  /* Pills (Center / Random / Zoom / Library / Trash / preset value box) */
+  --orbit-pill-bg: #1a2230;
+  --orbit-pill-border: #3a4a5f;
+  --orbit-pill-hover-bg: #25324a;
+
+  /* Foreground / accent */
+  --orbit-fg: #d7dde7;            /* pill text, slider thumb, value labels */
+  --orbit-fg-muted: #b9ccdf;
+  --orbit-accent-bg: #2b4d6e;     /* active / pressed pill */
+  --orbit-accent-fg: #eaf2fb;
+  --orbit-accent-border: #4a7298;
+}
+
+/* Inner shadow-host div: fills the host, so the .orbit-wrap grid below
+   can resolve its `height: 100%` against a definite box. */
+.orbit-shadow-host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Re-declare the Material Symbols Outlined class-to-font mapping inside
+   the shadow tree. Google Fonts' stylesheet declares this at document
+   level — its rules don't pierce shadow boundaries, even though the
+   `@font-face` itself (loaded by the host page) is globally available. */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
+.orbit-wrap {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  background: var(--orbit-bg);
+  /* Positioning context for the calque's portamento bar (which is
+     appended here so FaustOrbitUI's innerHTML reset on .orbit-detail
+     doesn't wipe it) AND container-query host so the bar's responsive
+     layout can match `@container orbit-detail (max-width: …)`. */
+  position: relative;
+  container-type: inline-size;
+  container-name: orbit-detail;
+}
+
+.orbit-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--orbit-toolbar-line);
+  background: var(--orbit-toolbar-bg);
+  /* Container query host so the toolbar can collapse to icon-only at
+     narrow widths regardless of viewport size. */
+  container-type: inline-size;
+  container-name: orbit-header;
+}
+
+/* Push the zoom group to the right edge so the toolbar reads as
+   `[host-injected presets actions] [center / random] ... [zoom]`. */
+.orbit-zoom-wrap {
+  margin-left: auto;
+}
+
+.orbit-middle-actions,
+.orbit-zoom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orbit-random-group,
+.orbit-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  border: 1px solid var(--orbit-pill-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.orbit-zoom-label {
+  padding: 4px 8px;
+  font-size: 0.6rem;
+  color: var(--orbit-fg);
+}
+
+.orbit-center-btn,
+.orbit-random-btn,
+.orbit-random-mix,
+.orbit-zoom {
+  border: 1px solid var(--orbit-pill-border);
+  background: var(--orbit-pill-bg);
+  color: var(--orbit-fg);
+  font: inherit;
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.orbit-center-btn,
+.orbit-random-btn {
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.orbit-random-mix,
+.orbit-zoom {
+  border: 0;
+  border-left: 1px solid var(--orbit-pill-border);
+  padding: 4px 8px;
+}
+
+.orbit-random-btn {
+  border: 0;
+  padding: 4px 10px;
+}
+
+/* Material Symbols icons inline inside the orbit toolbar buttons / label.
+   Sized slightly larger than the surrounding 0.6rem text so the glyph
+   shape stays readable. The font itself must be loaded by the host page
+   (e.g. Google Fonts: Material Symbols Outlined). */
+.orbit-center-btn .material-symbols-outlined,
+.orbit-random-btn .material-symbols-outlined,
+.orbit-zoom-label.material-symbols-outlined {
+  font-size: 13px;
+  line-height: 1;
+  vertical-align: middle;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20;
+}
+
+/* Narrow toolbar tier: collapse Random and Zoom to icon-only. The
+   selects stay in DOM (so showPicker() can still target them) but lose
+   their visible track and pointer hits. The icons are wrapped in a
+   click+long-press handler at the OrbitUI level: short tap = action,
+   long press = native picker. The group's pill border stays so the
+   icon still reads as a pill control, consistent with the other
+   toolbar items. */
+@container orbit-header (max-width: 480px) {
+  .orbit-random-mix,
+  .orbit-zoom {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .orbit-random-btn,
+  .orbit-zoom-label {
+    cursor: pointer;
+  }
+}
+
+.orbit-body {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orbit-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Detail panel (bottom bar for last-touched control) ── */
+
+.orbit-detail {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 12px;
+  border-top: 1px solid var(--orbit-toolbar-line);
+  background: var(--orbit-toolbar-bg);
+  overflow: hidden;
+  /* Container query host — the calque's portamento bar adapts its
+     layout to the detail bar's actual width (regardless of viewport).
+     The bar itself is now a sibling of .orbit-detail (under .orbit-wrap),
+     so the container-name has to live on .orbit-wrap as well. We keep
+     it here too in case future rules want to query the detail row's
+     own width. */
+  container-type: inline-size;
+  container-name: orbit-detail;
+}
+
+
+.orbit-detail-empty {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #556575;
+  text-align: center;
+  user-select: none;
+}
+
+.orbit-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.orbit-detail-color {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.orbit-detail-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b9ccdf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orbit-detail-slider-wrap {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.orbit-detail-value {
+  width: 72px;
+  padding: 3px 6px;
+  border: 1px solid var(--orbit-pill-border);
+  border-radius: 4px;
+  background: var(--orbit-pill-bg);
+  color: var(--orbit-fg);
+  font-size: 12px;
+  font-family: inherit;
+  text-align: right;
+  outline: none;
+}
+
+.orbit-detail-value:focus {
+  border-color: #5a8abf;
+}
+
+.orbit-detail-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  /* Padding / border explicit to 0 so a host's generic
+     `input { padding: …; border: … }` rule cannot bleed through and
+     turn the 4px-tall track into a thick rectangular box. */
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--orbit-toolbar-line);
+  outline: none;
+  cursor: pointer;
+}
+
+.orbit-detail-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--orbit-fg);
+  border: 2px solid var(--orbit-bg);
+  cursor: pointer;
+}
+
+.orbit-detail-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--orbit-fg);
+  border: 2px solid var(--orbit-bg);
+  cursor: pointer;
+}
+
+.orbit-detail-bound {
+  font-size: 11px;
+  color: #556575;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.orbit-detail:has(.orbit-detail-button-wrap) .orbit-detail-label {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+.orbit-detail-button-wrap {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.orbit-detail-btn {
+  padding: 5px 16px;
+  border: 1px solid var(--orbit-pill-border);
+  border-radius: 4px;
+  background: var(--orbit-pill-bg);
+  color: var(--orbit-fg);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.orbit-detail-btn:active,
+.orbit-detail-btn.orbit-detail-btn--active {
+  background: #2a3a50;
+  border-color: #5a8abf;
+}
+
+.orbit-detail-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #5a8abf;
+  cursor: pointer;
+}
+
+.orbit-detail-select {
+  padding: 5px 10px;
+  border: 1px solid var(--orbit-pill-border);
+  border-radius: 4px;
+  background: var(--orbit-pill-bg);
+  color: var(--orbit-fg);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.orbit-detail-select:focus {
+  border-color: #5a8abf;
+}

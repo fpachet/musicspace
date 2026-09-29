@@ -1,0 +1,39 @@
+{
+  "name": "faust-orbit-ui",
+  "version": "0.4.1",
+  "description": "Orbit-based UI component for Faust-style parameter control, driven by JSON metadata and callbacks.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orlarey/faust-orbit-ui.git"
+  },
+  "homepage": "https://github.com/orlarey/faust-orbit-ui#readme",
+  "bugs": {
+    "url": "https://github.com/orlarey/faust-orbit-ui/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./faust-orbit-ui.css": "./dist/faust-orbit-ui.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node scripts/build-styles.mjs && tsc -p tsconfig.json && cat src/faust-orbit-ui.css src/orbit-calque.css > dist/faust-orbit-ui.css",
+    "demo:serve": "python3 -m http.server 4173 -d .",
+    "test": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

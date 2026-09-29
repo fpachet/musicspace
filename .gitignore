@@ -9,3 +9,4 @@ playwright-report/
 blob-report/
 *.log
 musicspace_trace.png
+/artifacts/orbit-musicspace-poc.zip
