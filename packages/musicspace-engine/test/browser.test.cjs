@@ -7,7 +7,9 @@ const os = require("node:os");
 const { chromium } = require("@playwright/test");
 
 test("plain-browser package supports dragging, animation and saved scenes", async () => {
-  const root = path.resolve(__dirname, "..");
+  const root = process.env.MUSICSPACE_TEST_PACKAGE_ROOT
+    ? path.resolve(process.env.MUSICSPACE_TEST_PACKAGE_ROOT)
+    : path.resolve(__dirname, "..");
   const server = http.createServer(async (request, response) => {
     const relative = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     const file = path.resolve(root, `.${relative}`);

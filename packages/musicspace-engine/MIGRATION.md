@@ -104,9 +104,11 @@ before deployment. No npm publication or Orbit-specific integration is included.
    Dense connected graphs may also need separate solver convergence work.
 3. Switch the default only after parity. Keep the standard path until the migrated
    interface and saved user patches are validated in real use.
-4. Settle the public contract through standalone consumers, then publish a versioned
-   package with installation instructions. The package remains general-purpose;
-   each host decides the meaning of its controls and how to draw them.
+4. Collect external integration feedback using the archive and `QUICKSTART.md`.
+   Archive installation, JavaScript use and strict TypeScript consumers are tested.
+   Confirm the npm publisher and scope before registry publication; `RELEASING.md`
+   records the remaining prerequisites. Each host decides the meaning of its
+   controls and how to draw them.
 
 The alpha API can still change. The experimental workbench exercises it in a real
 consumer without making the existing application depend on its build artifacts.

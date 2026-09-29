@@ -7,10 +7,17 @@ The engine owns geometry and propagation. Your application owns rendering, point
 events, audio or other parameter meanings, and animation scheduling. It works with
 SVG, Canvas, DOM elements or a UI framework, and in Node without a browser.
 
-**Status: local alpha, not published on npm.** The name `@musicspace/engine` is a
-working name; npm scope availability has not been checked. The MusicSpace
-application offers experimental Play and Edit modes using this package; its default
-engine is unchanged. There are no runtime dependencies.
+**Version: 0.1.0-alpha.5, distributed as an installable archive.** Start with
+[QUICKSTART.md](QUICKSTART.md): install the archive, run an example, then connect
+your own controls. See [release notes](CHANGELOG.md) for features and limits.
+There are no runtime dependencies. The MusicSpace workbench also offers
+experimental Play and Edit modes using the package.
+
+The npm name `@musicspace/engine` is provisional. A public registry lookup on
+28 September 2026 found no published package at that name; scope ownership is
+unverified because no npm publisher is logged in on the release machine.
+The archive installs under this name without requiring registry publication.
+See [publication prerequisites](RELEASING.md).
 
 ## Try it
 
@@ -146,7 +153,8 @@ Use `endDrag({refine: false})` for a selection click that should not solve const
 The optional `@musicspace/engine/legacy-patch` entry imports workbench patches while
 keeping their audio/MIDI bindings, mappings, display settings and unknown metadata
 in a separate, JSON-compatible context. It does not start audio, load media or
-fetch URLs. The current workbench still uses its original model.
+fetch URLs. The default workbench uses its original model; `?engine=package` selects the
+migrated interface.
 
 ```js
 import { createSpace } from '@musicspace/engine';
@@ -281,8 +289,11 @@ The compatibility suite covers all 23 library patches: normalized round trips,
 both solvers, dragging/release, center movement, fixed-step animation, residuals,
 dynamic velocities and continued motion after saving/loading. Focused tests cover
 paused edits, bounds, metadata, reserved names and explicit export failures. These
-tests establish engine compatibility for the exercised scenarios; they do not
-replace future UI migration tests for inspectors, undo, traces or audio playback.
+tests establish engine compatibility for the exercised scenarios. The workbench
+browser suite additionally covers inspectors, undo, traces and audio lifecycle in
+experimental package mode. Large-scene regressions cover up to 1,000 controls.
 
-Migration of the current UI is a later step, after validating the public API with
-these examples and external usage. See `MIGRATION.md` for the staged approach.
+The distribution test installs the archive in a separate project, compiles strict
+TypeScript consumers with NodeNext (ESM and CommonJS) and Bundler resolution,
+and executes both Node outputs. It also checks that invalid API calls produce
+type errors. See `MIGRATION.md` for completed stages and remaining work.

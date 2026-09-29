@@ -16,7 +16,9 @@ trajectories, linked rotations, spring dynamics, change notifications and scene
 save/restore. Your application supplies the rendering, gestures and parameter
 meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
 
-**Status: `0.1.0-alpha.5`, distributed locally, not published on npm.**
+**Status: `0.1.0-alpha.5`, distributed as an installable archive, not published on npm.**
+For recipients, start with the [package quick-start guide](packages/musicspace-engine/QUICKSTART.md)
+and [release notes](packages/musicspace-engine/CHANGELOG.md).
 `@musicspace/engine` is a provisional package name. The workbench uses its original engine by default. An optional
 package-backed Play and Edit mode is available for testing the gradual migration.
 All 23 presets and larger scenes are covered by regression checks;

@@ -154,3 +154,22 @@ control sizing, selection-help placement, fullscreen proportions, touch dragging
 inspector bounds, touch dragging near small objects, second-finger handling, and
 release into spring dynamics. These checks complement testing on physical iOS/Android
 devices; they do not verify device-specific browser chrome or audio policies.
+
+
+## Release archive checks
+
+The package installation test compiles and executes the included TypeScript consumer
+with strict NodeNext checking in ESM and CommonJS, then checks Bundler resolution.
+It tests both package entry points and expects invalid API calls to produce errors.
+TypeScript is pinned in the root development dependencies; consumers of JavaScript
+need no compiler or engine dependencies.
+
+After packing, verify the exact delivery archive with:
+
+```sh
+MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/musicspace-engine-0.1.0-alpha.5.tgz node --test packages/musicspace-engine/test/install.test.cjs
+```
+
+The browser test accepts `MUSICSPACE_TEST_PACKAGE_ROOT` pointing to an extracted
+archive's `package` directory. See [release instructions](packages/musicspace-engine/RELEASING.md)
+for the complete build and handoff procedure.

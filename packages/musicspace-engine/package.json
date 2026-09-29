@@ -24,7 +24,10 @@
     "examples",
     "README.md",
     "MIGRATION.md",
-    "LICENSE"
+    "LICENSE",
+    "QUICKSTART.md",
+    "CHANGELOG.md",
+    "RELEASING.md"
   ],
   "scripts": {
     "build": "node scripts/build.cjs",
@@ -33,5 +36,25 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fpachet/musicspace.git",
+    "directory": "packages/musicspace-engine"
+  },
+  "homepage": "https://github.com/fpachet/musicspace/tree/main/packages/musicspace-engine#readme",
+  "bugs": {
+    "url": "https://github.com/fpachet/musicspace/issues"
+  },
+  "keywords": [
+    "constraints",
+    "interactive",
+    "geometry",
+    "music",
+    "spatialization"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
   }
 }
