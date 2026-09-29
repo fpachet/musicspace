@@ -503,51 +503,128 @@ function handleDocumentFullscreenChange() {
   }
 }
 
+function colorWithAlpha(color, alpha) {
+  const match = /^#([0-9a-f]{6})$/i.exec(color || "");
+  if (!match) {
+    return color;
+  }
+  const value = Number.parseInt(match[1], 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
+function radialGradient(ctx, x, y, radius, innerColor, outerColor) {
+  if (typeof ctx.createRadialGradient !== "function") {
+    return outerColor;
+  }
+  const gradient = ctx.createRadialGradient(
+    x - radius * 0.34,
+    y - radius * 0.4,
+    Math.max(1, radius * 0.08),
+    x,
+    y,
+    radius
+  );
+  gradient.addColorStop(0, innerColor);
+  gradient.addColorStop(1, outerColor);
+  return gradient;
+}
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, width, height, radius);
+    return;
+  }
+  ctx.rect(x, y, width, height);
+}
+
+function polygonPath(ctx, x, y, radius, sides, rotation = 0) {
+  for (let i = 0; i < sides; i += 1) {
+    const angle = rotation + (Math.PI * 2 * i) / sides;
+    const px = x + Math.cos(angle) * radius;
+    const py = y + Math.sin(angle) * radius;
+    if (i === 0) {
+      ctx.moveTo(px, py);
+    } else {
+      ctx.lineTo(px, py);
+    }
+  }
+  ctx.closePath();
+}
+
+function sourceSignalColor(emitterCapability = {}) {
+  if (emitterCapability.audio && emitterCapability.midi) {
+    return "#a855f7";
+  }
+  if (emitterCapability.midi) {
+    return "#7c3aed";
+  }
+  if (emitterCapability.audio) {
+    return "#f97316";
+  }
+  return "#e11d48";
+}
+
 function drawSourceBody(ctx, source, emitterCapability) {
   const emits = Boolean(emitterCapability?.emits);
   const radius = sourceVisualRadius(source, emitterCapability);
+  const signalColor = sourceSignalColor(emitterCapability);
 
   if (emitterCapability?.partial) {
     ctx.save();
     ctx.beginPath();
     ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#ef4444";
+    ctx.fillStyle = radialGradient(ctx, source.x, source.y, radius, "#fff7ed", "#ef4444");
     ctx.fill();
-    ctx.strokeStyle = "#f97316";
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = colorWithAlpha("#f97316", 0.9);
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
     return;
   }
 
   ctx.save();
-  if (emits) {
-    ctx.beginPath();
-    ctx.arc(source.x, source.y, radius + 5, 0, Math.PI * 2);
-    ctx.strokeStyle =
-      emitterCapability.audio && emitterCapability.midi
-        ? "#a855f7"
-        : emitterCapability.midi
-          ? "#7c3aed"
-          : "#f97316";
-    ctx.lineWidth = 4;
-    ctx.stroke();
+  ctx.shadowColor = colorWithAlpha(signalColor, emits ? 0.36 : 0.18);
+  ctx.shadowBlur = emits ? 14 : 8;
+
+  ctx.beginPath();
+  ctx.arc(source.x, source.y, radius + 5, 0, Math.PI * 2);
+  ctx.fillStyle = colorWithAlpha(signalColor, emits ? 0.11 : 0.065);
+  ctx.fill();
+  ctx.strokeStyle = colorWithAlpha(signalColor, emits ? 0.58 : 0.32);
+  ctx.lineWidth = emits ? 2 : 1.25;
+  if (!emits) {
+    ctx.setLineDash([2, 3]);
   }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
 
   ctx.beginPath();
   ctx.arc(source.x, source.y, radius, 0, Math.PI * 2);
   ctx.fillStyle = emits
-    ? emitterCapability.midi && !emitterCapability.audio
-      ? "#7c3aed"
-      : source.color
-    : "#fff1f2";
+    ? radialGradient(ctx, source.x, source.y, radius, "#ffffff", signalColor)
+    : radialGradient(ctx, source.x, source.y, radius, "#ffffff", "#ffe4e6");
   ctx.fill();
-  ctx.strokeStyle = emits ? "#ffffff" : "#dc2626";
-  ctx.lineWidth = emits ? 2 : 2.5;
-  if (!emits) {
-    ctx.setLineDash([3, 3]);
-  }
+  ctx.strokeStyle = emits ? colorWithAlpha(signalColor, 0.92) : "#e11d48";
+  ctx.lineWidth = 2;
   ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(source.x - radius * 0.27, source.y - radius * 0.3, Math.max(1.6, radius * 0.15), 0, Math.PI * 2);
+  ctx.fillStyle = emits ? "rgba(255, 255, 255, 0.78)" : "rgba(225, 29, 72, 0.42)";
+  ctx.fill();
+
+  const orbitAngle = -Math.PI / 4;
+  ctx.beginPath();
+  ctx.arc(
+    source.x + Math.cos(orbitAngle) * (radius + 5),
+    source.y + Math.sin(orbitAngle) * (radius + 5),
+    emits ? 2.4 : 1.9,
+    0,
+    Math.PI * 2
+  );
+  ctx.fillStyle = signalColor;
+  ctx.fill();
   ctx.restore();
 }
 
@@ -563,10 +640,10 @@ function drawSourceExternalLabel(ctx, source, emitterCapability = { emits: false
 
   ctx.save();
   ctx.beginPath();
-  ctx.rect(labelX, labelY, labelWidth, labelHeight);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  roundedRectPath(ctx, labelX, labelY, labelWidth, labelHeight, 6);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
   ctx.fill();
-  ctx.strokeStyle = emitterCapability.emits ? "rgba(31, 41, 51, 0.22)" : "rgba(220, 38, 38, 0.28)";
+  ctx.strokeStyle = emitterCapability.emits ? "rgba(31, 41, 51, 0.16)" : "rgba(225, 29, 72, 0.22)";
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = emitterCapability.emits ? "#1f2933" : "#52616f";
@@ -585,30 +662,39 @@ function drawSourceEmitterBadge(ctx, source, emitterCapability) {
     return;
   }
 
-  const badgeWidth = emitterCapability.audio && emitterCapability.midi ? 30 : 18;
-  const badgeHeight = 16;
+  const badgeCount = Number(Boolean(emitterCapability.audio)) + Number(Boolean(emitterCapability.midi));
+  const badgeRadius = 7.5;
+  const badgeWidth = badgeCount * 13 + 3;
+  const badgeHeight = badgeRadius * 2;
   const view = canvasViewport();
-  const badgeX = clamp(source.x + source.radius - 5, view.left + 4, view.right - badgeWidth - 4);
+  const badgeX = clamp(source.x + source.radius - 3, view.left + 4, view.right - badgeWidth - 4);
   const badgeY = clamp(source.y - source.radius - 8, view.top + 4, view.bottom - badgeHeight - 4);
 
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(badgeX, badgeY, badgeWidth, badgeHeight);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.strokeStyle = emitterCapability.midi && !emitterCapability.audio ? "#7c3aed" : "#f97316";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  let iconX = badgeX + 5;
+  ctx.shadowColor = "rgba(23, 33, 31, 0.18)";
+  ctx.shadowBlur = 5;
+  let centerX = badgeX + badgeRadius;
   if (emitterCapability.audio) {
-    drawAudioEmitterIcon(ctx, iconX, badgeY + badgeHeight / 2);
-    iconX += 12;
+    drawEmitterChip(ctx, centerX, badgeY + badgeRadius, "#f97316");
+    drawAudioEmitterIcon(ctx, centerX - 5, badgeY + badgeRadius);
+    centerX += 13;
   }
   if (emitterCapability.midi) {
-    drawMidiEmitterIcon(ctx, iconX + 1, badgeY + 3);
+    drawEmitterChip(ctx, centerX, badgeY + badgeRadius, "#7c3aed");
+    drawMidiEmitterIcon(ctx, centerX - 5, badgeY + 1.5);
   }
   ctx.restore();
+}
+
+function drawEmitterChip(ctx, x, y, color) {
+  ctx.beginPath();
+  ctx.arc(x, y, 7.5, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.35;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
 }
 
 function sourceVisualRadius(source, emitterCapability = sourceEmitterCapability(source)) {
@@ -764,17 +850,49 @@ renderers.MovingObject = function (object, ctx) {
 };
 
 renderers.ConstraintNode = function (object, ctx) {
-  renderers.Entity(object, ctx);
-  ctx.fillStyle = "#111827";
-  ctx.font = "12px sans-serif";
+  const radius = object.radius + 1;
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.arc(object.x, object.y, radius + 7, 0, Math.PI * 2);
+  ctx.fillStyle = colorWithAlpha(object.color, 0.09);
+  ctx.fill();
+
+  ctx.shadowColor = colorWithAlpha(object.color, 0.3);
+  ctx.shadowBlur = 11;
+  ctx.beginPath();
+  polygonPath(ctx, object.x, object.y, radius + 2, 6, Math.PI / 6);
+  ctx.fillStyle = radialGradient(ctx, object.x, object.y, radius + 2, "#ffffff", object.color);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = colorWithAlpha(object.color, 0.95);
+  ctx.lineWidth = 1.75;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(object.x, object.y, radius - 4, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.58)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(object.x - 4, object.y - 5, 1.7, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+  ctx.fill();
+
+  ctx.fillStyle = "#263330";
+  ctx.font = "800 10px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.fillText(object.label, object.x, object.y - 18);
+  ctx.fillText(object.label.toUpperCase(), object.x, object.y - radius - 8);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 11px sans-serif";
+  ctx.font = "800 10px sans-serif";
   ctx.textBaseline = "middle";
   ctx.fillText(object.glyph, object.x, object.y);
+  ctx.restore();
 };
 
 renderers.AngleConstraint = function (object, ctx) {
@@ -1760,12 +1878,31 @@ function drawGrid(ctx) {
 }
 
 function drawConnector(ctx, from, to, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
+  ctx.save();
+  ctx.lineCap = "round";
+
+  ctx.strokeStyle = colorWithAlpha(color, 0.12);
+  ctx.lineWidth = 6;
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
   ctx.stroke();
+
+  ctx.strokeStyle = colorWithAlpha(color, 0.76);
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const endpointX = from.x + Math.cos(angle) * (from.radius || 0);
+  const endpointY = from.y + Math.sin(angle) * (from.radius || 0);
+  ctx.beginPath();
+  ctx.arc(endpointX, endpointY, 2.1, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawConstraintDiagnostics(ctx) {
