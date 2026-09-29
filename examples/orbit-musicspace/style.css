@@ -101,6 +101,13 @@ main {
   font-size: 12px;
   margin-left: 14px;
 }
+.next-study {
+  color: var(--mint);
+  font-size: 11px;
+  text-decoration: none;
+  text-align: right;
+  margin-left: 12px;
+}
 .intro {
   display: flex;
   align-items: center;

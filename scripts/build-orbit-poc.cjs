@@ -26,15 +26,17 @@ fs.writeFileSync(
 
 if (process.argv.includes("--compile-dsp")) {
   const audio = path.join(demo, "audio");
-  execFileSync("faust", ["-lang", "wasm", "-json", "-o", "orbit-study.wasm", "orbit-study.dsp"], {
-    cwd: audio,
-    stdio: "inherit"
-  });
-  const metaPath = path.join(audio, "orbit-study.json");
-  const metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-  delete metadata.library_list;
-  delete metadata.include_pathnames;
-  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2) + "\n");
-  fs.rmSync(path.join(audio, "orbit-study.dsp.json"), { force: true });
+  for (const name of ["orbit-study", "constellation"]) {
+    execFileSync("faust", ["-lang", "wasm", "-json", "-o", `${name}.wasm`, `${name}.dsp`], {
+      cwd: audio,
+      stdio: "inherit"
+    });
+    const metaPath = path.join(audio, `${name}.json`);
+    const metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    delete metadata.library_list;
+    delete metadata.include_pathnames;
+    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2) + "\n");
+    fs.rmSync(path.join(audio, `${name}.dsp.json`), { force: true });
+  }
 }
 console.log("Orbit × MusicSpace demo built. Serve examples/orbit-musicspace over HTTP.");

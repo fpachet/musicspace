@@ -1,0 +1,264 @@
+{
+  "name": "Constellation",
+  "filename": "constellation.dsp",
+  "version": "2.81.2",
+  "compile_options": "-lang wasm -ct 1 -es 1 -mcd 16 -mdd 1024 -mdy 33 -single -ftz 0",
+  "size": 262412,
+  "code": "ZGVjbGFyZSBuYW1lICJDb25zdGVsbGF0aW9uIjsKZGVjbGFyZSBhdXRob3IgIk11c2ljU3BhY2UgLyBGYXVzdCBPcmJpdCBwcm9vZiBvZiBjb25jZXB0IjsKZGVjbGFyZSBsaWNlbnNlICJNSVQiOwppbXBvcnQoInN0ZGZhdXN0LmxpYiIpOwoKYmFzcyA9IGhzbGlkZXIoIkJhc3MiLCAwLjQsIDAsIDEsIDAuMDAxKSA6IHNpLnNtb287CmJvZHkgPSBoc2xpZGVyKCJCb2R5IiwgMC4zNSwgMCwgMSwgMC4wMDEpIDogc2kuc21vbzsKYWlyID0gaHNsaWRlcigiQWlyIiwgMC4yNSwgMCwgMSwgMC4wMDEpIDogc2kuc21vbzsKZHJ5ID0gaHNsaWRlcigiRHJ5IiwgMC40LCAwLCAxLCAwLjAwMSkgOiBzaS5zbW9vOwp3ZXQgPSBoc2xpZGVyKCJXZXQiLCAwLjYsIDAsIDEsIDAuMDAxKSA6IHNpLnNtb287CmN1dG9mZiA9IGhzbGlkZXIoIkN1dG9mZiBbdW5pdDpIel0iLCAyMjAwLCAxODAsIDYwMDAsIDEpIDogc2kuc21vbzsKcmVzbyA9IGhzbGlkZXIoIlJlc29uYW5jZSIsIDIuMiwgMC41LCA4LCAwLjAxKSA6IHNpLnNtb287CnJhdGUgPSBoc2xpZGVyKCJSYXRlIFt1bml0Okh6XSIsIDEuMiwgMC4xNSwgNCwgMC4wMSkgOiBzaS5zbW9vOwpkZXB0aCA9IGhzbGlkZXIoIkRlcHRoIiwgMC40LCAwLCAxLCAwLjAwMSkgOiBzaS5zbW9vOwpwYW4gPSBoc2xpZGVyKCJQYW4iLCAwLCAtMSwgMSwgMC4wMDEpIDogc2kuc21vbzsKCmxvdyA9IChvcy5vc2MoMTEwKSArIG9zLm9zYygxNjQuODEzOCkpICogMC41OwptaWQgPSAob3Muc2F3dG9vdGgoMjIwKSArIG9zLnNhd3Rvb3RoKDI2MS42MjU2KSkgKiAwLjU7CmhpZ2ggPSAob3Mub3NjKDUyMy4yNTEpICsgb3Mub3NjKDY1OS4yNTUpKSAqIDAuNTsKY2hvcmQgPSBsb3cgKiBiYXNzICsgbWlkICogYm9keSArIGhpZ2ggKiBhaXI7CmVudmVsb3BlID0gMSAtIGRlcHRoICogMC41ICsgb3Mub3NjKHJhdGUpICogZGVwdGggKiAwLjU7CnNvdXJjZSA9IGNob3JkICogZW52ZWxvcGU7CmZpbHRlcmVkID0gc291cmNlIDogZmkucmVzb25scChjdXRvZmYsIHJlc28sIDEpOwptaXggPSAoc291cmNlICogZHJ5ICsgZmlsdGVyZWQgKiB3ZXQpIDogbWEudGFuaCA6ICooMC4xNik7CnByb2Nlc3MgPSBtaXggPDogKihzcXJ0KCgxIC0gcGFuKSAqIDAuNSkpLCAqKHNxcnQoKDEgKyBwYW4pICogMC41KSk7Cg==",
+  "inputs": 0,
+  "outputs": 2,
+  "meta": [
+    {
+      "author": "MusicSpace / Faust Orbit proof of concept"
+    },
+    {
+      "basics.lib/name": "Faust Basic Element Library"
+    },
+    {
+      "basics.lib/version": "1.21.0"
+    },
+    {
+      "compile_options": "-lang wasm -ct 1 -es 1 -mcd 16 -mdd 1024 -mdy 33 -single -ftz 0"
+    },
+    {
+      "filename": "constellation.dsp"
+    },
+    {
+      "filters.lib/fir:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/fir:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/fir:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/iir:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/iir:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/iir:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/lowpass0_highpass1": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/name": "Faust Filters Library"
+    },
+    {
+      "filters.lib/resonlp:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/resonlp:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/resonlp:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/tf2:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/tf2:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/tf2:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/tf2s:author": "Julius O. Smith III"
+    },
+    {
+      "filters.lib/tf2s:copyright": "Copyright (C) 2003-2019 by Julius O. Smith III <jos@ccrma.stanford.edu>"
+    },
+    {
+      "filters.lib/tf2s:license": "MIT-style STK-4.3 license"
+    },
+    {
+      "filters.lib/version": "1.7.1"
+    },
+    {
+      "license": "MIT"
+    },
+    {
+      "maths.lib/author": "GRAME"
+    },
+    {
+      "maths.lib/copyright": "GRAME"
+    },
+    {
+      "maths.lib/license": "LGPL with exception"
+    },
+    {
+      "maths.lib/name": "Faust Math Library"
+    },
+    {
+      "maths.lib/version": "2.8.1"
+    },
+    {
+      "name": "Constellation"
+    },
+    {
+      "oscillators.lib/name": "Faust Oscillator Library"
+    },
+    {
+      "oscillators.lib/saw2ptr:author": "Julius O. Smith III"
+    },
+    {
+      "oscillators.lib/saw2ptr:license": "STK-4.3"
+    },
+    {
+      "oscillators.lib/version": "1.6.0"
+    },
+    {
+      "platform.lib/name": "Generic Platform Library"
+    },
+    {
+      "platform.lib/version": "1.3.0"
+    },
+    {
+      "signals.lib/name": "Faust Signal Routing Library"
+    },
+    {
+      "signals.lib/version": "1.6.0"
+    }
+  ],
+  "ui": [
+    {
+      "type": "vgroup",
+      "label": "Constellation",
+      "items": [
+        {
+          "type": "hslider",
+          "label": "Air",
+          "varname": "fHslider2",
+          "shortname": "Air",
+          "address": "/Constellation/Air",
+          "index": 262216,
+          "init": 0.25,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Bass",
+          "varname": "fHslider1",
+          "shortname": "Bass",
+          "address": "/Constellation/Bass",
+          "index": 262180,
+          "init": 0.4,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Body",
+          "varname": "fHslider3",
+          "shortname": "Body",
+          "address": "/Constellation/Body",
+          "index": 262252,
+          "init": 0.35,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Cutoff",
+          "varname": "fHslider7",
+          "shortname": "Cutoff",
+          "address": "/Constellation/Cutoff",
+          "index": 262348,
+          "meta": [
+            {
+              "unit": "Hz"
+            }
+          ],
+          "init": 2200,
+          "min": 180,
+          "max": 6000,
+          "step": 1
+        },
+        {
+          "type": "hslider",
+          "label": "Depth",
+          "varname": "fHslider4",
+          "shortname": "Depth",
+          "address": "/Constellation/Depth",
+          "index": 262296,
+          "init": 0.4,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Dry",
+          "varname": "fHslider0",
+          "shortname": "Dry",
+          "address": "/Constellation/Dry",
+          "index": 262156,
+          "init": 0.4,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Pan",
+          "varname": "fHslider9",
+          "shortname": "Pan",
+          "address": "/Constellation/Pan",
+          "index": 262384,
+          "init": 0,
+          "min": -1,
+          "max": 1,
+          "step": 0.001
+        },
+        {
+          "type": "hslider",
+          "label": "Rate",
+          "varname": "fHslider5",
+          "shortname": "Rate",
+          "address": "/Constellation/Rate",
+          "index": 262312,
+          "meta": [
+            {
+              "unit": "Hz"
+            }
+          ],
+          "init": 1.2,
+          "min": 0.15,
+          "max": 4,
+          "step": 0.01
+        },
+        {
+          "type": "hslider",
+          "label": "Resonance",
+          "varname": "fHslider8",
+          "shortname": "Resonance",
+          "address": "/Constellation/Resonance",
+          "index": 262360,
+          "init": 2.2,
+          "min": 0.5,
+          "max": 8,
+          "step": 0.01
+        },
+        {
+          "type": "hslider",
+          "label": "Wet",
+          "varname": "fHslider6",
+          "shortname": "Wet",
+          "address": "/Constellation/Wet",
+          "index": 262332,
+          "init": 0.6,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ]
+    }
+  ]
+}

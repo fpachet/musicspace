@@ -1,11 +1,12 @@
 export class FaustAudio {
-  constructor(metadata, onState) {
+  constructor(metadata, onState, wasmUrl = new URL("./audio/orbit-study.wasm", import.meta.url)) {
     this.metadata = metadata;
     this.onState = onState;
     this.values = {};
     this.context = null;
     this.node = null;
     this.ready = null;
+    this.wasmUrl = wasmUrl;
   }
 
   setValues(values) {
@@ -34,7 +35,7 @@ export class FaustAudio {
   }
 
   async initialize() {
-    const response = await fetch(new URL("./audio/orbit-study.wasm", import.meta.url));
+    const response = await fetch(this.wasmUrl);
     if (!response.ok) throw new Error("Could not load the Faust instrument.");
     const module = await WebAssembly.compile(await response.arrayBuffer());
     await this.context.audioWorklet.addModule(new URL("./audio/faust-worklet.mjs", import.meta.url));

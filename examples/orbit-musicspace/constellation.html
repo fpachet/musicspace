@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Constellation — Orbit × MusicSpace</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./constellation.css" />
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <a class="wordmark" href="./"
+          ><span class="orbit-mark">◎</span> ORBIT <span class="times">×</span> MUSICSPACE</a
+        >
+        <nav class="study-nav">
+          <a href="./">01 · First connections</a
+          ><a href="./constellation.html" aria-current="page">02 · Constellation</a>
+        </nav>
+      </header>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">TEN CONTROLS · NINETEEN CONSTRAINTS · ONE INSTRUMENT</p>
+          <h1>A constellation of constraints.</h1>
+          <p class="lead">Pull one control. See the connections. Hear the whole instrument respond.</p>
+        </div>
+        <div class="listen">
+          <button id="audio" class="primary" disabled>▶ Start sound</button
+          ><span id="audio-status" role="status">Loading instrument…</span>
+        </div>
+      </section>
+      <div class="workspace dense-workspace">
+        <section class="instrument">
+          <div class="panel-heading">
+            <span><i class="live-dot"></i> CONSTRAINTS INSIDE ORBIT</span
+            ><span id="counts">19 active constraints</span>
+          </div>
+          <div class="view-options">
+            <label
+              >Connections
+              <select id="visibility">
+                <option value="all">Show all</option>
+                <option value="related">Selected only</option>
+                <option value="none">Hide</option>
+              </select></label
+            ><label><input id="guides" type="checkbox" /> Range guides</label
+            ><button id="clear-selection">Clear highlight</button>
+          </div>
+          <div id="orbit" aria-label="Ten linked Faust controls"></div>
+          <div class="instrument-footer">
+            <span id="solver-status">All geometric constraints satisfied</span
+            ><span id="motion-status">Dynamics paused</span>
+          </div>
+          <div id="readouts" class="readouts dense-readouts"></div>
+        </section>
+        <aside class="network-rail" aria-label="Constraint inspector">
+          <div class="rail-heading">
+            <h2>Every connection has a rule.</h2>
+            <p>Select a row to highlight its geometry. Use the switch to release its constraint.</p>
+          </div>
+          <div id="relations"></div>
+          <div class="bounds-note">
+            <span>10</span>
+            <p>Radial bounds keep all ten controls between Orbit’s inner and outer rings.</p>
+          </div>
+        </aside>
+      </div>
+      <section class="network-actions">
+        <div>
+          <button id="dynamics" aria-pressed="false">▶ Animate springs</button
+          ><span>Drag first, then let the springs settle.</span>
+        </div>
+        <div>
+          <button id="undo" disabled>↶ Undo</button><button id="redo" disabled>↷ Redo</button
+          ><button id="reset">Reset constellation</button><button id="save">↓ Save scene</button>
+        </div>
+      </section>
+      <p id="message" class="message" role="status">
+        Start with Bass: its movement redistributes Body and Air. Click 01 to isolate that relationship.
+      </p>
+      <details class="about">
+        <summary>What the nineteen constraints do</summary>
+        <div class="about-content">
+          <div>
+            <h3>Explore the network</h3>
+            <ol>
+              <li>Start sound, then drag Bass: Body and Air share the remaining level.</li>
+              <li>Select 03 and drag Cutoff. Resonance follows the fixed-length link.</li>
+              <li>Select 04. The two rays show the Rate / Depth distance ratio.</li>
+              <li>Release a relationship with its switch and compare.</li>
+              <li>Turn on Animate springs, then pull Air or Depth.</li>
+            </ol>
+          </div>
+          <div>
+            <h3>Read the geometry</h3>
+            <p>
+              Dashed lines indicate balances, solid bars fixed distance, rays radial ratios, dotted lines
+              minimum separation, coils springs, and arcs angular constraints. Numbered badges match the
+              inspector. Range guides show the shared bounds.
+            </p>
+            <p>
+              The display follows the actual engine scene, including disabled rules. Red links and an
+              inspector warning mean a geometric relation is outside solver tolerance. Springs are
+              intentionally elastic. An angle or distance ratio describes geometry; it does not imply the same
+              ratio between Hz or other parameter units.
+            </p>
+            <p>
+              Dynamics start paused for precise exploration. Undo restores the complete geometry and
+              constraint settings. Native preset recall keeps the stored sound and recaptures geometric
+              targets. <a href="./README.md#study-02-constellation">Technical notes</a>
+            </p>
+          </div>
+        </div>
+      </details>
+      <footer>
+        <span>MusicSpace × Faust Orbit</span><span>Study 02 · Real Faust DSP / WebAssembly</span>
+      </footer>
+    </main>
+    <script type="module" src="./constellation.mjs"></script>
+  </body>
+</html>

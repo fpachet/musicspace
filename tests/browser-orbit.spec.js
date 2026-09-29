@@ -159,3 +159,79 @@ test("Orbit's numeric detail editor resolves linked values as one undoable gestu
   await page.locator("#undo").click();
   expect((await snapshot(page)).params).toEqual(before.params);
 });
+
+test("Constellation draws nineteen constraints, highlights rules and hides only their appearance", async ({
+  page
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/orbit-musicspace/constellation.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  await expect(page.locator("#counts")).toHaveText("19 active constraints · 8 types");
+  const before = await snapshot(page);
+  expect(before.scene.points).toHaveLength(10);
+  expect(before.scene.constraints).toHaveLength(19);
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.drawnConstraints.length)).toBe(9);
+  await expect(page.locator("#solver-status")).toHaveText("All geometric constraints satisfied");
+  await page.screenshot({ path: "test-results/orbit-constellation.png", fullPage: true });
+  await page.locator("#select-filter").click();
+  await page.locator("#visibility").selectOption("related");
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.drawnConstraints)).toEqual(["filter"]);
+  await page.locator("#guides").check();
+  await expect
+    .poll(() => page.evaluate(() => window.orbitStudy.drawnConstraints))
+    .toEqual(["filter", "radial-bounds"]);
+  await page.locator("#visibility").selectOption("none");
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.drawnConstraints.length)).toBe(0);
+  expect((await snapshot(page)).scene.constraints.filter((c) => c.enabled).length).toBe(19);
+  await page.locator("#toggle-filter").click();
+  await expect(page.locator("#counts")).toHaveText("18 active constraints · 7 types");
+  expect((await snapshot(page)).scene.constraints.find((c) => c.id === "filter").enabled).toBe(false);
+  await page.locator("#undo").click();
+  expect((await snapshot(page)).scene.constraints.find((c) => c.id === "filter").enabled).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("Constellation propagates a drag, restores it with undo, and produces real Faust audio", async ({
+  page
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/orbit-musicspace/constellation.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  const before = await snapshot(page);
+  const after = await dragDot(page, "Bass", 0.8);
+  expect(named(after, "Bass")).toBeGreaterThan(named(before, "Bass") + 0.05);
+  expect(
+    Math.abs(named(after, "Body") - named(before, "Body")) +
+      Math.abs(named(after, "Air") - named(before, "Air"))
+  ).toBeGreaterThan(0.01);
+  expect(named(after, "Bass") + named(after, "Body") + named(after, "Air")).toBeCloseTo(1, 1);
+  await page.locator("#undo").click();
+  expect((await snapshot(page)).params).toEqual(before.params);
+  await page.locator("#audio").click();
+  await expect(page.locator("#audio-status")).toContainText("live");
+  await expect.poll(() => page.evaluate(() => window.orbitStudy.audioRms)).toBeGreaterThan(0.0001);
+  expect(await page.evaluate(() => window.orbitStudy.audioRms)).toBeLessThan(0.17);
+  await page.locator("#dynamics").click();
+  await dragDot(page, "Air", 0.75);
+  const moving = await snapshot(page);
+  await expect
+    .poll(async () => Math.abs(named(await snapshot(page), "Cutoff") - named(moving, "Cutoff")))
+    .toBeGreaterThan(1);
+  await page.locator("#dynamics").click();
+  const stopped = (await snapshot(page)).params;
+  await page.waitForTimeout(150);
+  expect((await snapshot(page)).params).toEqual(stopped);
+  expect(errors).toEqual([]);
+});
+
+test("Constellation remains usable on a narrow screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/examples/orbit-musicspace/constellation.html");
+  await expect(page.locator("#audio")).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.locator("#select-pulse").click();
+  await expect(page.locator("#select-pulse")).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ path: "test-results/orbit-constellation-mobile.png", fullPage: true });
+});

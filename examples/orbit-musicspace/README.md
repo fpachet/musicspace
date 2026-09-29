@@ -18,6 +18,9 @@ python3 -m http.server 8000
 Open <http://localhost:8000>. AudioWorklet requires **localhost or HTTPS**.
 Opening `index.html` directly with `file://` will not work.
 
+The header links to **Study 02: Constellation**, also directly available at
+`constellation.html` in this folder.
+
 From the MusicSpace repository root, `npm run serve` serves the demo at
 <http://localhost:8000/examples/orbit-musicspace/>. A static HTTPS host can serve
 this folder unchanged. The current task does not publish it or send it to anyone.
@@ -133,3 +136,48 @@ invalid file rejection, and mobile layout. They do not substitute a mock DSP.
 
 The browser-ready files are committed with the demo for easy copying. Rebuild after
 changing the engine or vendored TypeScript. See `THIRD_PARTY_NOTICES.md` for attribution.
+
+## Study 02: Constellation
+
+Open `constellation.html` for a second, denser instrument: **ten Faust parameters,
+nineteen constraints, eight constraint types**. Its own Faust DSP mixes bass, body
+and upper voices, with dry/wet balance, resonant filtering, tremolo rate/depth and
+stereo pan. It uses the same Orbit build and MusicSpace package as Study 01.
+
+| Rule | Controls | Geometry |
+| --- | --- | --- |
+| 01 Voice balance | Bass, Body, Air | Sum of radii; normalized levels sum to one |
+| 02 Dry/wet balance | Dry, Wet | Sum of radii; normalized levels sum to one |
+| 03 Filter linkage | Cutoff, Resonance | Fixed pairwise distance |
+| 04 Pulse proportion | Rate, Depth | Ratio of distances from Orbit's center |
+| 05 Voice angle | Bass, Body | Fixed angle at the center |
+| 06 Make room | Body, Cutoff | Minimum separation |
+| 07 Air/filter spring | Air, Cutoff | Elastic pairwise distance |
+| 08 Pulse/pan spring | Depth, Pan | Elastic pairwise distance |
+| 09 Pan corridor | Pan | Angular sector |
+| Ten radial bounds | Every parameter | Inner/outer limits |
+
+The canvas draws the **actual active graph** using Orbit's `drawRelations` hook.
+Numbered badges match the inspector; selecting a row highlights its links and
+controls. "Selected only" isolates that rule, or rules touching the last dragged
+control when no row is selected. "Hide" changes only the drawing. The ten radial
+limits share the same annulus and are shown by the optional range guides.
+
+Switches disable individual rules while retaining their invariant targets.
+Undo/redo restores both geometry and enabled states. Scene export includes the
+complete engine snapshot and Faust values; this study currently exports files
+for inspection/reuse and does not provide a file-import UI.
+
+The scene starts feasible, with both springs at rest. Dynamics start paused so
+geometric coupling is easy to inspect. Turn on **Animate springs** and drag Air or
+Depth to excite the network. Springs act in both directions. XPBD solves this
+denser graph; it can leave residuals during strong or incompatible edits. Red links
+and inspector warnings report geometric errors outside the engine's tolerance.
+Elastic spring extensions are excluded from those warnings because extension is
+part of their behavior. The sums are therefore approximate within solver and
+parameter-step tolerances, especially during motion.
+
+`constellation-model.mjs` defines the engine scene; `constraint-drawing.mjs` draws
+the constraints; `constellation.mjs` connects gestures, history and audio. The new
+DSP is `audio/constellation.dsp`, with compiled JSON/WASM alongside it. The shared
+audio runtime now accepts a DSP URL; Study 01 retains its original default.
