@@ -5,6 +5,12 @@ the standalone MusicSpace engine, driving an actual Faust WebAssembly instrument
 
 ## Run or share
 
+Public demos on GitHub Pages:
+
+- [Study 01: Play the relationships](https://fpachet.github.io/musicspace/examples/orbit-musicspace/)
+- [Study 02: Constellation](https://fpachet.github.io/musicspace/examples/orbit-musicspace/constellation.html)
+- [Study 03: Living springs](https://fpachet.github.io/musicspace/examples/orbit-musicspace/living-springs.html)
+
 The folder is self-contained. All browser dependencies and the compiled DSP are
 included; no npm install, CDN, account, microphone or Faust installation is needed
 to play it.
@@ -24,7 +30,7 @@ The header links to **Study 02: Constellation**, also directly available at
 
 From the MusicSpace repository root, `npm run serve` serves the demo at
 <http://localhost:8000/examples/orbit-musicspace/>. A static HTTPS host can serve
-this folder unchanged. The current task does not publish it or send it to anyone.
+this folder unchanged.
 
 ## A 60-second demonstration
 
@@ -86,8 +92,9 @@ The original code and MIT notice are preserved in `vendor/orbit`.
 | `drawRelations(ctx, state)` | Draws the balance and spring links in Orbit's world coordinates. |
 | `getParamValues()` | Wrapper delegator for the renderer's existing value snapshot. |
 
-The extension also brackets numeric detail edits as gestures and preserves the
-detail slider DOM during external motion. Unicode toolbar glyphs are a host-side
+The extension also brackets numeric detail edits as gestures, preserves the
+detail slider DOM during external motion, and prevents keyboard focus from scrolling
+the canvas away from the pointer at the start of a drag. Unicode toolbar glyphs are a host-side
 convenience so this folder works without Google Fonts.
 
 These are a proposal for discussion, not an upstream release or pull request.
@@ -123,6 +130,25 @@ These are a proposal for discussion, not an upstream release or pull request.
 npm run build:orbit
 npm run test:orbit
 ```
+
+Before pushing, run the same checks as the GitHub Pages workflow:
+
+```sh
+npm run check
+npm run format:check
+npm test
+npm run smoke
+npm test --prefix packages/musicspace-engine
+```
+
+`npm run smoke` includes the Orbit tests alongside the workbench tests using the
+CI browser configuration. The drag regression explicitly uses a 1280 × 720 viewport
+and checks that focusing the instrument leaves the page's scroll position unchanged.
+The focused Orbit configuration also covers a larger desktop viewport and mobile layouts.
+
+Pushes to `main` trigger `.github/workflows/pages.yml`. GitHub Pages is updated only
+after the tests pass. A successful push alone does not confirm deployment; check
+both the **test** and **deploy** jobs in GitHub Actions before sharing an update.
 
 To recompile the DSP as well (requires the Faust CLI):
 

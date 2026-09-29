@@ -33,7 +33,9 @@ async function dragDot(page, label, radialScale) {
     { label, radialScale }
   );
   await page.mouse.move(coords.start.x, coords.start.y);
+  const scrollBefore = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
   await page.mouse.down();
+  expect(await page.evaluate(() => ({ x: scrollX, y: scrollY }))).toEqual(scrollBefore);
   await page.mouse.move(coords.end.x, coords.end.y, { steps: 15 });
   const during = await snapshot(page);
   await page.mouse.up();
@@ -195,6 +197,8 @@ test("Constellation draws nineteen constraints, highlights rules and hides only 
 test("Constellation propagates a drag, restores it with undo, and produces real Faust audio", async ({
   page
 }) => {
+  // A partly visible instrument must not scroll when pointerdown gives it keyboard focus.
+  await page.setViewportSize({ width: 1280, height: 720 });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/examples/orbit-musicspace/constellation.html");
@@ -214,6 +218,8 @@ test("Constellation propagates a drag, restores it with undo, and produces real 
   await expect.poll(() => page.evaluate(() => window.orbitStudy.audioRms)).toBeGreaterThan(0.0001);
   expect(await page.evaluate(() => window.orbitStudy.audioRms)).toBeLessThan(0.17);
   await page.locator("#dynamics").click();
+  // The dynamics button is below the instrument; bring the canvas back into view.
+  await page.locator("#orbit .orbit-canvas").scrollIntoViewIfNeeded();
   await dragDot(page, "Air", 0.75);
   const moving = await snapshot(page);
   await expect

@@ -787,7 +787,8 @@ export class FaustOrbitUI extends FaustUICore {
       }
 
       event.preventDefault();
-      this.root.focus();
+      // Keep the canvas under the pointer when the instrument extends below the viewport.
+      this.root.focus({ preventScroll: true });
       this.canvas.setPointerCapture(event.pointerId);
       this.pointer = { pointerId: event.pointerId, mode: hit.mode, path: hit.path || null };
       this.hoverHint = null;

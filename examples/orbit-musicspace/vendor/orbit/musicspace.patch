@@ -69,7 +69,17 @@
    }
  
    // Sets zoom percentage and updates the viewport transform.
-@@ -1127,8 +1168,12 @@
+@@ -746,7 +787,8 @@
+       }
+ 
+       event.preventDefault();
+-      this.root.focus();
++      // Keep the canvas under the pointer when the instrument extends below the viewport.
++      this.root.focus({ preventScroll: true });
+       this.canvas.setPointerCapture(event.pointerId);
+       this.pointer = { pointerId: event.pointerId, mode: hit.mode, path: hit.path || null };
+       this.hoverHint = null;
+@@ -1127,8 +1169,12 @@
    }
  
    // Emits one control value to the host callback and updates cache.
@@ -83,7 +93,7 @@
      const value = this._valueFromPosition(control, control.x, control.y);
      this.paramValues[control.path] = value;
      try {
-@@ -1141,6 +1186,10 @@
+@@ -1141,6 +1187,10 @@
  
    // Emits values for all controls (used when geometry changes globally).
    _emitValuesForAllControls(): void {
@@ -94,7 +104,7 @@
      for (const control of Object.values(this.state.controls)) {
        this._emitValueForControl(control);
      }
-@@ -1195,6 +1244,10 @@
+@@ -1195,6 +1245,10 @@
        ctx.lineTo(maxX, Math.round(y) + 0.5);
        ctx.stroke();
      }
@@ -105,7 +115,7 @@
  
      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
      ctx.beginPath();
-@@ -1359,17 +1412,14 @@
+@@ -1359,17 +1413,14 @@
      const clamped = clamp(value, control.min, control.max);
      const p = this._positionFromValue(control.path, clamped);
      if (!p) return;
@@ -126,7 +136,7 @@
    }
  
    // Rebuilds the detail panel DOM for the currently active control.
-@@ -1540,12 +1590,7 @@
+@@ -1540,12 +1591,7 @@
          if (!p) return;
          control.x = p.x;
          control.y = p.y;
