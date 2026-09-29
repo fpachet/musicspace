@@ -491,3 +491,89 @@ test.describe("phone layout and touch interaction", () => {
     await client.detach();
   });
 });
+
+for (const engine of ["standard", "package"]) {
+  test(`${engine} diagnostics keep the canvas stable while dragging source E`, async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 1000 });
+    await page.goto(`/musicspace.html?patch=angle-balance&engine=${engine}`);
+    await expect(page.locator("#patch-select")).toBeEnabled();
+    const initial = await page.evaluate(() => {
+      const rect = document.getElementById("canvas").getBoundingClientRect();
+      const source = state.sources.find((p) => p.name === "E");
+      return {
+        left: rect.x,
+        top: rect.y,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x + (source.x * rect.width) / 800,
+        y: rect.y + (source.y * rect.height) / 600
+      };
+    });
+    await page.mouse.move(initial.x, initial.y);
+    await page.mouse.down();
+    const samples = [];
+    for (let i = 0; i < 45; i++) {
+      await page.mouse.move(initial.x + 70 * Math.sin(i / 16), initial.y + i / 4);
+      samples.push(
+        await page.evaluate(() => {
+          const rect = document.getElementById("canvas").getBoundingClientRect();
+          const source = state.sources.find((p) => p.name === "E");
+          return {
+            top: rect.y,
+            width: rect.width,
+            height: rect.height,
+            screenY: rect.y + (source.y * rect.height) / 600,
+            message: document.getElementById("constraint-status").textContent
+          };
+        })
+      );
+    }
+    await page.mouse.up();
+    expect(samples.some((s) => s.message.includes("capped"))).toBe(true);
+    for (const sample of samples) {
+      expect(sample.top).toBe(initial.top);
+      expect(sample.width).toBe(initial.width);
+      expect(sample.height).toBe(initial.height);
+    }
+    // A gradual vertical gesture must not produce the old ~24 px layout jumps.
+    for (let i = 1; i < samples.length; i++)
+      expect(Math.abs(samples[i].screenY - samples[i - 1].screenY)).toBeLessThan(2);
+
+    // Long diagnostics also wrap on phones. Keep every message readable by
+    // scrolling inside the fixed status area, without moving/resizing the scene.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const messages = [
+      "",
+      "Propagation capped one entity after 8 passes.",
+      "Sum constraint reached its limit; source motion was backed off. ".repeat(6),
+      ""
+    ];
+    const layouts = await page.evaluate(
+      (values) =>
+        values.map((message) => {
+          window.setConstraintStatus(message);
+          window.drawAll();
+          const rect = document.getElementById("canvas").getBoundingClientRect();
+          const row = document.querySelector(".status-row");
+          return {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            scrollable: row.scrollHeight > row.clientHeight,
+            text: document.getElementById("constraint-status").textContent
+          };
+        }),
+      messages
+    );
+    for (const layout of layouts)
+      expect([layout.x, layout.y, layout.width, layout.height]).toEqual([
+        layouts[0].x,
+        layouts[0].y,
+        layouts[0].width,
+        layouts[0].height
+      ]);
+    expect(layouts[2].scrollable).toBe(true);
+    expect(layouts[2].text).toBe(messages[2]);
+  });
+}
