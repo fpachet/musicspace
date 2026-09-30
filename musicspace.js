@@ -2675,12 +2675,12 @@ function editableInspectorTargets() {
       open: () => openSourceEditor(source)
     })),
     ...state.movingObjects
-      .filter((mover) => mover.trajectory?.type === "rotator" || mover.trajectory?.type === "shuttle")
+      .filter((mover) => ["free", "rotator", "shuttle"].includes(mover.trajectory?.type))
       .map((mover) => ({
         entity: mover,
         label: entityLabel(mover),
         open: () => {
-          if (mover.trajectory?.type === "shuttle") {
+          if (["free", "shuttle"].includes(mover.trajectory?.type)) {
             openShuttleEditor(mover);
           } else {
             openRotationEditor(mover);
@@ -2882,15 +2882,6 @@ function openShuttleEditor(mover) {
     return;
   }
 
-  if (mover.trajectory?.type !== "shuttle") {
-    if (
-      !editGeometry("assign shuttle", () => {
-        mover.trajectory = normalizeTrajectory({ type: "shuttle" }, mover.x, mover.y);
-      })
-    )
-      return;
-  }
-
   rotationEditor.hidden = true;
   activeRotationMover = null;
   closeConstraintEditor();
@@ -2899,7 +2890,14 @@ function openShuttleEditor(mover) {
   activeShuttleMover = mover;
   populateEndpointSelect(shuttleStartRefInput, mover);
   populateEndpointSelect(shuttleEndRefInput, mover);
-  const trajectory = mover.trajectory;
+  const trajectory =
+    mover.trajectory?.type === "shuttle"
+      ? mover.trajectory
+      : normalizeTrajectory({ type: "shuttle" }, mover.x, mover.y);
+  document.getElementById("shuttle-editor-help").textContent =
+    mover.trajectory?.type === "shuttle"
+      ? `Edit the endpoints and speed of ${mover.name}.`
+      : `Choose two endpoints, then Apply to give ${mover.name} a shuttle trajectory.`;
   const start = trajectory.start || { type: "fixed", x: trajectory.ax, y: trajectory.ay };
   const end = trajectory.end || { type: "fixed", x: trajectory.bx, y: trajectory.by };
 
@@ -2974,6 +2972,8 @@ function applyShuttleEditor() {
     })
   )
     return;
+  document.getElementById("shuttle-editor-help").textContent =
+    `Edit the endpoints and speed of ${activeShuttleMover.name}.`;
   setConstraintStatus(`Shuttle trajectory ${activeShuttleMover.name} updated.`);
   drawAll();
 }
@@ -4634,7 +4634,7 @@ function handleEntityDoubleClick(entity) {
     return true;
   }
 
-  if (isViewKind(entity, "MovingObject") && entity.trajectory?.type === "shuttle") {
+  if (isViewKind(entity, "MovingObject") && ["free", "shuttle"].includes(entity.trajectory?.type)) {
     openShuttleEditor(entity);
     selectedEntity = entity;
     drawAll();

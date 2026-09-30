@@ -183,3 +183,8 @@ Paused-scene inspector regressions exercise mouse double-clicks and touch double
 on springs, rigid-distance constraints, sources, and shuttle movers in both engines.
 Opening or applying an inspector and moving a constraint label must stay paused;
 dragging a physical mass must still resume spring motion.
+
+New-mover regressions create a free mover and open its shuttle endpoint editor with
+mouse double-clicks and touch double-taps in both engines. Opening/closing must not
+change the trajectory or add undo entries; Apply assigns the selected source endpoints
+and speed in one undoable edit while motion remains stopped.

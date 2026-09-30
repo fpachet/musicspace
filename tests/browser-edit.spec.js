@@ -448,3 +448,59 @@ test.describe("paused scene inspector gestures", () => {
     }
   }
 });
+
+test.describe("new mover endpoint editor", () => {
+  test.use({ hasTouch: true });
+  for (const engine of ["standard", "package"]) {
+    for (const pointer of ["mouse", "touch"]) {
+      test(`new Mover opens a draft shuttle path (${engine}, ${pointer})`, async ({ page }) => {
+        await open(page, engine, "driven-springs");
+        await page.locator('[data-tool="mover"]').click();
+        const box = await page.locator("#canvas").boundingBox();
+        const x = box.x + (650 * box.width) / 800,
+          y = box.y + (350 * box.height) / 600;
+        await page.mouse.click(x, y);
+        const name = await page.evaluate(() => state.movingObjects.at(-1).name);
+        const before = await page.evaluate(() => undoStack.length);
+        const openEditor = async () => {
+          if (pointer === "mouse") await page.mouse.dblclick(x, y);
+          else {
+            await page.touchscreen.tap(x, y);
+            await page.touchscreen.tap(x, y);
+          }
+          await expect(page.locator("#shuttle-editor")).toBeVisible();
+        };
+        await openEditor();
+        expect(await page.evaluate((name) => scene.getObjectByName(name).trajectory.type, name)).toBe("free");
+        expect(await page.evaluate(() => undoStack.length)).toBe(before);
+        await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+        await page.locator("#shuttle-close").click();
+        expect(await page.evaluate((name) => scene.getObjectByName(name).trajectory.type, name)).toBe("free");
+        await openEditor();
+        await page.locator("#shuttle-start-ref").selectOption("A");
+        await page.locator("#shuttle-end-ref").selectOption("B");
+        await page.locator("#shuttle-speed").fill("0.02");
+        await page.locator("#shuttle-apply").click();
+        expect(
+          await page.evaluate(
+            (name) => window.serializePatch().movingObjects.find((m) => m.name === name).trajectory,
+            name
+          )
+        ).toMatchObject({
+          type: "shuttle",
+          start: { type: "object", name: "A" },
+          end: { type: "object", name: "B" },
+          speed: 0.02
+        });
+        expect(await page.evaluate(() => undoStack.length)).toBe(before + 1);
+        await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+        await page.locator("#shuttle-close").click();
+        await page.evaluate(() => {
+          window.undoLastEdit();
+          window.stopAnimation();
+        });
+        expect(await page.evaluate((name) => scene.getObjectByName(name).trajectory.type, name)).toBe("free");
+      });
+    }
+  }
+});
