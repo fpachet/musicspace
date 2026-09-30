@@ -339,8 +339,13 @@ for (const engine of ["standard", "package"]) {
     expect(await page.evaluate(() => undoStack.length)).toBe(undoCount + 2);
     await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
     const saved = await page.evaluate(() => window.serializePatch());
-    expect(await page.evaluate((patch) => window.loadPatch(patch), saved)).toBe(true);
-    await page.evaluate(() => window.stopAnimation());
+    expect(
+      await page.evaluate((patch) => {
+        const loaded = window.loadPatch(patch);
+        window.stopAnimation();
+        return loaded;
+      }, saved)
+    ).toBe(true);
     expect(await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory)).toMatchObject(
       saved.movingObjects[0].trajectory
     );
