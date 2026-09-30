@@ -301,3 +301,38 @@ test("Shift pause freezes dynamics, keeps rest length, and resumes without stale
   assert.equal(model.loadPatch(loadFixturePatch("simple-spring.json")), true);
   assert.equal(model.state.draggedEntity, null);
 });
+
+for (const mode of ["propagation", "xpbd"]) {
+  test(`driven springs stay active after two minutes without gestures in ${mode} mode`, () => {
+    const model = scene(loadFixturePatch("driven-springs.json"));
+    model.setSolverMode(mode);
+    const driver = model.getObjectByName("Driver");
+    const a = model.getObjectByName("A");
+    const b = model.getObjectByName("B");
+    const samples = { a: [], b: [], length: [], pitch: [], filter: [] };
+    const mappings = model.serializePatch().parameterMappings;
+    for (let i = 0; i < 7200; i += 1) {
+      model.step();
+      // Spring reactions must not pull the prescribed anchor off its trajectory.
+      close(driver.x, 300 + 200 * driver.trajectory.phase);
+      close(driver.y, 100 + 80 * driver.trajectory.phase);
+      for (const mass of [a, b]) {
+        assert.ok(Number.isFinite(mass.x) && Number.isFinite(mass.y));
+        assert.ok(mass.x > 0 && mass.x < 800 && mass.y > 0 && mass.y < 600);
+      }
+      if (i >= 6600) {
+        samples.a.push(a.y);
+        samples.b.push(b.y);
+        samples.length.push(distance(driver, a));
+        samples.pitch.push(mapping.valueFromMapping(mappings[0], a.y));
+        samples.filter.push(mapping.valueFromMapping(mappings[1], b.y));
+      }
+    }
+    const span = (values) => Math.max(...values) - Math.min(...values);
+    assert.ok(span(samples.a) > 40, "A still oscillates after startup transients");
+    assert.ok(span(samples.b) > 40, "B still oscillates after startup transients");
+    assert.ok(span(samples.length) > 5, "the spring keeps stretching and compressing");
+    assert.ok(span(samples.pitch) > 50, "pitch keeps changing");
+    assert.ok(span(samples.filter) > 300, "filter keeps changing");
+  });
+}

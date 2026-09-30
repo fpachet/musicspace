@@ -307,7 +307,9 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 ## Springs and coupled oscillators
 
 The patch menu includes **Simple Spring**, **Coupled Springs**, **Spring Pendulum**, and
-**Musical Spring**. The simulation starts automatically, but the examples without gravity
+**Musical Spring**, and **Driven Springs**. Driven Springs uses a moving shuttle to keep
+two damped springs oscillating continuously, with optional pitch and filter mapping
+through **Play Sound**. The simulation starts automatically, but the examples without gravity
 begin at equilibrium. Drag the red **Mass**, **A**, or **B** endpoint and release to
 excite the springs. In Spring Pendulum, drag **Bob** sideways. The pink node with a coil glyph is
 an inspector/label handle: dragging it changes only its display position.

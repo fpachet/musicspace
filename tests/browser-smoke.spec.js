@@ -259,9 +259,20 @@ test("spring patches animate, drag, edit and drive existing musical mappings", a
   await page.goto("/musicspace.html");
   const patches = page.locator("#patch-select");
   await expect(patches).toBeEnabled();
-  for (const key of ["simple-spring", "coupled-springs", "spring-pendulum", "musical-spring"]) {
+  for (const key of [
+    "simple-spring",
+    "coupled-springs",
+    "spring-pendulum",
+    "driven-springs",
+    "musical-spring"
+  ]) {
     await patches.selectOption(key);
     await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "true");
+    if (key === "driven-springs") {
+      const initialY = await page.evaluate(() => scene.getObjectByName("B").y);
+      await page.waitForFunction((y) => Math.abs(scene.getObjectByName("B").y - y) > 10, initialY);
+      await page.locator("#stage").screenshot({ path: test.info().outputPath("driven-springs.png") });
+    }
     await page.evaluate(() => {
       window.stopAnimation();
       for (let i = 0; i < 10; i += 1) scene.step();

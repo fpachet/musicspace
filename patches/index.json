@@ -244,6 +244,19 @@
         "audio",
         "mapping"
       ]
+    },
+    {
+      "key": "driven-springs",
+      "name": "Driven Springs",
+      "file": "driven-springs.json",
+      "description": "A moving shuttle keeps both springs active. Drag A or B to perturb them; click Play Sound to hear their motion.",
+      "tags": [
+        "dynamics",
+        "springs",
+        "trajectory",
+        "audio",
+        "mapping"
+      ]
     }
   ]
 }

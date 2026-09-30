@@ -23,7 +23,7 @@ MusicXML support covers the implemented partwise note, chord, voice-cursor and t
 
 Run `npm run serve`, open [MusicSpace](http://localhost:8000/musicspace.html), and select
 one of these patches from the patch menu. The simulation starts automatically; the
-examples without gravity remain still at equilibrium until you displace a mass. Drag
+Simple Spring, Coupled Springs, and Musical Spring remain still at equilibrium until you displace a mass. Driven Springs moves continuously without a gesture. Drag
 and release a red endpoint labeled **Mass**, **A**, **B**, or **Bob** to excite it;
 use **Stop Motion** to inspect a still frame. In Edit mode,
 double-click a spring to edit rest length, stiffness, and damping, or a mass to edit its
@@ -45,6 +45,14 @@ drag-and-release gestures.
 | **Coupled Springs** | [coupled-springs.json](patches/coupled-springs.json) | Pull A down and sideways. Both masses respond through the rigid link; B has greater mass. |
 | **Spring Pendulum** | [spring-pendulum.json](patches/spring-pendulum.json) | Swing Bob sideways and release. Gravity, two springs, and two rigid links transfer motion throughout the system. |
 | **Musical Spring** | [musical-spring.json](patches/musical-spring.json) | Click **Play Sound**, then pull A down and release. A's Y position controls synth pitch; B's Y position controls the filter through ordinary parameter mappings. |
+| **Driven Springs** | [driven-springs.json](patches/driven-springs.json) | Watch the shuttle drive two spring-connected masses continuously. Drag A or B to perturb them, or click **Play Sound** for changing pitch and filter frequency. |
+
+Driven Springs uses a prescribed shuttle trajectory as its moving anchor, with gravity
+and two damped springs. The shuttle supplies energy on every cycle, so damping does
+not bring the patch to rest. A's Y position controls pitch and B's Y position controls
+filter frequency. In Edit mode, double-click **Driver** to adjust the shuttle speed
+or endpoints, or a spring node to adjust stiffness and damping. **Stop Motion** pauses
+both the trajectory and the springs.
 
 The JSON files can also be opened with **Load Patch**. See
 [spring semantics](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks) for units,

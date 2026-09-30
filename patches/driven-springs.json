@@ -1,0 +1,99 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "driven-springs",
+  "name": "Driven Springs",
+  "listener": {
+    "x": 400,
+    "y": 550
+  },
+  "gravity": {
+    "x": 0,
+    "y": 160
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 400,
+      "y": 280,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "B",
+      "x": 400,
+      "y": 420,
+      "dynamics": {
+        "mass": 1.3
+      }
+    }
+  ],
+  "movingObjects": [
+    {
+      "name": "Driver",
+      "x": 400,
+      "y": 140,
+      "trajectory": {
+        "type": "shuttle",
+        "start": {
+          "type": "fixed",
+          "x": 300,
+          "y": 100
+        },
+        "end": {
+          "type": "fixed",
+          "x": 500,
+          "y": 180
+        },
+        "phase": 0.5,
+        "speed": 0.008,
+        "direction": 1,
+        "showPath": true
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "spring",
+      "anchor": "Driver",
+      "target": "A",
+      "restLength": 140,
+      "stiffness": 60,
+      "damping": 2.5
+    },
+    {
+      "type": "spring",
+      "anchor": "A",
+      "target": "B",
+      "restLength": 140,
+      "stiffness": 45,
+      "damping": 2
+    }
+  ],
+  "target": {
+    "type": "subtractive"
+  },
+  "parameterMappings": [
+    {
+      "source": "A",
+      "feature": "y",
+      "target": "/osc/freq",
+      "inputMin": 120,
+      "inputMax": 360,
+      "outputMin": 110,
+      "outputMax": 440,
+      "curve": "exp"
+    },
+    {
+      "source": "B",
+      "feature": "y",
+      "target": "/filter/frequency",
+      "inputMin": 200,
+      "inputMax": 500,
+      "outputMin": 350,
+      "outputMax": 5000,
+      "curve": "exp"
+    }
+  ]
+}
