@@ -173,3 +173,8 @@ MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/musicspace-engine-0.1.0-alpha
 The browser test accepts `MUSICSPACE_TEST_PACKAGE_ROOT` pointing to an extracted
 archive's `package` directory. See [release instructions](packages/musicspace-engine/RELEASING.md)
 for the complete build and handoff procedure.
+
+Shuttle endpoint regression tests cover small fixed-point handles in both engines:
+mouse dragging, one undo entry per drag, save/load, and preservation of object-bound
+endpoints. Phone tests grab outside the visible dot, reshape a running trajectory
+in Play mode and fullscreen, and verify that a second finger cannot steal the drag.

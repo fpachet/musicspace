@@ -50,8 +50,9 @@ drag-and-release gestures.
 Driven Springs uses a prescribed shuttle trajectory as its moving anchor, with gravity
 and two damped springs. The shuttle supplies energy on every cycle, so damping does
 not bring the patch to rest. A's Y position controls pitch and B's Y position controls
-filter frequency. In Edit mode, double-click **Driver** to adjust the shuttle speed
-or endpoints, or a spring node to adjust stiffness and damping. **Stop Motion** pauses
+filter frequency. Drag the small white circles at either end of the dotted line to reshape the path,
+even while it is running. In Edit mode, double-click **Driver** to adjust the shuttle speed
+or enter exact endpoint coordinates, or a spring node to adjust stiffness and damping. **Stop Motion** pauses
 both the trajectory and the springs.
 
 The JSON files can also be opened with **Load Patch**. See

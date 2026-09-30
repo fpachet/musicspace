@@ -469,6 +469,54 @@ test.describe("phone layout and touch interaction", () => {
     });
   }
 
+  for (const engine of ["standard", "package"]) {
+    test(`finger drags small trajectory handles in play and fullscreen (${engine})`, async ({
+      page,
+      context
+    }) => {
+      await page.goto(`/musicspace.html?engine=${engine}&patch=driven-springs`);
+      await expect(page.locator("#patch-select")).toBeEnabled();
+      await expect(page.locator("#patch-select")).toHaveValue("driven-springs");
+      const client = await context.newCDPSession(page);
+      const send = (type, touchPoints) => client.send("Input.dispatchTouchEvent", { type, touchPoints });
+      for (const fullscreen of [false, true]) {
+        if (fullscreen) {
+          await page.evaluate(() => {
+            document.getElementById("stage").requestFullscreen = undefined;
+          });
+          await page.locator("#canvas-fullscreen").tap();
+          await expect(page.locator("#canvas-fullscreen")).toHaveText("Close");
+        }
+        const start = await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory.start);
+        const box = await page.locator("#canvas").boundingBox();
+        const scale = Math.min(box.width / 800, box.height / 600);
+        const offsetX = (box.width - 800 * scale) / 2;
+        const offsetY = (box.height - 600 * scale) / 2;
+        // Start outside the 5px dot, inside its 22px finger target.
+        const x = box.x + offsetX + start.x * scale - 15;
+        const y = box.y + offsetY + start.y * scale;
+        await send("touchStart", [{ id: 1, x, y }]);
+        await send("touchMove", [{ id: 1, x: x - 20, y: y + 30 }]);
+        // A second finger cannot take over the endpoint gesture.
+        await send("touchStart", [
+          { id: 1, x: x - 20, y: y + 30 },
+          { id: 2, x: x + 60, y }
+        ]);
+        await send("touchEnd", []);
+        const changed = await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory.start);
+        expect(changed.x).toBeCloseTo(start.x - 20 / scale, 0);
+        expect(changed.y).toBeCloseTo(start.y + 30 / scale, 0);
+        await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "true");
+        await expect(page.locator("#stage")).not.toHaveClass(/is-dragging/);
+        await page
+          .locator("#stage")
+          .screenshot({ path: test.info().outputPath(`trajectory-handles-${fullscreen}.png`) });
+      }
+      await page.locator("#canvas-fullscreen").tap();
+      await client.detach();
+    });
+  }
+
   test("a finger near a mass can drag it, a second finger cannot steal it, and release resumes dynamics", async ({
     page,
     context

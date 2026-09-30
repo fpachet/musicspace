@@ -312,3 +312,63 @@ test("package source editors retain audio, generator and MIDI bindings through r
   }
   expect(errors).toEqual([]);
 });
+
+for (const engine of ["standard", "package"]) {
+  test(`dotted trajectory endpoints drag, save and undo (${engine})`, async ({ page }) => {
+    await open(page, engine, "driven-springs");
+    const failures = [];
+    page.on("pageerror", (error) => failures.push(error.message));
+    const initial = await page.evaluate(() => window.serializePatch());
+    const undoCount = await page.evaluate(() => undoStack.length);
+    let box = await page.locator("#canvas").boundingBox();
+    const at = (x, y) => ({ x: box.x + (x * box.width) / 800, y: box.y + (y * box.height) / 600 });
+    for (const [key, from, to] of [
+      ["start", at(300, 100), at(220, 160)],
+      ["end", at(500, 180), at(620, 220)]
+    ]) {
+      await page.mouse.move(from.x, from.y);
+      await expect(page.locator("#canvas")).toHaveCSS("cursor", "grab");
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 5 });
+      await page.mouse.up();
+      const t = await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory);
+      expect(t[key].x).toBeCloseTo(key === "start" ? 220 : 620, 1);
+      expect(t[key].y).toBeCloseTo(key === "start" ? 160 : 220, 1);
+      expect(t[key === "start" ? "end" : "start"].x).toBeCloseTo(key === "start" ? 500 : 220, 1);
+    }
+    expect(await page.evaluate(() => undoStack.length)).toBe(undoCount + 2);
+    await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+    const saved = await page.evaluate(() => window.serializePatch());
+    expect(await page.evaluate((patch) => window.loadPatch(patch), saved)).toBe(true);
+    await page.evaluate(() => window.stopAnimation());
+    expect(await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory)).toMatchObject(
+      saved.movingObjects[0].trajectory
+    );
+    // Reloading above clears undo; test a fresh drag and restore on the saved path.
+    await page.mouse.move(at(220, 160).x, at(220, 160).y);
+    await page.mouse.down();
+    await page.mouse.move(at(180, 100).x, at(180, 100).y, { steps: 3 });
+    await page.mouse.up();
+    await page.evaluate(() => {
+      window.undoLastEdit();
+      window.stopAnimation();
+    });
+    expect(await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory.start)).toEqual(
+      saved.movingObjects[0].trajectory.start
+    );
+    expect(saved.movingObjects[0].trajectory.speed).toBe(initial.movingObjects[0].trajectory.speed);
+    // Endpoints bound to objects retain their references and move with those objects.
+    await page.locator("#patch-select").selectOption("shuttle-spin");
+    await page.evaluate(() => window.stopAnimation());
+    box = await page.locator("#canvas").boundingBox();
+    await page.mouse.move(at(230, 210).x, at(230, 210).y);
+    await page.mouse.down();
+    await page.mouse.move(at(200, 180).x, at(200, 180).y, { steps: 3 });
+    await page.mouse.up();
+    expect(
+      await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory.start)
+    ).toMatchObject({ type: "object", name: "Start" });
+    expect(await page.evaluate(() => scene.getObjectByName("Start").x)).toBeCloseTo(200, 1);
+    expect(failures).toEqual([]);
+  });
+}

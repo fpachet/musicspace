@@ -2068,7 +2068,84 @@ function drawMoverTrajectory(ctx, mover) {
   ctx.moveTo(start.x, start.y);
   ctx.lineTo(end.x, end.y);
   ctx.stroke();
+  ctx.setLineDash([]);
+  const scale = canvasViewport().scaleX;
+  ctx.lineWidth = 1.5 / scale;
+  for (const [key, point] of [
+    ["start", start],
+    ["end", end]
+  ]) {
+    // Object-bound endpoints already have an object to grab; preserve that link.
+    if (mover.trajectory[key]?.type === "object") continue;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 5 / scale, 0, Math.PI * 2);
+    ctx.fillStyle =
+      dragged?.endpoint?.mover === mover && dragged.endpoint.key === key ? "#ccfbf1" : "#ffffff";
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.restore();
+}
+
+function findTrajectoryEndpointAt(x, y, pointerType = "mouse", entity = null) {
+  if (activeTool !== TOOL_SELECT) return null;
+  // Keep a real object selectable when it sits directly over a handle.
+  if (entity && containsPoint(entity, x, y)) return null;
+  const view = canvasViewport();
+  let nearest = null;
+  let distance = entity ? Math.hypot((entity.x - x) * view.scaleX, (entity.y - y) * view.scaleY) : Infinity;
+  const radius = pointerType === "touch" ? 22 : 10;
+  for (const mover of state.movingObjects) {
+    const t = mover.trajectory;
+    if (t?.type !== "shuttle" || !t.showPath) continue;
+    for (const key of ["start", "end"]) {
+      if (t[key]?.type === "object") continue;
+      const point = resolveTrajectoryEndpoint(
+        t[key],
+        key === "start" ? t.ax : t.bx,
+        key === "start" ? t.ay : t.by
+      );
+      const d = Math.hypot((point.x - x) * view.scaleX, (point.y - y) * view.scaleY);
+      if (d <= radius && d < distance) {
+        nearest = { mover, key, ...point };
+        distance = d;
+      }
+    }
+  }
+  return nearest;
+}
+
+function moveTrajectoryEndpoint(drag, x, y) {
+  const { mover, key } = drag.endpoint;
+  const bounds = isCanvasFullscreen ? canvasViewport() : { left: 0, top: 0, right: WIDTH, bottom: HEIGHT };
+  const point = {
+    type: "fixed",
+    x: clamp(x, bounds.left, bounds.right),
+    y: clamp(y, bounds.top, bounds.bottom)
+  };
+  const mutate = () => {
+    mover.trajectory = normalizeTrajectory({ ...mover.trajectory, [key]: point }, mover.x, mover.y);
+    const t = mover.trajectory;
+    const start = resolveTrajectoryEndpoint(t.start, t.ax, t.ay);
+    const end = resolveTrajectoryEndpoint(t.end, t.bx, t.by);
+    // Reposition within the edited path without translating the whole trajectory.
+    mover.x = start.x + (end.x - start.x) * t.phase;
+    mover.y = start.y + (end.y - start.y) * t.phase;
+  };
+  // Package scenes install authoring changes through their validated edit API.
+  // The gesture owns a single undo snapshot, regardless of the number of moves.
+  if (scene.editGeometry) {
+    if (!scene.editGeometry(mutate)) return;
+  } else mutate();
+  scene.enforceConstraints(mover, { preserveTrajectoryFrame: true });
+  drawTracesForChangedEntities();
+  drawAll();
+  if (activeShuttleMover === mover) {
+    const xInput = key === "start" ? shuttleStartXInput : shuttleEndXInput;
+    const yInput = key === "start" ? shuttleStartYInput : shuttleEndYInput;
+    xInput.value = String(point.x);
+    yInput.value = String(point.y);
+  }
 }
 
 function drawListenerGlyph(ctx, x, y) {
@@ -4977,6 +5054,29 @@ function beginDrag(event) {
   if (dragged || event.isPrimary === false) return;
   const { x, y } = getPointerPosition(event);
   const entity = findEntityAt(x, y, event.pointerType);
+  const endpoint = findTrajectoryEndpointAt(x, y, event.pointerType, entity);
+  if (endpoint) {
+    lastCanvasClick = null;
+    focusCanvasWithoutScrolling();
+    selectedEntity = endpoint.mover;
+    dragged = {
+      endpoint,
+      entity: endpoint.mover,
+      pointerId: event.pointerId,
+      offsetX: x - endpoint.x,
+      offsetY: y - endpoint.y,
+      startX: x,
+      startY: y,
+      dragThreshold: (event.pointerType === "touch" ? 6 : 2) / canvasViewport().scaleX,
+      didSnapshot: false
+    };
+    stage.classList.add("is-dragging");
+    canvas.style.cursor = "grabbing";
+    canvas.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    drawAll();
+    return;
+  }
   const doubleClickEntity = event.pointerType === "touch" ? entity : findDoubleClickEntityAt(x, y);
 
   if (activeTool !== TOOL_SELECT) {
@@ -5025,13 +5125,24 @@ function beginDrag(event) {
 function continueDrag(event) {
   if (!dragged || event.pointerId !== dragged.pointerId) {
     const { x, y } = getPointerPosition(event);
-    updateHoverState(findEntityAt(x, y));
+    const entity = findEntityAt(x, y);
+    updateHoverState(findTrajectoryEndpointAt(x, y, event.pointerType, entity) || entity);
     return;
   }
 
   const { x, y } = getPointerPosition(event);
   const dragDistance = Math.hypot(x - dragged.startX, y - dragged.startY);
   if (!dragged.didSnapshot && dragDistance <= dragged.dragThreshold) {
+    return;
+  }
+
+  if (dragged.endpoint) {
+    if (!dragged.didSnapshot) {
+      pushUndoSnapshot(`move ${dragged.entity.name} trajectory ${dragged.endpoint.key}`);
+      dragged.didSnapshot = true;
+    }
+    moveTrajectoryEndpoint(dragged, x - dragged.offsetX, y - dragged.offsetY);
+    event.preventDefault();
     return;
   }
 
@@ -5050,6 +5161,18 @@ function continueDrag(event) {
 
 function endDrag(event) {
   if (!dragged || event.pointerId !== dragged.pointerId) {
+    return;
+  }
+
+  if (dragged.endpoint) {
+    dragged = null;
+    lastCanvasClick = null;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    stage.classList.remove("is-dragging");
+    const { x, y } = getPointerPosition(event);
+    const entity = findEntityAt(x, y, event.pointerType);
+    updateHoverState(findTrajectoryEndpointAt(x, y, event.pointerType, entity) || entity);
+    drawAll();
     return;
   }
 
