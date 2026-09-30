@@ -991,20 +991,8 @@ function springGeometry(spring) {
 }
 
 function traceSpringPath(ctx, geometry, normalShift = 0) {
-  const {
-    startX,
-    startY,
-    endX,
-    endY,
-    coilStartX,
-    coilStartY,
-    coilLength,
-    ux,
-    uy,
-    nx,
-    ny,
-    amplitude
-  } = geometry;
+  const { startX, startY, endX, endY, coilStartX, coilStartY, coilLength, ux, uy, nx, ny, amplitude } =
+    geometry;
   const coilEndX = coilStartX + ux * coilLength;
   const coilEndY = coilStartY + uy * coilLength;
   const turns = 8;
