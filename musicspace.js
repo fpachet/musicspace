@@ -888,12 +888,33 @@ renderers.ConstraintNode = function (object, ctx) {
   ctx.textBaseline = "bottom";
   ctx.fillText(object.label.toUpperCase(), object.x, object.y - radius - 8);
 
+  drawConstraintGlyph(ctx, object);
+  ctx.restore();
+};
+
+function drawConstraintGlyph(ctx, object) {
+  if (object.label === "Spring") {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.55;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(object.x - 7, object.y);
+    ctx.lineTo(object.x - 5, object.y);
+    ctx.lineTo(object.x - 3.5, object.y - 3.5);
+    ctx.lineTo(object.x - 0.5, object.y + 3.5);
+    ctx.lineTo(object.x + 2.5, object.y - 3.5);
+    ctx.lineTo(object.x + 5, object.y);
+    ctx.lineTo(object.x + 7, object.y);
+    ctx.stroke();
+    return;
+  }
+
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 10px sans-serif";
   ctx.textBaseline = "middle";
   ctx.fillText(object.glyph, object.x, object.y);
-  ctx.restore();
-};
+}
 
 renderers.AngleConstraint = function (object, ctx) {
   drawConnector(ctx, object.node, object.a, "#2563eb");
@@ -926,27 +947,128 @@ renderers.RadialLimitConstraint = function (object, ctx) {
 };
 
 renderers.SpringConstraint = function (object, ctx) {
-  const dx = object.target.x - object.anchor.x;
-  const dy = object.target.y - object.anchor.y;
-  const length = Math.hypot(dx, dy);
-  const nx = length ? -dy / length : 0;
-  const ny = length ? dx / length : 1;
-  ctx.beginPath();
-  ctx.moveTo(object.anchor.x, object.anchor.y);
-  for (let i = 1; i < 16; i += 1) {
-    const offset = i === 1 || i === 15 ? 0 : (i % 2 ? -1 : 1) * Math.min(7, length / 10);
-    ctx.lineTo(object.anchor.x + (dx * i) / 16 + nx * offset, object.anchor.y + (dy * i) / 16 + ny * offset);
-  }
-  ctx.lineTo(object.target.x, object.target.y);
-  ctx.strokeStyle = object.node.color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  drawSpring(ctx, object);
   if (object.node.isManual) {
     drawConnector(ctx, object.node, object.anchor, object.node.color);
     drawConnector(ctx, object.node, object.target, object.node.color);
   }
   drawObject(object.node, ctx);
 };
+
+function springGeometry(spring) {
+  const dx = spring.target.x - spring.anchor.x;
+  const dy = spring.target.y - spring.anchor.y;
+  const length = Math.hypot(dx, dy);
+  const ux = length ? dx / length : 1;
+  const uy = length ? dy / length : 0;
+  const nx = -uy;
+  const ny = ux;
+  const startInset = Math.min((spring.anchor.radius || 0) + 3, length * 0.18);
+  const endInset = Math.min((spring.target.radius || 0) + 3, length * 0.18);
+  const usableLength = Math.max(0, length - startInset - endInset);
+  const terminalLength = Math.min(24, usableLength * 0.16);
+  const coilLength = Math.max(0, usableLength - terminalLength * 2);
+  const restLength = Math.max(1, Number(spring.restLength) || length || 1);
+  const strain = (length - restLength) / restLength;
+  const amplitude = Math.min(8, Math.max(3.5, coilLength / 17));
+
+  return {
+    startX: spring.anchor.x + ux * startInset,
+    startY: spring.anchor.y + uy * startInset,
+    endX: spring.target.x - ux * endInset,
+    endY: spring.target.y - uy * endInset,
+    coilStartX: spring.anchor.x + ux * (startInset + terminalLength),
+    coilStartY: spring.anchor.y + uy * (startInset + terminalLength),
+    coilLength,
+    length,
+    ux,
+    uy,
+    nx,
+    ny,
+    amplitude,
+    strain
+  };
+}
+
+function traceSpringPath(ctx, geometry, normalShift = 0) {
+  const {
+    startX,
+    startY,
+    endX,
+    endY,
+    coilStartX,
+    coilStartY,
+    coilLength,
+    ux,
+    uy,
+    nx,
+    ny,
+    amplitude
+  } = geometry;
+  const coilEndX = coilStartX + ux * coilLength;
+  const coilEndY = coilStartY + uy * coilLength;
+  const turns = 8;
+  const samples = turns * 6;
+
+  ctx.beginPath();
+  ctx.moveTo(startX + nx * normalShift, startY + ny * normalShift);
+  if (coilLength < 8) {
+    ctx.lineTo(endX + nx * normalShift, endY + ny * normalShift);
+    return;
+  }
+  ctx.lineTo(coilStartX + nx * normalShift, coilStartY + ny * normalShift);
+  for (let index = 0; index <= samples; index += 1) {
+    const t = index / samples;
+    const offset = Math.sin(t * turns * Math.PI * 2) * amplitude + normalShift;
+    ctx.lineTo(
+      coilStartX + ux * coilLength * t + nx * offset,
+      coilStartY + uy * coilLength * t + ny * offset
+    );
+  }
+  ctx.lineTo(coilEndX + nx * normalShift, coilEndY + ny * normalShift);
+  ctx.lineTo(endX + nx * normalShift, endY + ny * normalShift);
+}
+
+function drawSpring(ctx, spring) {
+  const geometry = springGeometry(spring);
+  const color = spring.node.color;
+  const strainGlow = Math.min(0.28, Math.abs(geometry.strain) * 0.32);
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = colorWithAlpha(color, 0.22 + strainGlow);
+  ctx.shadowBlur = 7 + Math.min(7, Math.abs(geometry.strain) * 10);
+  traceSpringPath(ctx, geometry);
+  ctx.strokeStyle = colorWithAlpha(color, 0.18);
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  traceSpringPath(ctx, geometry);
+  ctx.strokeStyle = "#831843";
+  ctx.lineWidth = 3.4;
+  ctx.stroke();
+
+  traceSpringPath(ctx, geometry, -0.8);
+  ctx.strokeStyle = colorWithAlpha("#fbcfe8", 0.9);
+  ctx.lineWidth = 1.15;
+  ctx.stroke();
+
+  for (const [x, y] of [
+    [geometry.startX, geometry.startY],
+    [geometry.endX, geometry.endY]
+  ]) {
+    ctx.beginPath();
+    ctx.arc(x, y, 2.8, 0, Math.PI * 2);
+    ctx.fillStyle = "#fdf2f8";
+    ctx.fill();
+    ctx.strokeStyle = "#9d174d";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 renderers.FixedDistanceConstraint = function (object, ctx) {
   drawConnector(ctx, object.node, object.anchor, "#0f766e");

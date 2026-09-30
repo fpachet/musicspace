@@ -207,7 +207,7 @@
       "key": "simple-spring",
       "name": "Simple Spring",
       "file": "simple-spring.json",
-      "description": "Drag Mass and release to oscillate. The S node only positions the spring label.",
+      "description": "Drag Mass and release to oscillate. The coil node only positions the spring label.",
       "tags": [
         "dynamics",
         "springs"

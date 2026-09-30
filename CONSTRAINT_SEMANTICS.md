@@ -420,7 +420,7 @@ residuals and conflict diagnostics still apply to the rest of the network.
 
 Spring patches start the simulation automatically. Without gravity or an initial
 velocity/displacement, a spring at its rest length remains still. **Stop Motion /
-Start Motion** pauses and resumes the simulation. The pink **S** node is a visual
+Start Motion** pauses and resumes the simulation. The pink node with a coil glyph is a visual
 label/inspector handle; dragging it only changes its display position. Drag a red
 mass endpoint (**Mass**, **A**, **B**, or **Bob** in the examples) to excite the system.
 Dragging an unpinned mass holds it at the pointer while connected objects
@@ -429,6 +429,11 @@ The release does not estimate a mouse throw velocity. Pins retain their exact po
 Shift-drag pauses the solve; on release ordinary constraints recapture as before,
 while springs keep their rest lengths. Use **Recapture** in the spring inspector
 when you intentionally want a new rest length.
+
+The canvas renderer uses eight shaded coil turns, terminal rods, and endpoint collars.
+Coil spacing follows the current endpoint distance; glow intensity follows absolute
+deformation relative to rest length. These are display cues only and do not affect
+forces, solver parameters, hit targets, or saved patch data.
 
 Connect springs through shared objects and ordinary fixed-distance or solid links to
 make coupled oscillators. A component containing a spring (or explicit dynamics) uses

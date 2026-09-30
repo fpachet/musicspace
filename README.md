@@ -309,11 +309,15 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 The patch menu includes **Simple Spring**, **Coupled Springs**, **Spring Pendulum**, and
 **Musical Spring**. The simulation starts automatically, but the examples without gravity
 begin at equilibrium. Drag the red **Mass**, **A**, or **B** endpoint and release to
-excite the springs. In Spring Pendulum, drag **Bob** sideways. The pink **S** node is
+excite the springs. In Spring Pendulum, drag **Bob** sideways. The pink node with a coil glyph is
 an inspector/label handle: dragging it changes only its display position.
 
+Springs draw as shaded coils with terminal rods and attachment collars. Their eight
+turns spread apart or pack together as endpoints move, and the glow grows with
+deformation relative to rest length. These visual cues do not change the physics.
+
 The musical patch maps A's Y position to pitch and B's Y position to filter frequency.
-Click **Play Sound** to hear the result. Double-click S in Edit mode to adjust rest
+Click **Play Sound** to hear the result. Double-click the coil node in Edit mode to adjust rest
 length, stiffness, and damping; edit mass through the source inspector.
 See the [launch instructions](EXAMPLES.md#spring-examples) and
 [spring constraint documentation](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks).

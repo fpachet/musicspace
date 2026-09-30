@@ -29,8 +29,10 @@ use **Stop Motion** to inspect a still frame. In Edit mode,
 double-click a spring to edit rest length, stiffness, and damping, or a mass to edit its
 mass. Select an object and use the existing drawing toggle to trace its path.
 
-The pink **S** node is the spring's inspector/label handle. Moving S only changes
-its display position. Move a red mass endpoint to stretch or compress the spring.
+The pink node with a coil glyph is the spring's inspector/label handle. Moving it only
+changes its display position. Move a red mass endpoint to stretch or compress the
+spring: its shaded coils visibly spread apart or pack together while the terminal
+rods stay attached to the endpoints.
 
 [Watch the Musical Spring demo with sound (MP4)](assets/videos/linkedin/musicspace-musical-spring-linkedin.mp4)
 or [WebM](assets/videos/musicspace-musical-spring.webm). The recording uses the same
