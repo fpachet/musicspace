@@ -188,3 +188,8 @@ New-mover regressions create a free mover and open its shuttle endpoint editor w
 mouse double-clicks and touch double-taps in both engines. Opening/closing must not
 change the trajectory or add undo entries; Apply assigns the selected source endpoints
 and speed in one undoable edit while motion remains stopped.
+
+Canvas endpoint picking is checked with mouse and phone touch input in both engines:
+two taps produce fixed coordinates even over sources, Cancel/Escape restore the
+editor, draft speed and references are preserved until picking finishes, and only
+Apply changes the saved trajectory and creates an undo entry.

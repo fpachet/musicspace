@@ -1122,6 +1122,7 @@ let lastCanvasClick = null;
 let activeRotationMover = null;
 
 let activeShuttleMover = null;
+let shuttlePointPicking = null;
 
 let activeConstraintEditorConstraint = null;
 
@@ -1284,6 +1285,7 @@ function loadMenuPatch(key, options = {}) {
 }
 
 function loadPatch(patch, { preserveAsActive = true, clearUndo = false } = {}) {
+  finishShuttlePointPicking(false);
   if (!scene.loadPatch(patch)) {
     const findings = scene.validation();
     renderPatchValidation(findings);
@@ -1965,6 +1967,19 @@ function drawAll() {
   if (state.propagationPaused) {
     drawPropagationPausedBadge(ctx);
   }
+  if (shuttlePointPicking?.points.length) {
+    const point = shuttlePointPicking.points[0];
+    const scale = canvasViewport().scaleX;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 5 / scale, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 2 / scale;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawGrid(ctx) {
@@ -2353,6 +2368,7 @@ function updateToolbarAvailability() {
 }
 
 function setActiveTool(tool) {
+  finishShuttlePointPicking(false);
   if (tool !== TOOL_SELECT) {
     stopAnimation();
   }
@@ -2760,6 +2776,7 @@ function openListenerEditor() {
 
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  finishShuttlePointPicking(false);
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeConstraintEditor();
@@ -2828,6 +2845,7 @@ function openRotationEditor(mover) {
       return;
   }
 
+  finishShuttlePointPicking(false);
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeConstraintEditor();
@@ -2878,6 +2896,7 @@ function closeRotationEditor() {
 }
 
 function openShuttleEditor(mover) {
+  finishShuttlePointPicking(false);
   if (!isViewKind(mover, "MovingObject")) {
     return;
   }
@@ -2913,6 +2932,63 @@ function openShuttleEditor(mover) {
   updateInspectorNavButtons();
   setConstraintStatus(`Editing shuttle trajectory ${mover.name}.`);
   revealEditor(shuttleEditor);
+}
+
+function startShuttlePointPicking() {
+  if (!activeShuttleMover) return;
+  shuttlePointPicking = { mover: activeShuttleMover, points: [], press: null };
+  lastCanvasClick = null;
+  shuttleEditor.hidden = true;
+  document.getElementById("shuttle-pick-controls").hidden = false;
+  document.getElementById("shuttle-pick-prompt").textContent = "Tap the start point";
+  canvas.style.cursor = "crosshair";
+  stage.scrollIntoView({ block: "nearest" });
+  focusCanvasWithoutScrolling();
+  drawAll();
+}
+
+function finishShuttlePointPicking(showEditor = true) {
+  if (!shuttlePointPicking) return;
+  const pick = shuttlePointPicking;
+  shuttlePointPicking = null;
+  if (pick.press && canvas.hasPointerCapture(pick.press.pointerId))
+    canvas.releasePointerCapture(pick.press.pointerId);
+  document.getElementById("shuttle-pick-controls").hidden = true;
+  canvas.style.cursor = "default";
+  if (showEditor && activeShuttleMover === pick.mover) {
+    shuttleEditor.hidden = false;
+    document.getElementById("shuttle-pick-points").focus();
+  }
+  drawAll();
+}
+
+function endShuttlePointPick(event) {
+  const pick = shuttlePointPicking;
+  const press = pick?.press;
+  if (!press || press.pointerId !== event.pointerId) return;
+  pick.press = null;
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  const point = getPointerPosition(event);
+  const view = canvasViewport();
+  const distance = Math.hypot((point.x - press.x) * view.scaleX, (point.y - press.y) * view.scaleY);
+  if (event.type !== "pointerup" || distance > 10) return;
+  // Picking always creates a fixed coordinate, even when an object is under it.
+  pick.points.push({ x: point.x, y: point.y });
+  if (pick.points.length === 1) {
+    document.getElementById("shuttle-pick-prompt").textContent = "Tap the end point";
+    drawAll();
+    return;
+  }
+  for (const [index, ref, x, y] of [
+    [0, shuttleStartRefInput, shuttleStartXInput, shuttleStartYInput],
+    [1, shuttleEndRefInput, shuttleEndXInput, shuttleEndYInput]
+  ]) {
+    ref.value = "";
+    x.value = String(roundEditorValue(pick.points[index].x));
+    y.value = String(roundEditorValue(pick.points[index].y));
+  }
+  finishShuttlePointPicking();
+  document.getElementById("shuttle-editor-help").textContent = "Points selected. Apply to save this path.";
 }
 
 function revealEditor(editor) {
@@ -3003,6 +3079,7 @@ function endpointFromEditor(refInput, xInput, yInput) {
 }
 
 function closeShuttleEditor() {
+  finishShuttlePointPicking(false);
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   updateInspectorNavButtons();
@@ -3119,6 +3196,7 @@ function openConstraintEditor(constraint) {
 
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  finishShuttlePointPicking(false);
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeSourceEditor();
@@ -4191,6 +4269,7 @@ function openSourceEditor(source) {
 
   rotationEditor.hidden = true;
   activeRotationMover = null;
+  finishShuttlePointPicking(false);
   shuttleEditor.hidden = true;
   activeShuttleMover = null;
   closeConstraintEditor();
@@ -5053,6 +5132,14 @@ function updateHoverState(entity) {
 function beginDrag(event) {
   if (dragged || event.isPrimary === false) return;
   const { x, y } = getPointerPosition(event);
+  if (shuttlePointPicking) {
+    if (!shuttlePointPicking.press) {
+      shuttlePointPicking.press = { pointerId: event.pointerId, x, y };
+      canvas.setPointerCapture(event.pointerId);
+    }
+    event.preventDefault();
+    return;
+  }
   const entity = findEntityAt(x, y, event.pointerType);
   const endpoint = findTrajectoryEndpointAt(x, y, event.pointerType, entity);
   if (endpoint) {
@@ -5122,6 +5209,7 @@ function beginDrag(event) {
 }
 
 function continueDrag(event) {
+  if (shuttlePointPicking) return;
   if (!dragged || event.pointerId !== dragged.pointerId) {
     const { x, y } = getPointerPosition(event);
     const entity = findEntityAt(x, y);
@@ -5163,6 +5251,10 @@ function continueDrag(event) {
 }
 
 function endDrag(event) {
+  if (shuttlePointPicking) {
+    endShuttlePointPick(event);
+    return;
+  }
   if (!dragged || event.pointerId !== dragged.pointerId) {
     return;
   }
@@ -5245,6 +5337,7 @@ globalThis.addEventListener?.("resize", () => {
 });
 
 canvas.addEventListener("dblclick", (event) => {
+  if (shuttlePointPicking) return;
   const { x, y } = getPointerPosition(event);
   const entity = findDoubleClickEntityAt(x, y);
 
@@ -5255,6 +5348,12 @@ canvas.addEventListener("dblclick", (event) => {
 });
 
 canvas.addEventListener("keydown", (event) => {
+  if (shuttlePointPicking) {
+    if (event.key === "Escape") finishShuttlePointPicking();
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if (event.key === "Escape" && isCanvasFullscreen) {
     exitCanvasFullscreen();
     event.preventDefault();
@@ -5324,6 +5423,11 @@ canvas.addEventListener("keydown", (event) => {
 });
 
 globalThis.addEventListener?.("keydown", (event) => {
+  if (event.key === "Escape" && shuttlePointPicking) {
+    finishShuttlePointPicking();
+    event.preventDefault();
+    return;
+  }
   if (event.key === "Escape" && isCanvasFullscreen) {
     exitCanvasFullscreen();
     event.preventDefault();
@@ -5455,6 +5559,8 @@ rotationCloseButton.addEventListener("click", closeRotationEditor);
 shuttleApplyButton.addEventListener("click", applyShuttleEditor);
 
 shuttleCloseButton.addEventListener("click", closeShuttleEditor);
+document.getElementById("shuttle-pick-points").addEventListener("click", startShuttlePointPicking);
+document.getElementById("shuttle-pick-cancel").addEventListener("click", () => finishShuttlePointPicking());
 
 rotationPrevButton.addEventListener("click", () => navigateInspector(-1));
 

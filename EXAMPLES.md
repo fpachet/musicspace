@@ -54,7 +54,7 @@ and two damped springs. The shuttle supplies energy on every cycle, so damping d
 not bring the patch to rest. A's Y position controls pitch and B's Y position controls
 filter frequency. Drag the small white circles at either end of the dotted line to reshape the path,
 even while it is running. In Edit mode, double-click **Driver** to adjust the shuttle speed
-or enter exact endpoint coordinates, or a spring node to adjust stiffness and damping. **Stop Motion** pauses
+or use **Pick two points on canvas** to place fixed endpoints with two taps (then **Apply**), or a spring node to adjust stiffness and damping. **Stop Motion** pauses
 both the trajectory and the springs.
 
 The JSON files can also be opened with **Load Patch**. See

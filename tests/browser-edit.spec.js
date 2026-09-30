@@ -504,3 +504,81 @@ test.describe("new mover endpoint editor", () => {
     }
   }
 });
+
+for (const pointer of ["mouse", "touch"]) {
+  test.describe(`canvas endpoint picking with ${pointer}`, () => {
+    if (pointer === "touch")
+      test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    for (const engine of ["standard", "package"]) {
+      test(`pick fixed coordinates, cancel and apply (${engine})`, async ({ page }) => {
+        await open(page, engine, "driven-springs");
+        await page.evaluate(() => window.openShuttleEditor(state.movingObjects[0]));
+        const before = await page.evaluate(() => window.serializePatch());
+        const undoCount = await page.evaluate(() => undoStack.length);
+        const fields = async () =>
+          Promise.all(
+            ["start-x", "start-y", "end-x", "end-y"].map((key) =>
+              page.locator(`#shuttle-${key}`).inputValue()
+            )
+          );
+        const originalFields = await fields();
+        const clickWorld = async (x, y) => {
+          const box = await page.locator("#canvas").boundingBox();
+          const point = { x: box.x + (x * box.width) / 800, y: box.y + (y * box.height) / 600 };
+          if (pointer === "touch") await page.touchscreen.tap(point.x, point.y);
+          else await page.mouse.click(point.x, point.y);
+        };
+        await page.locator("#shuttle-pick-points").click();
+        await expect(page.locator("#shuttle-editor")).toBeHidden();
+        await expect(page.locator("#shuttle-pick-prompt")).toHaveText("Tap the start point");
+        await clickWorld(250, 200);
+        await expect(page.locator("#shuttle-pick-prompt")).toHaveText("Tap the end point");
+        await page.screenshot({ path: test.info().outputPath("pick-endpoint.png"), fullPage: true });
+        await page.locator("#shuttle-pick-cancel").click();
+        await expect(page.locator("#shuttle-editor")).toBeVisible();
+        expect(await fields()).toEqual(originalFields);
+        expect(await page.evaluate(() => window.serializePatch())).toEqual(before);
+        // Existing object references switch to fixed coordinates, even when tapping a source.
+        await page.locator("#shuttle-start-ref").selectOption("A");
+        await page.locator("#shuttle-end-ref").selectOption("B");
+        await page.locator("#shuttle-speed").fill("0.023");
+        await page.locator("#shuttle-pick-points").click();
+        const source = await page.evaluate(() => ({ x: state.sources[0].x, y: state.sources[0].y }));
+        await clickWorld(source.x, source.y);
+        await clickWorld(650, 180);
+        await expect(page.locator("#shuttle-editor")).toBeVisible();
+        await expect(page.locator("#shuttle-pick-controls")).toBeHidden();
+        await expect(page.locator("#shuttle-start-ref")).toHaveValue("");
+        await expect(page.locator("#shuttle-end-ref")).toHaveValue("");
+        await expect(page.locator("#shuttle-speed")).toHaveValue("0.023");
+        expect(await page.evaluate(() => undoStack.length)).toBe(undoCount);
+        expect(await page.evaluate(() => window.serializePatch())).toEqual(before);
+        await page.locator("#shuttle-apply").click();
+        const t = await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory);
+        expect(t.start.type).toBe("fixed");
+        expect(t.start.x).toBeCloseTo(source.x, 0);
+        expect(t.start.y).toBeCloseTo(source.y, 0);
+        expect(t.end.type).toBe("fixed");
+        expect(t.end.x).toBeCloseTo(650, 0);
+        expect(t.end.y).toBeCloseTo(180, 0);
+        expect(t.speed).toBe(0.023);
+        expect(await page.evaluate(() => undoStack.length)).toBe(undoCount + 1);
+        await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+        await page.locator("#shuttle-pick-points").click();
+        await page.keyboard.press("Escape");
+        await expect(page.locator("#shuttle-editor")).toBeVisible();
+        await page.locator("#shuttle-close").click();
+        await page.evaluate(() => {
+          window.undoLastEdit();
+          window.stopAnimation();
+        });
+        const restored = await page.evaluate(() => window.serializePatch().movingObjects[0].trajectory);
+        const expected = { ...before.movingObjects[0].trajectory };
+        // The standard loader omits the transient per-frame rotator delta on a shuttle.
+        delete restored.rotationDelta;
+        delete expected.rotationDelta;
+        expect(restored).toEqual(expected);
+      });
+    }
+  });
+}

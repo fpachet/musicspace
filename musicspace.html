@@ -1489,6 +1489,24 @@
       }
     }
     .stage-area { position: relative; }
+    #shuttle-pick-controls {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      right: 8px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+    }
+    #shuttle-pick-controls[hidden] { display: none; }
+    #shuttle-pick-cancel { min-height: 44px; }
+
     #mobile-tools-toggle, #canvas-fullscreen { display: none; }
     #canvas-fullscreen {
       position: absolute;
@@ -1754,6 +1772,10 @@
             tabindex="0"
             role="application"
             aria-label="MusicSpace canvas. Drag sources, the listener, or constraint nodes. Arrow keys nudge the selected object."></canvas>
+          <div id="shuttle-pick-controls" hidden>
+            <span id="shuttle-pick-prompt" role="status" aria-live="polite"></span>
+            <button id="shuttle-pick-cancel" type="button">Cancel</button>
+          </div>
           <button id="canvas-fullscreen" type="button" aria-label="Expand canvas" aria-pressed="false">Expand</button>
           <div id="canvas-legend" class="canvas-overlay canvas-legend" aria-label="Canvas legend">
             <span class="legend-item"><span class="legend-mark" aria-hidden="true"></span>Control</span>
@@ -1845,6 +1867,7 @@
         </div>
       </div>
       <p id="shuttle-editor-help" class="midi-status"></p>
+      <button id="shuttle-pick-points" type="button">Pick two points on canvas</button>
       <div class="editor-grid">
         <label>
           Start endpoint
