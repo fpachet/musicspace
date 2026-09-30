@@ -178,3 +178,8 @@ Shuttle endpoint regression tests cover small fixed-point handles in both engine
 mouse dragging, one undo entry per drag, save/load, and preservation of object-bound
 endpoints. Phone tests grab outside the visible dot, reshape a running trajectory
 in Play mode and fullscreen, and verify that a second finger cannot steal the drag.
+
+Paused-scene inspector regressions exercise mouse double-clicks and touch double-taps
+on springs, rigid-distance constraints, sources, and shuttle movers in both engines.
+Opening or applying an inspector and moving a constraint label must stay paused;
+dragging a physical mass must still resume spring motion.

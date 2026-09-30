@@ -5114,7 +5114,6 @@ function beginDrag(event) {
     skipPropagation: false
   };
   scene.beginDrag(entity);
-  if (scene.hasDynamics()) startAnimation();
   stage.classList.add("is-dragging");
   canvas.style.cursor = "grabbing";
   canvas.setPointerCapture(event.pointerId);
@@ -5150,6 +5149,10 @@ function continueDrag(event) {
     pushUndoSnapshot(`move ${entityLabel(dragged.entity)}`);
     if (state.constraints.some((constraint) => constraint.node === dragged.entity)) {
       dragged.entity.isManual = true;
+    } else if (scene.hasDynamics()) {
+      // A click may be the first half of an inspector double-click. Resume only
+      // once a physical object is actually dragged, never for a label handle.
+      startAnimation();
     }
     dragged.didSnapshot = true;
   }

@@ -25,7 +25,9 @@ Run `npm run serve`, open [MusicSpace](http://localhost:8000/musicspace.html), a
 one of these patches from the patch menu. The simulation starts automatically; the
 Simple Spring, Coupled Springs, and Musical Spring remain still at equilibrium until you displace a mass. Driven Springs moves continuously without a gesture. Drag
 and release a red endpoint labeled **Mass**, **A**, **B**, or **Bob** to excite it;
-use **Stop Motion** to inspect a still frame. In Edit mode,
+use **Stop Motion** to inspect a still frame. Clicking or double-clicking an object
+keeps a stopped scene paused, as does dragging a constraint label. Pulling a physical
+object resumes spring motion. In Edit mode,
 double-click a spring to edit rest length, stiffness, and damping, or a mass to edit its
 mass. Select an object and use the existing drawing toggle to trace its path.
 

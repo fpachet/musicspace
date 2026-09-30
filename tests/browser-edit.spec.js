@@ -372,3 +372,74 @@ for (const engine of ["standard", "package"]) {
     expect(failures).toEqual([]);
   });
 }
+
+test.describe("paused scene inspector gestures", () => {
+  test.use({ hasTouch: true });
+  for (const engine of ["standard", "package"]) {
+    for (const pointer of ["mouse", "touch"]) {
+      test(`double-click edits without starting motion (${engine}, ${pointer})`, async ({ page }) => {
+        await open(page, engine, "driven-springs");
+        const click = async (point) => {
+          if (pointer === "touch") await page.touchscreen.tap(point.x, point.y);
+          else await page.mouse.click(point.x, point.y);
+        };
+        for (const [patch, kind, panel] of [
+          ["driven-springs", "spring", "constraint"],
+          ["coupled-springs", "distance", "constraint"],
+          ["driven-springs", "source", "source"],
+          ["driven-springs", "mover", "shuttle"]
+        ]) {
+          await page.locator("#patch-select").selectOption(patch);
+          await page.evaluate(() => window.stopAnimation());
+          const point = await page.evaluate((kind) => {
+            const entity =
+              kind === "source"
+                ? state.sources[0]
+                : kind === "mover"
+                  ? state.movingObjects[0]
+                  : state.constraints.find(
+                      (c) => c.node.label === (kind === "spring" ? "Spring" : "Distance")
+                    ).node;
+            const box = document.getElementById("canvas").getBoundingClientRect();
+            return { x: box.x + (entity.x * box.width) / 800, y: box.y + (entity.y * box.height) / 600 };
+          }, kind);
+          await click(point);
+          await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+          await click(point);
+          await expect(page.locator(`#${panel}-editor`)).toBeVisible();
+          await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+          if (kind === "spring") {
+            await page.locator("#constraint-value-b").fill("75");
+            await page.locator("#constraint-apply").click();
+            expect(await page.evaluate(() => window.serializePatch().constraints[0].stiffness)).toBe(75);
+            await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "false");
+          }
+          await page.locator(`#${panel}-close`).click();
+        }
+        // Moving a label must also stay paused; pulling a mass still excites it.
+        await page.locator("#patch-select").selectOption("simple-spring");
+        await page.evaluate(() => window.stopAnimation());
+        const box = await page.locator("#canvas").boundingBox();
+        for (const kind of ["label", "mass"]) {
+          const point = await page.evaluate((kind) => {
+            const e =
+              kind === "label"
+                ? state.constraints.find((c) => c.node.label === "Spring").node
+                : scene.getObjectByName("Mass");
+            return { x: e.x, y: e.y };
+          }, kind);
+          const x = box.x + (point.x * box.width) / 800;
+          const y = box.y + (point.y * box.height) / 600;
+          await page.mouse.move(x, y);
+          await page.mouse.down();
+          await page.mouse.move(x + 30, y + 25, { steps: 4 });
+          await page.mouse.up();
+          await expect(page.locator("#animation-toggle")).toHaveAttribute(
+            "aria-pressed",
+            kind === "mass" ? "true" : "false"
+          );
+        }
+      });
+    }
+  }
+});
