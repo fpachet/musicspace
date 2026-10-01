@@ -318,8 +318,9 @@ begin at equilibrium. Drag the red **Mass**, **A**, or **B** endpoint and releas
 excite the springs. In Spring Pendulum, drag **Bob** sideways. The pink node with a coil glyph is
 an inspector/label handle: dragging it changes only its display position.
 
-Springs draw as shaded coils with terminal rods and attachment collars. Their eight
-turns spread apart or pack together as endpoints move, and the glow grows with
+Springs draw as smooth spiral coils with terminal rods and attachment collars. Front
+and back shading gives the wire depth. Their eight turns spread apart or pack together
+as endpoints move, and the glow grows with
 deformation relative to rest length. These visual cues do not change the physics.
 
 The musical patch maps A's Y position to pitch and B's Y position to filter frequency.

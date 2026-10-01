@@ -33,7 +33,8 @@ mass. Select an object and use the existing drawing toggle to trace its path.
 
 The pink node with a coil glyph is the spring's inspector/label handle. Moving it only
 changes its display position. Move a red mass endpoint to stretch or compress the
-spring: its shaded coils visibly spread apart or pack together while the terminal
+spring: its smooth spiral coils visibly spread apart or pack together, with shaded
+front and back arcs giving the wire depth, while the terminal
 rods stay attached to the endpoints.
 
 [Watch the Musical Spring demo with sound (MP4)](assets/videos/linkedin/musicspace-musical-spring-linkedin.mp4)

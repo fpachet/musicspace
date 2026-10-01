@@ -17,6 +17,7 @@ function createCanvasContext() {
     fillRect: noop,
     fillText: noop,
     lineTo: noop,
+    bezierCurveTo: noop,
     moveTo: noop,
     rect: noop,
     restore: noop,

@@ -970,7 +970,7 @@ function springGeometry(spring) {
   const coilLength = Math.max(0, usableLength - terminalLength * 2);
   const restLength = Math.max(1, Number(spring.restLength) || length || 1);
   const strain = (length - restLength) / restLength;
-  const amplitude = Math.min(8, Math.max(3.5, coilLength / 17));
+  const amplitude = Math.min(11, Math.max(3.5, coilLength / 12));
 
   return {
     startX: spring.anchor.x + ux * startInset,
@@ -990,31 +990,63 @@ function springGeometry(spring) {
   };
 }
 
-function traceSpringPath(ctx, geometry, normalShift = 0) {
+function traceSpringPath(ctx, geometry, face = "all", normalShift = 0) {
   const { startX, startY, endX, endY, coilStartX, coilStartY, coilLength, ux, uy, nx, ny, amplitude } =
     geometry;
-  const coilEndX = coilStartX + ux * coilLength;
-  const coilEndY = coilStartY + uy * coilLength;
   const turns = 8;
-  const samples = turns * 6;
+  const pitch = coilLength / turns;
+  // Project a helix at a slight angle: axial backtracking makes real loops,
+  // rather than a sine wave. The pitch changes with the endpoint separation.
+  const depth = Math.min(18, Math.max(amplitude * 0.8, pitch * 0.42), coilLength * 0.16);
+  const quarter = Math.PI / 2;
+  const arcControl = (4 / 3) * Math.tan(Math.PI / 8);
+  const point = (along, across) => [
+    coilStartX + ux * along + nx * (across + normalShift),
+    coilStartY + uy * along + ny * (across + normalShift)
+  ];
+  const position = (angle) => ({
+    x: (pitch * (angle + quarter)) / (2 * Math.PI) + depth * (1 + Math.sin(angle)),
+    y: amplitude * Math.cos(angle)
+  });
+  const arc = (angle) => {
+    const a = position(angle);
+    const b = position(angle + quarter);
+    ctx.bezierCurveTo(
+      ...point(
+        a.x + pitch / 12 + depth * Math.cos(angle) * arcControl,
+        a.y - amplitude * Math.sin(angle) * arcControl
+      ),
+      ...point(
+        b.x - pitch / 12 - depth * Math.cos(angle + quarter) * arcControl,
+        b.y + amplitude * Math.sin(angle + quarter) * arcControl
+      ),
+      ...point(b.x, b.y)
+    );
+  };
 
   ctx.beginPath();
-  ctx.moveTo(startX + nx * normalShift, startY + ny * normalShift);
   if (coilLength < 8) {
-    ctx.lineTo(endX + nx * normalShift, endY + ny * normalShift);
+    if (face === "all") {
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+    }
     return;
   }
-  ctx.lineTo(coilStartX + nx * normalShift, coilStartY + ny * normalShift);
-  for (let index = 0; index <= samples; index += 1) {
-    const t = index / samples;
-    const offset = Math.sin(t * turns * Math.PI * 2) * amplitude + normalShift;
-    ctx.lineTo(
-      coilStartX + ux * coilLength * t + nx * offset,
-      coilStartY + uy * coilLength * t + ny * offset
-    );
+  if (face === "all") {
+    ctx.moveTo(startX + nx * normalShift, startY + ny * normalShift);
+    ctx.lineTo(...point(0, 0));
+    for (let index = 0; index < turns * 4; index += 1) arc(-quarter + index * quarter);
+    ctx.lineTo(endX + nx * normalShift, endY + ny * normalShift);
+  } else {
+    // Paint near halves last, so overlapping turns read as a wound wire.
+    for (let turn = 0; turn < turns; turn += 1) {
+      const angle = turn * Math.PI * 2 - quarter;
+      const start = position(angle);
+      ctx.moveTo(...point(start.x, start.y));
+      arc(angle);
+      arc(angle + quarter);
+    }
   }
-  ctx.lineTo(coilEndX + nx * normalShift, coilEndY + ny * normalShift);
-  ctx.lineTo(endX + nx * normalShift, endY + ny * normalShift);
 }
 
 function drawSpring(ctx, spring) {
@@ -1034,13 +1066,18 @@ function drawSpring(ctx, spring) {
 
   ctx.shadowBlur = 0;
   traceSpringPath(ctx, geometry);
-  ctx.strokeStyle = "#831843";
-  ctx.lineWidth = 3.4;
+  ctx.strokeStyle = "#ad6284";
+  ctx.lineWidth = 3.2;
   ctx.stroke();
 
-  traceSpringPath(ctx, geometry, -0.8);
-  ctx.strokeStyle = colorWithAlpha("#fbcfe8", 0.9);
-  ctx.lineWidth = 1.15;
+  traceSpringPath(ctx, geometry, "front");
+  ctx.strokeStyle = "#831843";
+  ctx.lineWidth = 3.8;
+  ctx.stroke();
+
+  traceSpringPath(ctx, geometry, "front", -0.65);
+  ctx.strokeStyle = "#fbcfe8";
+  ctx.lineWidth = 1.4;
   ctx.stroke();
 
   for (const [x, y] of [
