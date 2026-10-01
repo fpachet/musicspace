@@ -1,0 +1,147 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "coupled-pendulums",
+  "name": "Coupled Pendulums",
+  "description": "Two rigid pendulums exchange motion through a weak spring. Play Sound to hear two tones swell with bob height; drag A or B to excite them.",
+  "listener": {
+    "x": 400,
+    "y": 550
+  },
+  "gravity": {
+    "x": 0,
+    "y": 180
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 167.64416489170344,
+      "y": 287.3989845558568,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "B",
+      "x": 540,
+      "y": 310,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "Left pivot",
+      "x": 260,
+      "y": 110
+    },
+    {
+      "name": "Right pivot",
+      "x": 540,
+      "y": 110
+    }
+  ],
+  "constraints": [
+    {
+      "type": "pin",
+      "target": "Left pivot",
+      "x": 260,
+      "y": 110
+    },
+    {
+      "type": "pin",
+      "target": "Right pivot",
+      "x": 540,
+      "y": 110
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "Left pivot",
+      "target": "A",
+      "distance": 200
+    },
+    {
+      "type": "fixedDistance",
+      "anchor": "Right pivot",
+      "target": "B",
+      "distance": 200
+    },
+    {
+      "type": "spring",
+      "anchor": "A",
+      "target": "B",
+      "restLength": 280,
+      "stiffness": 0.35,
+      "damping": 0.008
+    }
+  ],
+  "sourceGenerators": [
+    {
+      "source": "A",
+      "type": "additive-synth",
+      "frequencyHz": 146.83,
+      "gain": 0.14,
+      "attackMs": 120,
+      "releaseMs": 450,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1
+        },
+        {
+          "ratio": 2,
+          "amplitude": 0.18
+        },
+        {
+          "ratio": 3,
+          "amplitude": 0.07
+        }
+      ]
+    },
+    {
+      "source": "B",
+      "type": "additive-synth",
+      "frequencyHz": 220,
+      "gain": 0.14,
+      "attackMs": 120,
+      "releaseMs": 450,
+      "spatialization": "pan-distance",
+      "partials": [
+        {
+          "ratio": 1,
+          "amplitude": 1
+        },
+        {
+          "ratio": 2,
+          "amplitude": 0.18
+        },
+        {
+          "ratio": 3,
+          "amplitude": 0.07
+        }
+      ]
+    }
+  ],
+  "sourceGeneratorMappings": [
+    {
+      "source": "A",
+      "feature": "y",
+      "parameter": "gain",
+      "inputMin": 280,
+      "inputMax": 310,
+      "outputMin": 0.3,
+      "outputMax": 0.025,
+      "curve": "linear"
+    },
+    {
+      "source": "B",
+      "feature": "y",
+      "parameter": "gain",
+      "inputMin": 280,
+      "inputMax": 310,
+      "outputMin": 0.3,
+      "outputMax": 0.025,
+      "curve": "linear"
+    }
+  ]
+}

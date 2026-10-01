@@ -1,0 +1,71 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "elastic-pendulum",
+  "name": "Elastic Pendulum",
+  "description": "A stretched spring swings under gravity. Play Sound for height-driven pitch and a filter that follows horizontal motion; drag Bob and release.",
+  "listener": {
+    "x": 400,
+    "y": 550
+  },
+  "gravity": {
+    "x": 0,
+    "y": 180
+  },
+  "sources": [
+    {
+      "name": "Bob",
+      "x": 555,
+      "y": 245,
+      "dynamics": {
+        "mass": 1
+      }
+    },
+    {
+      "name": "Pivot",
+      "x": 400,
+      "y": 110
+    }
+  ],
+  "constraints": [
+    {
+      "type": "pin",
+      "target": "Pivot",
+      "x": 400,
+      "y": 110
+    },
+    {
+      "type": "spring",
+      "anchor": "Pivot",
+      "target": "Bob",
+      "restLength": 155,
+      "stiffness": 4,
+      "damping": 0.018
+    }
+  ],
+  "target": {
+    "type": "subtractive"
+  },
+  "parameterMappings": [
+    {
+      "source": "Bob",
+      "feature": "y",
+      "target": "/osc/freq",
+      "inputMin": 180,
+      "inputMax": 400,
+      "outputMin": 440,
+      "outputMax": 110,
+      "curve": "exp"
+    },
+    {
+      "source": "Bob",
+      "feature": "x",
+      "target": "/filter/frequency",
+      "inputMin": 200,
+      "inputMax": 600,
+      "outputMin": 500,
+      "outputMax": 4500,
+      "curve": "exp"
+    }
+  ]
+}

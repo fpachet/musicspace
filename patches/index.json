@@ -257,6 +257,44 @@
         "audio",
         "mapping"
       ]
+    },
+    {
+      "key": "coupled-pendulums",
+      "name": "Coupled Pendulums",
+      "file": "coupled-pendulums.json",
+      "description": "Two rigid pendulums exchange motion through a weak spring. Play Sound to hear two tones swell with bob height; drag A or B to excite them.",
+      "tags": [
+        "dynamics",
+        "pendulum",
+        "audio",
+        "mapping",
+        "springs"
+      ]
+    },
+    {
+      "key": "elastic-pendulum",
+      "name": "Elastic Pendulum",
+      "file": "elastic-pendulum.json",
+      "description": "A stretched spring swings under gravity. Play Sound for height-driven pitch and a filter that follows horizontal motion; drag Bob and release.",
+      "tags": [
+        "dynamics",
+        "pendulum",
+        "audio",
+        "mapping",
+        "springs"
+      ]
+    },
+    {
+      "key": "quintuple-pendulum",
+      "name": "Quintuple Pendulum",
+      "file": "quintuple-pendulum.json",
+      "description": "Five linked masses unfold under gravity. Play Sound for three voices on bobs 1, 3 and 5. Drag the last bob; enable Draw Selected to trace it.",
+      "tags": [
+        "dynamics",
+        "pendulum",
+        "audio",
+        "mapping"
+      ]
     }
   ]
 }

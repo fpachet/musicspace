@@ -328,6 +328,20 @@ length, stiffness, and damping; edit mass through the source inspector.
 See the [launch instructions](EXAMPLES.md#spring-examples) and
 [spring constraint documentation](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks).
 
+## Pendulum studies
+
+Three musical patches explore gravity using the existing mass, spring, pin, and fixed-distance components:
+
+- **Coupled Pendulums**: two equal pendulums exchange motion through a weak spring between their bobs. Two sustained tones swell with each bob's height.
+- **Elastic Pendulum**: one mass swings and stretches a spring; height controls pitch and horizontal position controls the filter.
+- **Quintuple Pendulum**: five rigid links unfold under gravity; bobs 1, 3, and 5 play three sustained voices whose pitches follow horizontal position.
+
+Each starts displaced and moves immediately. Click **Play Sound** to listen, drag a bob to
+excite it again, or select one and click **Draw Selected** to trace its path. These are
+unpowered systems with low damping and numerical energy loss; use **Reset** to replay
+the initial motion. For continuous external excitation, choose **Driven Springs**.
+See [pendulum examples](EXAMPLES.md#pendulum-studies) for direct links and details.
+
 ## Authors
 
 - [François Pachet](https://github.com/fpachet)

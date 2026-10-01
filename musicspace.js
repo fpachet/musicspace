@@ -1061,6 +1061,20 @@ function drawSpring(ctx, spring) {
 renderers.FixedDistanceConstraint = function (object, ctx) {
   drawConnector(ctx, object.node, object.anchor, "#0f766e");
   drawConnector(ctx, object.node, object.target, "#0f766e");
+  // Short rods leave little room between the masses for a full inspector badge.
+  // Keep the same hit target; selecting the handle reveals its normal label.
+  if (object.distance < 90 && !object.node.isManual && selectedEntity !== object.node) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(object.node.x, object.node.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#f0fdfa";
+    ctx.fill();
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   drawObject(object.node, ctx);
 };
 

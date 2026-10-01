@@ -60,3 +60,34 @@ both the trajectory and the springs.
 The JSON files can also be opened with **Load Patch**. See
 [spring semantics](CONSTRAINT_SEMANTICS.md#springs-and-dynamic-networks) for units,
 damping, anchor behavior, and headless stepping.
+
+## Pendulum studies
+
+These three patches use the existing physics engine and browser synthesis. They start
+moving as soon as they are selected; **Play Sound** enables audio. **Stop Motion** freezes
+the geometry, and **Reset** restores the initial positions and velocities. No audio files
+or external synthesizer are required.
+
+| Patch | What to watch and hear |
+| --- | --- |
+| [Coupled Pendulums](https://fpachet.github.io/musicspace/musicspace.html?patch=coupled-pendulums) | A starts displaced while B hangs vertically. B takes over most of the motion after roughly 10 seconds, then A takes it back around 19 seconds. Two tones, D3 and A3, swell as their bobs rise. |
+| [Elastic Pendulum](https://fpachet.github.io/musicspace/musicspace.html?patch=elastic-pendulum) | A single mass swings while the spring stretches and contracts. Higher positions raise oscillator pitch; moving right opens the filter. Pull Bob sideways and release to change the pattern. |
+| [Quintuple Pendulum](https://fpachet.github.io/musicspace/musicspace.html?patch=quintuple-pendulum) | Five equal masses on five rigid links start in a folded configuration. Bobs 1, 3, and 5 generate a low three-voice texture, with horizontal position changing pitch and stereo pan. Select Bob 5 and enable **Draw Selected** to see its path. |
+
+Coupled Pendulums connects the spring directly between the bobs, simplifying the
+mid-rod attachment in the visual reference. Its loudness mapping follows bob height,
+not total mechanical energy. The two additive voices also follow source/listener pan
+and distance. Quintuple Pendulum uses the same spatialization with three audible bobs;
+the remaining two masses participate in the physics without adding voices.
+
+All three are unpowered initial-value experiments. Their motion gradually loses energy
+through spring damping and numerical integration; they do not promise perpetual motion
+or exact energy conservation. The initial configurations stay visible and retain motion
+in a two-minute simulation. Large manual displacements can move them outside that layout.
+**Driven Springs** remains the example for sustained excitation by a moving anchor.
+
+In **Edit** mode, stop motion and double-click a mass, spring, or distance constraint to
+adjust its parameters. Short rigid links use small green inspector handles to keep the
+chain readable; selecting a handle reveals its full label. JSON definitions: [coupled-pendulums.json](patches/coupled-pendulums.json),
+[elastic-pendulum.json](patches/elastic-pendulum.json), and
+[quintuple-pendulum.json](patches/quintuple-pendulum.json).

@@ -636,3 +636,50 @@ for (const engine of ["standard", "package"]) {
     expect(layouts[2].text).toBe(messages[2]);
   });
 }
+
+for (const engine of ["standard", "package"]) {
+  for (const key of ["coupled-pendulums", "elastic-pendulum", "quintuple-pendulum"]) {
+    test(`${key} starts moving and produces sound (${engine})`, async ({ page }) => {
+      const failures = [];
+      page.on("pageerror", (error) => failures.push(error.message));
+      await page.addInitScript(() => {
+        // Observe the real output signal, including target synths and per-source generators.
+        window.outputAnalysers = [];
+        const connect = AudioNode.prototype.connect;
+        AudioNode.prototype.connect = function (destination, ...args) {
+          if (destination instanceof AudioDestinationNode) {
+            const analyser = this.context.createAnalyser();
+            connect.call(this, analyser);
+            window.outputAnalysers.push(analyser);
+          }
+          return connect.call(this, destination, ...args);
+        };
+      });
+      await page.goto(`/musicspace.html?engine=${engine}&patch=${key}`);
+      await expect(page.locator("#patch-select")).toHaveValue(key);
+      await expect(page.locator("#animation-toggle")).toHaveAttribute("aria-pressed", "true");
+      const initialX = await page.evaluate(() => state.sources[0].x);
+      await page.waitForFunction((x) => Math.abs(state.sources[0].x - x) > 5, initialX);
+      await page.locator("#target-toggle").click();
+      await expect(page.locator("#target-toggle")).toHaveAttribute("aria-pressed", "true");
+      await expect
+        .poll(() =>
+          page.evaluate(() => {
+            let peak = 0;
+            for (const analyser of window.outputAnalysers) {
+              const samples = new Float32Array(analyser.fftSize);
+              analyser.getFloatTimeDomainData(samples);
+              for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
+            }
+            return peak;
+          })
+        )
+        .toBeGreaterThan(0.0001);
+      await page.evaluate(() => window.stopAnimation());
+      await page.locator("#stage").screenshot({ path: test.info().outputPath(`${key}.png`) });
+      await page.locator("#target-toggle").click();
+      await expect(page.locator("#target-toggle")).toHaveAttribute("aria-pressed", "false");
+      expect(failures).toEqual([]);
+    });
+  }
+}
