@@ -52,7 +52,7 @@ overlay remain available through its toolbar.
 - **Orbit:** the actual `faust-orbit-ui` 0.4.1 source at
   [`9286c0739702b0959e3d8d951d14faf008eae191`](https://github.com/orlarey/faust-orbit-ui/tree/9286c0739702b0959e3d8d951d14faf008eae191),
   with the focused local extension described below.
-- **MusicSpace:** the standalone `@musicspace/engine` 0.1.0-alpha.5 ES module.
+- **MusicSpace:** the standalone `@fpachet/musicspace-engine` 0.1.0-alpha.5 ES module.
   The adapter imports only its public API. No workbench or application globals.
 - **Faust:** `audio/orbit-study.dsp`, compiled with Faust 2.81.2 to the included
   7.5 KB WebAssembly module. `audio/faust-worklet.mjs` calls the generated DSP on

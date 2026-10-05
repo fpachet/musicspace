@@ -13,7 +13,8 @@ python3 -m http.server 8000
 The default interface requires no build. The experimental mode loads the package's
 ES modules dynamically; a failed import displays build instructions and leaves the
 scene unavailable. It does not silently fall back. GitHub Pages builds the modules
-before deployment. No npm publication or Orbit-specific integration is included.
+before deployment. The standalone package is published as
+`@fpachet/musicspace-engine@alpha`; the core API is independent of Orbit.
 
 ## Completed
 
@@ -23,7 +24,7 @@ before deployment. No npm publication or Orbit-specific integration is included.
   diagnostics without a renderer or output clients.
 - `importLegacyPatch` and `exportLegacyPatch` bridge the workbench JSON format.
   Their serializable context retains output bindings and display metadata.
-- All 23 built-in patches round-trip and run against the original model with both
+- All 27 built-in patches round-trip and run against the original model with both
   solvers, including continued motion after save/load.
 
 ### Experimental workbench Play mode
@@ -106,8 +107,8 @@ before deployment. No npm publication or Orbit-specific integration is included.
    interface and saved user patches are validated in real use.
 4. Collect external integration feedback using the archive and `QUICKSTART.md`.
    Archive installation, JavaScript use and strict TypeScript consumers are tested.
-   Confirm the npm publisher and scope before registry publication; `RELEASING.md`
-   records the remaining prerequisites. Each host decides the meaning of its
+   Alpha.6 is published as `@fpachet/musicspace-engine@alpha`.
+   `RELEASING.md` records the release checks and procedure for future versions. Each host decides the meaning of its
    controls and how to draw them.
 
 The alpha API can still change. The experimental workbench exercises it in a real

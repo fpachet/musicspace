@@ -54,13 +54,13 @@ port, so environments that prohibit local servers need permission to run it.
 - `test/install.test.cjs` packs the distribution, installs it offline into a
   temporary independent project and exercises both ESM and CommonJS imports,
   including the legacy-patch entry.
-- `test/legacy-patch.test.cjs` imports and exports all 23 library patches, preserving
+- `test/legacy-patch.test.cjs` imports and exports all 27 library patches, preserving
   output and display metadata. It compares both solvers against the original model
   through dragging, center motion, simulation, residuals, velocities and continued
   motion after save/load. Focused cases cover bounds, paused propagation, spring
   rest lengths, name collisions, independent context data and invalid exports.
 - `test/workbench-play.test.cjs` compares the workbench bridge with the original model
-  across all 23 patches and both solvers. It rejects any use of presentation
+  across all 27 patches and both solvers. It rejects any use of presentation
   simulation operations and verifies stable view objects, settings, traces, handles and
   failed-load preservation. Authoring checks exercise stable inspector references,
   failed-edit rollback and package-owned motion after creation or parameter edits.
@@ -90,7 +90,7 @@ five trajectory tools with both solvers. Additional package checks cover rollbac
 and audio/generator/MIDI reference updates across rename, delete and undo.
 
 `tests/presentation.test.js` compares the plain display records with the original
-model for all 23 patches: serialized constraints, references, labels, glyphs,
+model for all 27 patches: serialized constraints, references, labels, glyphs,
 colors, node layout, recapture and hit areas. The package browser suite also runs
 with the legacy model, graph and solver scripts replaced by empty responses,
 checking rendering, motion and editing without those globals.
@@ -167,7 +167,7 @@ need no compiler or engine dependencies.
 After packing, verify the exact delivery archive with:
 
 ```sh
-MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/musicspace-engine-0.1.0-alpha.5.tgz node --test packages/musicspace-engine/test/install.test.cjs
+MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz node --test packages/musicspace-engine/test/install.test.cjs
 ```
 
 The browser test accepts `MUSICSPACE_TEST_PACKAGE_ROOT` pointing to an extracted

@@ -1,17 +1,20 @@
 # Try MusicSpace engine
 
-Version **0.1.0-alpha.5**. The archive contains the complete engine, examples,
+Version **0.1.0-alpha.6**, published on npm. The package contains the complete engine, examples,
 TypeScript declarations and MIT license. You do not need the MusicSpace repository.
 
-## 1. Install the archive
+## 1. Install
 
 Use Node.js 18 or newer and npm. In a new directory:
 
 ```sh
 npm init -y
-npm install /absolute/path/to/musicspace-engine-0.1.0-alpha.5.tgz
-node node_modules/@musicspace/engine/examples/basic.mjs
+npm install @fpachet/musicspace-engine@alpha
+node node_modules/@fpachet/musicspace-engine/examples/basic.mjs
 ```
+
+If you received the archive directly, replace the install command with
+`npm install /absolute/path/to/fpachet-musicspace-engine-0.1.0-alpha.6.tgz`.
 
 The example moves A from radius 100 to 130. B moves from radius 100 to 70,
 preserving a total distance of 200. It prints the new positions and diagnostics.
@@ -22,7 +25,7 @@ There is no install-time build and the engine has no runtime dependencies.
 With Python 3 available, serve the installed package:
 
 ```sh
-python3 -m http.server 8000 --directory node_modules/@musicspace/engine
+python3 -m http.server 8000 --directory node_modules/@fpachet/musicspace-engine
 ```
 
 Open <http://localhost:8000/examples/playground.html>. Drag the controls and center;
@@ -35,7 +38,7 @@ You can use any static HTTP server instead of Python.
 In an application using JavaScript modules:
 
 ```js
-import { createSpace, CENTER } from '@musicspace/engine';
+import { createSpace, CENTER } from '@fpachet/musicspace-engine';
 
 const space = createSpace({
   center: { x: 300, y: 200 },
@@ -83,7 +86,7 @@ consumer using the geometry API and legacy adapter:
 
 ```sh
 npm install --save-dev typescript@7.0.2
-cp node_modules/@musicspace/engine/examples/typed-consumer.mts ./consumer.mts
+cp node_modules/@fpachet/musicspace-engine/examples/typed-consumer.mts ./consumer.mts
 npx tsc consumer.mts --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --outDir compiled
 node compiled/consumer.mjs
 ```

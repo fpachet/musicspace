@@ -1,5 +1,24 @@
 # Release notes
 
+## 0.1.0-alpha.6 — 5 October 2026
+
+- Adopt `@fpachet/musicspace-engine` under the verified npm publisher's personal
+  scope. Earlier local archives used the provisional name `@musicspace/engine`;
+  update imports, including the `/legacy-patch` entry, when upgrading.
+- Remove the publication block and configure public access, the `alpha` tag and
+  the public npm registry. The root workbench project remains private.
+- Update installation instructions, examples and the release procedure for npm.
+- Check the installed archive using normal npm lifecycle behavior, JavaScript
+  ESM/CommonJS, strict TypeScript consumers and the browser playground.
+- Current compatibility fixtures cover all 27 predefined patches and larger scenes.
+  The engine implementation is unchanged from alpha.5.
+
+Archive: `fpachet-musicspace-engine-0.1.0-alpha.6.tgz`.
+Published to npm on 5 October 2026 with the `alpha` tag. The public registry
+archive matches the tested archive; a fresh registry installation passed the
+ESM example, CommonJS and legacy-adapter checks.
+
+
 ## 0.1.0-alpha.5 — 28 September 2026
 
 First archive prepared for external integration trials. The API remains experimental.

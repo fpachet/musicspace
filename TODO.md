@@ -8,7 +8,7 @@ This file collects likely next steps for the MusicSpace prototype. It is intenti
 
 ## Engine Package
 
-- Exercise the local `@musicspace/engine` alpha in independent interfaces and collect API feedback before stabilizing names or publishing on npm.
+- Exercise the published `@fpachet/musicspace-engine` alpha in independent interfaces and collect API feedback before stabilizing the API.
 - Expose configurable world bounds and solver tolerances; document a consistent unit convention beyond the current pixel-like geometry.
 - Define batch movement and priority policies for simultaneous control changes and multiple pointers.
 - Profile authoring operations, which currently validate and rebuild the scene, separately from continuous movement and simulation.

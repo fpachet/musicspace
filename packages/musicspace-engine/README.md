@@ -7,17 +7,20 @@ The engine owns geometry and propagation. Your application owns rendering, point
 events, audio or other parameter meanings, and animation scheduling. It works with
 SVG, Canvas, DOM elements or a UI framework, and in Node without a browser.
 
-**Version: 0.1.0-alpha.5, distributed as an installable archive.** Start with
-[QUICKSTART.md](QUICKSTART.md): install the archive, run an example, then connect
-your own controls. See [release notes](CHANGELOG.md) for features and limits.
+**Version: 0.1.0-alpha.6, published on npm on 5 October 2026.** The package name is
+`@fpachet/musicspace-engine`, using the verified publisher's personal npm scope.
+Start with [QUICKSTART.md](QUICKSTART.md) for installation and examples,
+or read the [release notes](CHANGELOG.md).
 There are no runtime dependencies. The MusicSpace workbench also offers
 experimental Play and Edit modes using the package.
 
-The npm name `@musicspace/engine` is provisional. A public registry lookup on
-28 September 2026 found no published package at that name; scope ownership is
-unverified because no npm publisher is logged in on the release machine.
-The archive installs under this name without requiring registry publication.
-See [publication prerequisites](RELEASING.md).
+Install the alpha from npm:
+
+```sh
+npm install @fpachet/musicspace-engine@alpha
+```
+
+See [release instructions](RELEASING.md) for the tested archive and publish command.
 
 ## Try it
 
@@ -39,7 +42,7 @@ The existing workbench can also use the package:
 This is an optional migration supporting both Play and Edit, with a visible return
 link to standard mode. See [migration status](MIGRATION.md) for boundaries and remaining work.
 
-## Install in another project
+## Install an archive in another project
 
 Build a self-contained archive from this repository:
 
@@ -51,10 +54,10 @@ npm pack
 In the consuming project, install that archive by its actual path:
 
 ```sh
-npm install /path/to/musicspace-engine-0.1.0-alpha.5.tgz
+npm install /path/to/fpachet-musicspace-engine-0.1.0-alpha.6.tgz
 ```
 
-Then import `createSpace` from `@musicspace/engine`. CommonJS `require` is also
+Then import `createSpace` from `@fpachet/musicspace-engine`. CommonJS `require` is also
 supported. TypeScript declarations are included. No consumer build step is needed
 for the engine itself. The development `build`/`test` scripts run in the source
 repository; the distributed archive contains the already built files.
@@ -66,7 +69,7 @@ Modern browsers supporting ES modules and `structuredClone` are required.
 ## First interface
 
 ```js
-import { createSpace, CENTER } from '@musicspace/engine';
+import { createSpace, CENTER } from '@fpachet/musicspace-engine';
 
 const space = createSpace({
   center: { x: 300, y: 200 },
@@ -150,15 +153,15 @@ Use `endDrag({refine: false})` for a selection click that should not solve const
 
 ## Existing MusicSpace patches
 
-The optional `@musicspace/engine/legacy-patch` entry imports workbench patches while
+The optional `@fpachet/musicspace-engine/legacy-patch` entry imports workbench patches while
 keeping their audio/MIDI bindings, mappings, display settings and unknown metadata
 in a separate, JSON-compatible context. It does not start audio, load media or
 fetch URLs. The default workbench uses its original model; `?engine=package` selects the
 migrated interface.
 
 ```js
-import { createSpace } from '@musicspace/engine';
-import { importLegacyPatch, exportLegacyPatch } from '@musicspace/engine/legacy-patch';
+import { createSpace } from '@fpachet/musicspace-engine';
+import { importLegacyPatch, exportLegacyPatch } from '@fpachet/musicspace-engine/legacy-patch';
 
 const { scene, context } = importLegacyPatch(patch);
 const space = createSpace(scene);
@@ -285,7 +288,7 @@ is no fork of the solver code to maintain and no change to how the current app r
 The archive is standalone once built. Tests compare the packaged API with the
 existing engine and install the archive into a temporary independent project.
 
-The compatibility suite covers all 23 library patches: normalized round trips,
+The compatibility suite covers all 27 library patches: normalized round trips,
 both solvers, dragging/release, center movement, fixed-step animation, residuals,
 dynamic velocities and continued motion after saving/loading. Focused tests cover
 paused edits, bounds, metadata, reserved names and explicit export failures. These

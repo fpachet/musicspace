@@ -1,7 +1,6 @@
 {
-  "name": "@musicspace/engine",
-  "version": "0.1.0-alpha.5",
-  "private": true,
+  "name": "@fpachet/musicspace-engine",
+  "version": "0.1.0-alpha.6",
   "description": "Geometry, constraints, trajectories and dynamics for custom interactive interfaces.",
   "license": "MIT",
   "main": "./dist/index.cjs",
@@ -55,6 +54,7 @@
   ],
   "publishConfig": {
     "access": "public",
-    "tag": "alpha"
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
   }
 }

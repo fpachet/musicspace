@@ -1,21 +1,32 @@
 # Building and publishing releases
 
-## Current distribution decision
+## Release identity
 
-Ship **0.1.0-alpha.5** as a local `.tgz`, installed as `@musicspace/engine`.
-On 28 September 2026, a lookup against the public npm registry returned 404 for
-this package name. `npm whoami` returned ENEEDAUTH on the release machine.
-This does not establish ownership or availability of the `@musicspace` scope.
-No registry publication has been performed.
+- Package: **@fpachet/musicspace-engine**
+- Published version: **0.1.0-alpha.6**, 5 October 2026.
+- npm publisher: **fpachet**, verified with `npm whoami` on 5 October 2026.
+- Registry: `https://registry.npmjs.org/`, public access, `alpha` distribution tag.
 
-Keep `private: true` while publisher identity and scope ownership are unresolved.
-The manifest contains repository/issue links and an `alpha` publish tag for a future
-public release. The archive can already be installed and shared independently.
+The public registry's alpha tag resolves to this version. Its SHA-512 integrity
+matches the tested archive, and a fresh registry installation passed the ESM
+example, CommonJS and legacy-adapter checks. The root workbench remains private.
 
-## Build and verify an archive
+Released archive: `fpachet-musicspace-engine-0.1.0-alpha.6.tgz`.
+SHA-256: `2f180d9ee2b48ae1503bbac20b2d829a6279f0707f10a3a8ab3e63f8b2348563`.
+Keep this archive unchanged. The archive's documentation records its prepublication
+preparation; repository documentation now records the completed release.
 
-Run these commands from a checkout of the full MusicSpace repository. Maintainer
-scripts use the shared root engine sources and are not included in the archive.
+The earlier local alpha.5 archive used `@musicspace/engine`. Consumers upgrading
+must change imports to `@fpachet/musicspace-engine` (including `/legacy-patch`).
+The engine API and implementation are unchanged.
+
+## Build and verify the next candidate
+
+Choose a new version before changing a released package; update the version and
+archive filenames below accordingly. Do not overwrite the published alpha.6 archive.
+These commands document the procedure used for alpha.6.
+
+From a checkout of the full MusicSpace repository:
 
 ```sh
 npm ci
@@ -25,29 +36,48 @@ npm run format:check
 npm test --prefix packages/musicspace-engine
 npm run smoke
 npm pack ./packages/musicspace-engine --pack-destination packages/musicspace-engine
-MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/musicspace-engine-0.1.0-alpha.5.tgz node --test packages/musicspace-engine/test/install.test.cjs
+MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz node --test packages/musicspace-engine/test/install.test.cjs
+npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz --dry-run --access public --tag alpha --registry=https://registry.npmjs.org/
 ```
 
-The install test consumes the exact supplied archive offline in a temporary project.
-It checks JavaScript ESM/CommonJS, TypeScript compilation and execution, both entry
-points and required documentation. The compiler is a pinned root development
-dependency; the distributed engine has no dependencies.
+The install test consumes the supplied archive offline in a temporary project
+using normal npm lifecycle behavior. It checks JavaScript ESM/CommonJS, strict
+TypeScript compilation and execution, both entry points and required documentation.
+The compiler is a pinned root development dependency; the engine has no runtime
+dependencies. Maintainer build scripts read shared root sources; consumers receive
+the built files and require no build step.
 
-To check browser examples from the archive, extract it into a temporary directory
-and run `test/browser.test.cjs` with `MUSICSPACE_TEST_PACKAGE_ROOT` set to the extracted
+For the browser check, extract the archive into a temporary directory and run
+`test/browser.test.cjs` with `MUSICSPACE_TEST_PACKAGE_ROOT` set to its extracted
 `package` directory. The test uses the repository's Playwright installation.
-Record a SHA-256 checksum of the final archive when handing it off.
 
-## Before an npm publication
+The dry run validates the publication payload without uploading it. It does not
+prove authentication or 2FA will succeed at publication time. Record a SHA-256
+checksum of the final archive and publish those same tested bytes.
 
-1. Sign in to the intended npm account and verify its right to publish under the
-   selected scope. Choose another name if needed and update imports and documentation.
-2. Review integration feedback and release notes; select a new version if an already
-   published version would be replaced.
-3. Remove `private: true` once the name and publisher are established. Review
-   `npm pack --dry-run` contents and rerun the archive checks above.
-4. Publish the reviewed release explicitly with public access and the `alpha` tag;
-   verify installation from the registry in a fresh project.
+## Publish a new version when ready
+
+1. Confirm `npm whoami --registry=https://registry.npmjs.org/` returns `fpachet`.
+2. Check that the candidate version has not already been published. npm versions
+   cannot be overwritten; increase the version and rebuild if necessary.
+3. For an interactive publication, enable two-factor authentication on the npm
+   account and complete the login/verification prompts in your browser or terminal.
+4. From the repository root, publish the tested archive explicitly:
+
+```sh
+npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz --access public --tag alpha --registry=https://registry.npmjs.org/
+```
+
+This command makes the package public. The `alpha` tag marks the prerelease for
+explicit installation. After publication, check the registry metadata:
+
+```sh
+npm view @fpachet/musicspace-engine@alpha version dist.integrity --registry=https://registry.npmjs.org/
+```
+
+Then install `@fpachet/musicspace-engine@alpha` in a fresh project and run
+`node node_modules/@fpachet/musicspace-engine/examples/basic.mjs`. Update the
+README, quick-start guide and release notes to record the actual publication.
 
 There is no automatic npm publishing workflow. See npm's documentation on
 [package metadata](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/)

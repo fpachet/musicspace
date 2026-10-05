@@ -28,7 +28,7 @@ test("packed archive installs and works without the source repository", () => {
     const consumer = path.join(temp, "consumer");
     fs.mkdirSync(consumer);
     fs.writeFileSync(path.join(consumer, "package.json"), '{"name":"independent-consumer","private":true}');
-    execFileSync("npm", ["install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", archive], {
+    execFileSync("npm", ["install", "--offline", "--no-audit", "--no-fund", archive], {
       ...options,
       cwd: consumer,
       stdio: "pipe"
@@ -45,19 +45,32 @@ test("packed archive installs and works without the source repository", () => {
       if (saved.sources[0].x !== 30 || !saved.custom.keep) throw new Error('bad legacy export');
       console.log('ok');`;
     for (const [args, library] of [
-      [[], "require('@musicspace/engine')"],
-      [["--input-type=module"], "await import('@musicspace/engine')"]
+      [[], "require('@fpachet/musicspace-engine')"],
+      [["--input-type=module"], "await import('@fpachet/musicspace-engine')"]
     ]) {
       const script = code
         .replace("LIBRARY", library)
-        .replace("ADAPTER", library.replace("@musicspace/engine", "@musicspace/engine/legacy-patch"));
+        .replace(
+          "ADAPTER",
+          library.replace("@fpachet/musicspace-engine", "@fpachet/musicspace-engine/legacy-patch")
+        );
       const output = execFileSync(process.execPath, [...args, "-e", script], {
         ...options,
         cwd: consumer
       });
       assert.equal(output.trim(), "ok");
     }
-    const installed = path.join(consumer, "node_modules/@musicspace/engine");
+    const installed = path.join(consumer, "node_modules/@fpachet/musicspace-engine");
+    const manifest = JSON.parse(fs.readFileSync(path.join(installed, "package.json"), "utf8"));
+    assert.equal(manifest.name, "@fpachet/musicspace-engine");
+    assert.notEqual(manifest.private, true, "Published package must not be marked private");
+    assert.deepEqual(manifest.publishConfig, {
+      access: "public",
+      tag: "alpha",
+      registry: "https://registry.npmjs.org/"
+    });
+    assert.equal(manifest.license, "MIT");
+    assert.equal(Object.keys(manifest.dependencies || {}).length, 0);
     for (const file of [
       "LICENSE",
       "QUICKSTART.md",

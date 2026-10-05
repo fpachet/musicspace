@@ -1,5 +1,9 @@
-import { createSpace, CENTER, type Change, type Constraint, type Scene } from "@musicspace/engine";
-import { importLegacyPatch, exportLegacyPatch, type LegacyPatch } from "@musicspace/engine/legacy-patch";
+import { createSpace, CENTER, type Change, type Constraint, type Scene } from "@fpachet/musicspace-engine";
+import {
+  importLegacyPatch,
+  exportLegacyPatch,
+  type LegacyPatch
+} from "@fpachet/musicspace-engine/legacy-patch";
 
 // This example runs from a project that has installed the archive.
 const balance: Constraint = { id: "balance", type: "sum", points: ["A", "B"] };

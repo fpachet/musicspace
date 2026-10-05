@@ -28,12 +28,13 @@ trajectories, linked rotations, spring dynamics, change notifications and scene
 save/restore. Your application supplies the rendering, gestures and parameter
 meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
 
-**Status: `0.1.0-alpha.5`, distributed as an installable archive, not published on npm.**
+**Status: `0.1.0-alpha.6`, [published on npm](https://www.npmjs.com/package/@fpachet/musicspace-engine).**
+Install with `npm install @fpachet/musicspace-engine@alpha`.
 For recipients, start with the [package quick-start guide](packages/musicspace-engine/QUICKSTART.md)
 and [release notes](packages/musicspace-engine/CHANGELOG.md).
-`@musicspace/engine` is a provisional package name. The workbench uses its original engine by default. An optional
+`@fpachet/musicspace-engine` uses the publisher’s personal npm scope. The workbench uses its original engine by default. An optional
 package-backed Play and Edit mode is available for testing the gradual migration.
-All 23 presets and larger scenes are covered by regression checks;
+All 27 presets and larger scenes are covered by regression checks;
 [performance measurements](benchmarks/package-performance.md) include 1,000 controls.
 
 Build and try the package from this repository:
@@ -67,10 +68,10 @@ installable archive, the API and alpha limitations, and the
 interfaces and saved patches. Current limitations include pixel-like units,
 fixed bounce bounds and one active drag per scene.
 
-An optional `@musicspace/engine/legacy-patch` adapter now imports and exports the
+An optional `@fpachet/musicspace-engine/legacy-patch` adapter now imports and exports the
 existing workbench patches while preserving output bindings and display metadata.
-Equivalence tests cover all 23 library patches with both solvers; the workbench
-itself has not been migrated.
+Equivalence tests cover all 27 library patches with both solvers; the workbench
+uses its original engine by default and offers the migrated package mode.
 
 ## Demo Snapshots
 
