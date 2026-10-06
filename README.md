@@ -10,17 +10,21 @@ Live demo: <https://fpachet.github.io/musicspace/>
 
 ## Build your own interface
 
-Try the [Orbit × MusicSpace proof of concept](examples/orbit-musicspace/README.md):
-three instruments combining Yann Orlarey's Faust Orbit UI with the standalone
-MusicSpace engine and real Faust WebAssembly audio.
+Explore the **Orbit / Faust demos**: three instruments combining Yann Orlarey's
+Faust Orbit UI with the standalone MusicSpace engine, plus a three-body gravity
+instrument in the MusicSpace workbench. All four use real Faust WebAssembly audio.
+The [Orbit integration guide](examples/orbit-musicspace/README.md) explains the proof of concept.
 
 - [Study 01: Play the relationships](https://fpachet.github.io/musicspace/examples/orbit-musicspace/) — linked dry/wet controls, a spring and an automatic cutoff sweep.
 - [Study 02: Constellation](https://fpachet.github.io/musicspace/examples/orbit-musicspace/constellation.html) — ten controls and nineteen constraints, with visible links and individual rule switches.
 - [Study 03: Living springs](https://fpachet.github.io/musicspace/examples/orbit-musicspace/living-springs.html) — fourteen springs driven continuously by two moving anchors; pluck the dots and adjust speed, tension and damping.
+- [Three-Body Gravity · Faust workbench](https://fpachet.github.io/musicspace/musicspace.html?patch=three-body) — three mutually attracting masses drive three Faust voices; height sets pitch, X sets pan, and distance sets brightness and loudness.
 
-Click **Start sound** to hear each instrument. To run locally, use `npm run serve`
-and open `/examples/orbit-musicspace/`. The demo folder is self-contained and
-includes a walkthrough and the proposed Orbit integration patch.
+Click **Start sound** in the Orbit studies or **Play Sound** in Three-Body Gravity.
+To run locally, use `npm run serve` and open `/examples/orbit-musicspace/` or
+`/musicspace.html?patch=three-body`. The Orbit demo folder is self-contained and
+includes a walkthrough and the proposed Orbit integration patch; the gravity demo
+uses the full MusicSpace workbench.
 
 The [MusicSpace engine package](packages/musicspace-engine/README.md) exposes the
 shared constraint engine for custom interfaces: points, geometric relations,

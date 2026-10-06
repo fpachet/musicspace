@@ -10,8 +10,9 @@ Public demos on GitHub Pages:
 - [Study 01: Play the relationships](https://fpachet.github.io/musicspace/examples/orbit-musicspace/)
 - [Study 02: Constellation](https://fpachet.github.io/musicspace/examples/orbit-musicspace/constellation.html)
 - [Study 03: Living springs](https://fpachet.github.io/musicspace/examples/orbit-musicspace/living-springs.html)
+- [Three-Body Gravity · Faust workbench](https://fpachet.github.io/musicspace/musicspace.html?patch=three-body)
 
-The folder is self-contained. All browser dependencies and the compiled DSP are
+The three Orbit studies in this folder are self-contained. All browser dependencies and the compiled DSP are
 included; no npm install, CDN, account, microphone or Faust installation is needed
 to play it.
 
@@ -26,11 +27,47 @@ Opening `index.html` directly with `file://` will not work.
 
 The header links to **Study 02: Constellation**, also directly available at
 `constellation.html` in this folder, and **Study 03: Living springs** at
-`living-springs.html`.
+`living-springs.html`. Each study also links to the hosted **Three-Body Gravity**
+Faust demo, which uses the full MusicSpace workbench.
 
 From the MusicSpace repository root, `npm run serve` serves the demo at
 <http://localhost:8000/examples/orbit-musicspace/>. A static HTTPS host can serve
 this folder unchanged.
+
+## Install the engine from npm
+
+The standalone engine is published as
+[`@fpachet/musicspace-engine`](https://www.npmjs.com/package/@fpachet/musicspace-engine).
+The current npm release is **0.1.0-alpha.6**:
+
+```sh
+npm install @fpachet/musicspace-engine@alpha
+```
+
+```js
+import { createSpace } from '@fpachet/musicspace-engine';
+```
+
+The Orbit studies include their own engine copy so they run without installation.
+Mutual gravity is part of the **alpha.7 repository build**; it is not included in
+the published alpha.6 package. See the
+[package quick-start guide](../../packages/musicspace-engine/QUICKSTART.md) for
+installation and building gravity-enabled scenes locally.
+
+## Three-Body Gravity: Faust workbench demo
+
+[Open Three-Body Gravity](https://fpachet.github.io/musicspace/musicspace.html?patch=three-body).
+Three equal masses attract each other, starting in a rotating triangle. Their
+motion drives three voices from a compiled Faust DSP: height controls pitch,
+horizontal position controls stereo pan, and distance from Listener controls
+brightness and loudness.
+
+Click **Play Sound**, drag a body to perturb the orbit, and use **Draw Selected**
+to trace its path. **Reset** restores the initial orbit. This example runs in the
+MusicSpace workbench and demonstrates another way to control Faust with the same
+constraint and dynamics system. See the
+[sonification guide](../../EXAMPLES.md#three-body-gravity) for controls and mappings.
+To run it locally, serve the repository root and open `/musicspace.html?patch=three-body`.
 
 ## A 60-second demonstration
 
