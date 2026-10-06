@@ -18,7 +18,8 @@
     "format": "prettier --write \"*.js\" \"*.cjs\" \"tests/**/*.js\" \"scripts/*.js\" \"targets/faust/*-adapter.js\" \"examples/*.js\"",
     "benchmark:browser": "node scripts/browser-benchmark.js",
     "example": "node examples/headless.js",
-    "benchmark:package": "node packages/musicspace-engine/scripts/build.cjs && node scripts/package-benchmark.js"
+    "benchmark:package": "node packages/musicspace-engine/scripts/build.cjs && node scripts/package-benchmark.js",
+    "build:three-body-faust": "node scripts/build-three-body-faust.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

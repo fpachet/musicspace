@@ -312,6 +312,10 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 The **Three-Body Gravity** preset connects three equal masses with pairwise
 attraction. They start in a rotating triangle; drag one body to perturb the orbit.
 Select a body and **Draw Selected** to trace its path. **Reset** restores the orbit.
+Click **Play Sound** to hear three distinct voices from a compiled Faust DSP:
+height controls pitch, X controls stereo pan, and distance from Listener controls
+loudness and brightness. The mappings can be edited in the Patch Inspector.
+See [the sonification guide](EXAMPLES.md#three-body-gravity) for ranges and controls.
 
 In Edit mode, choose **Gravity**, then click two bodies. Edit a **G** node to set
 attraction strength and softening, and each body's properties to set its mass.

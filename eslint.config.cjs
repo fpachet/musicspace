@@ -31,7 +31,11 @@ module.exports = [
   },
   { files: ["targets/faust/*-adapter.js"], languageOptions: { sourceType: "module" } },
   {
-    files: ["examples/orbit-musicspace/*.mjs", "examples/orbit-musicspace/audio/*.mjs"],
+    files: [
+      "examples/orbit-musicspace/*.mjs",
+      "examples/orbit-musicspace/audio/*.mjs",
+      "targets/faust/*-worklet.mjs"
+    ],
     languageOptions: {
       sourceType: "module",
       globals: {

@@ -3,7 +3,7 @@
   "version": 1,
   "key": "three-body",
   "name": "Three-Body Gravity",
-  "description": "Three equal masses attract one another in a rotating triangle. Drag a body to perturb the orbit; Reset restores it. Select a body and choose Draw Selected to trace its path. Gravity strength and softening are editable on each G link.",
+  "description": "Three equal masses attract one another. Play Sound to hear three Faust voices: height controls pitch, X controls pan, and distance from Listener controls brightness and loudness. Drag a body to perturb the orbit; Reset restores it.",
   "listener": {
     "x": 400,
     "y": 550
@@ -65,6 +65,222 @@
       "target": "A",
       "strength": 1000000,
       "softening": 10
+    }
+  ],
+  "target": {
+    "type": "faust-wasm",
+    "name": "Three-Body Voices",
+    "module": "targets/faust/three-body-adapter.js",
+    "dsp": "targets/faust/three-body.dsp",
+    "wasm": "targets/faust/three-body.wasm",
+    "json": "targets/faust/three-body.json",
+    "parameters": {
+      "/ThreeBody/A/frequency": {
+        "default": 165.0,
+        "min": 110,
+        "max": 220,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/ThreeBody/A/pan": {
+        "default": 0.0,
+        "min": -0.85,
+        "max": 0.85,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/A/gain": {
+        "default": 0.0975,
+        "min": 0.035,
+        "max": 0.16,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/A/cutoff": {
+        "default": 2225.0,
+        "min": 450,
+        "max": 4000,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/ThreeBody/B/frequency": {
+        "default": 247.22069999999997,
+        "min": 164.8138,
+        "max": 329.6276,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/ThreeBody/B/pan": {
+        "default": 0.0,
+        "min": -0.85,
+        "max": 0.85,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/B/gain": {
+        "default": 0.0975,
+        "min": 0.035,
+        "max": 0.16,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/B/cutoff": {
+        "default": 2225.0,
+        "min": 450,
+        "max": 4000,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/ThreeBody/C/frequency": {
+        "default": 330.0,
+        "min": 220,
+        "max": 440,
+        "unit": "Hz",
+        "digits": 0
+      },
+      "/ThreeBody/C/pan": {
+        "default": 0.0,
+        "min": -0.85,
+        "max": 0.85,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/C/gain": {
+        "default": 0.0975,
+        "min": 0.035,
+        "max": 0.16,
+        "unit": "",
+        "digits": 2
+      },
+      "/ThreeBody/C/cutoff": {
+        "default": 2225.0,
+        "min": 450,
+        "max": 4000,
+        "unit": "Hz",
+        "digits": 0
+      }
+    }
+  },
+  "parameterMappings": [
+    {
+      "source": "A",
+      "feature": "y",
+      "target": "/ThreeBody/A/frequency",
+      "inputMin": 450,
+      "inputMax": 150,
+      "outputMin": 110,
+      "outputMax": 220,
+      "curve": "exp"
+    },
+    {
+      "source": "A",
+      "feature": "x",
+      "target": "/ThreeBody/A/pan",
+      "inputMin": 200,
+      "inputMax": 600,
+      "outputMin": -0.85,
+      "outputMax": 0.85,
+      "curve": "linear"
+    },
+    {
+      "source": "A",
+      "feature": "distance",
+      "target": "/ThreeBody/A/gain",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 0.16,
+      "outputMax": 0.035,
+      "curve": "linear"
+    },
+    {
+      "source": "A",
+      "feature": "distance",
+      "target": "/ThreeBody/A/cutoff",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 4000,
+      "outputMax": 450,
+      "curve": "exp"
+    },
+    {
+      "source": "B",
+      "feature": "y",
+      "target": "/ThreeBody/B/frequency",
+      "inputMin": 450,
+      "inputMax": 150,
+      "outputMin": 164.8138,
+      "outputMax": 329.6276,
+      "curve": "exp"
+    },
+    {
+      "source": "B",
+      "feature": "x",
+      "target": "/ThreeBody/B/pan",
+      "inputMin": 200,
+      "inputMax": 600,
+      "outputMin": -0.85,
+      "outputMax": 0.85,
+      "curve": "linear"
+    },
+    {
+      "source": "B",
+      "feature": "distance",
+      "target": "/ThreeBody/B/gain",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 0.16,
+      "outputMax": 0.035,
+      "curve": "linear"
+    },
+    {
+      "source": "B",
+      "feature": "distance",
+      "target": "/ThreeBody/B/cutoff",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 4000,
+      "outputMax": 450,
+      "curve": "exp"
+    },
+    {
+      "source": "C",
+      "feature": "y",
+      "target": "/ThreeBody/C/frequency",
+      "inputMin": 450,
+      "inputMax": 150,
+      "outputMin": 220,
+      "outputMax": 440,
+      "curve": "exp"
+    },
+    {
+      "source": "C",
+      "feature": "x",
+      "target": "/ThreeBody/C/pan",
+      "inputMin": 200,
+      "inputMax": 600,
+      "outputMin": -0.85,
+      "outputMax": 0.85,
+      "curve": "linear"
+    },
+    {
+      "source": "C",
+      "feature": "distance",
+      "target": "/ThreeBody/C/gain",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 0.16,
+      "outputMax": 0.035,
+      "curve": "linear"
+    },
+    {
+      "source": "C",
+      "feature": "distance",
+      "target": "/ThreeBody/C/cutoff",
+      "inputMin": 100,
+      "inputMax": 550,
+      "outputMin": 4000,
+      "outputMax": 450,
+      "curve": "exp"
     }
   ]
 }

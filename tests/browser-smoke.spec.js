@@ -683,3 +683,55 @@ for (const engine of ["standard", "package"]) {
     });
   }
 }
+
+/* global parameterClient */
+for (const engine of ["standard", "package"]) {
+  test(`${engine} three-body Faust voices follow motion and produce stereo audio`, async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.addInitScript(() => {
+      const NativeNode = window.AudioWorkletNode;
+      window.__threeBodyNodes = [];
+      window.AudioWorkletNode = class extends NativeNode {
+        constructor(...args) {
+          super(...args);
+          if (args[1] === "three-body") window.__threeBodyNodes.push(this);
+        }
+      };
+    });
+    await page.goto(`/musicspace.html?engine=${engine}&patch=three-body`);
+    await expect(page.locator("#patch-select")).toBeEnabled();
+    const before = await page.evaluate(() => parameterClient.parameterValues());
+    await expect
+      .poll(async () => {
+        const current = await page.evaluate(() => parameterClient.parameterValues());
+        return Math.abs(current["/ThreeBody/A/frequency"] - before["/ThreeBody/A/frequency"]);
+      })
+      .toBeGreaterThan(1);
+    await page.locator("#target-toggle").click();
+    await expect(page.locator("#target-toggle")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => page.evaluate(() => window.__threeBodyNodes.length)).toBe(1);
+    await page.evaluate(() => {
+      const node = window.__threeBodyNodes[0];
+      window.__audioProbe = node.context.createAnalyser();
+      window.__audioProbe.fftSize = 2048;
+      node.connect(window.__audioProbe);
+    });
+    const rms = () =>
+      page.evaluate(() => {
+        const data = new Float32Array(window.__audioProbe.fftSize);
+        window.__audioProbe.getFloatTimeDomainData(data);
+        return Math.sqrt(data.reduce((sum, x) => sum + x * x, 0) / data.length);
+      });
+    await expect.poll(rms).toBeGreaterThan(0.005);
+    expect(await rms()).toBeLessThan(0.5);
+    await page.locator("#target-toggle").click();
+    await expect.poll(() => page.evaluate(() => window.__threeBodyNodes[0].context.state)).toBe("suspended");
+    await page.locator("#target-toggle").click();
+    await expect.poll(() => page.evaluate(() => window.__threeBodyNodes[0].context.state)).toBe("running");
+    expect(await page.evaluate(() => window.__threeBodyNodes.length)).toBe(1);
+    await page.locator("#patch-select").selectOption("angle-balance");
+    await expect.poll(() => page.evaluate(() => window.__threeBodyNodes[0].context.state)).toBe("closed");
+    expect(errors).toEqual([]);
+  });
+}

@@ -98,7 +98,8 @@ chain readable; selecting a handle reveals its full label. JSON definitions: [co
 Select **Three-Body Gravity**, or open the
 [demo](https://fpachet.github.io/musicspace/musicspace.html?patch=three-body).
 The three equal masses start in a rotating triangle, with a gravitational link
-between every pair. Motion starts automatically.
+between every pair. Motion starts automatically. Click **Play Sound** to hear
+three voices synthesized by compiled Faust WebAssembly.
 
 1. Select a red body and choose **Draw Selected** to trace its path.
 2. Drag and release a body to perturb the orbit. **Reset** restores the initial
@@ -109,6 +110,25 @@ between every pair. Motion starts automatically.
 4. To build your own system, choose **Gravity** and click two bodies. Repeat for
    each pair that should attract. Add a **Pin** to hold one body in place, or
    combine gravity with springs and geometric constraints.
+
+Each body has its own continuous voice: A is low and warm, B has a stronger odd
+harmonic, and C has a slightly detuned upper partial. The mappings are:
+
+| Position feature | Faust control | Audible effect |
+| --- | --- | --- |
+| Height (Y = 450 → 150) | `/ThreeBody/{A,B,C}/frequency` | Higher bodies have higher pitch: A 110–220 Hz, B about 165–330 Hz, C 220–440 Hz. |
+| X = 200 → 600 | `/ThreeBody/{A,B,C}/pan` | Left-to-right stereo movement, from −0.85 to +0.85. |
+| Distance from Listener = 100 → 550 | `/ThreeBody/{A,B,C}/gain` | Nearby bodies are louder; gain falls from 0.16 to 0.035. |
+| Same distance | `/ThreeBody/{A,B,C}/cutoff` | Nearby bodies are brighter; the low-pass cutoff falls from 4,000 to 450 Hz. |
+
+Ranges are clamped outside these intervals. The DSP smooths parameter changes.
+Moving Listener changes loudness and brightness; pitch and pan use canvas
+coordinates. In **Edit → Patch Inspector**, change the mappings to explore other
+relationships. **Stop Sound** silences the instrument while motion can continue.
+
+The Faust source, WASM and metadata are in `targets/faust/three-body.*`. Normal
+playback needs no compiler or network service. To rebuild the committed audio
+artifacts with Faust 2.81.2 installed, run `npm run build:three-body-faust`.
 
 The initial triangular orbit is unstable to perturbations. Softening smooths
 close encounters; bodies do not collide or merge, and may leave the canvas.

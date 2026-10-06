@@ -300,11 +300,13 @@
       "key": "three-body",
       "name": "Three-Body Gravity",
       "file": "three-body.json",
-      "description": "Three equal masses attract one another in a rotating triangle. Drag a body to perturb the orbit; Reset restores it. Select a body and choose Draw Selected to trace its path. Gravity strength and softening are editable on each G link.",
+      "description": "Three equal masses attract one another. Play Sound to hear three Faust voices: height controls pitch, X controls pan, and distance from Listener controls brightness and loudness. Drag a body to perturb the orbit; Reset restores it.",
       "tags": [
         "dynamics",
         "gravity",
-        "three-body"
+        "three-body",
+        "faust",
+        "audio"
       ]
     }
   ]

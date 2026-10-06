@@ -89,6 +89,24 @@ The adapter module must export `createFaustNode(context, target)` or a default f
 
 `parameterMappings` then map MusicSpace features to the Faust parameter addresses exposed by that target. The bundled **FM Space** and **FM Harmonic Space** patches use this same contract with a Faust-style DSP source and browser adapter, so the MusicSpace control experiment can run locally even before adding a compiled `.wasm` artifact.
 
+### Three-Body Gravity: compiled Faust audio
+
+The `three-body` patch loads `targets/faust/three-body-adapter.js`, which instantiates
+`three-body.wasm` in an AudioWorklet using `three-body.json` metadata. The DSP source
+is `three-body.dsp`; rebuild it with `npm run build:three-body-faust` and Faust 2.81.2.
+The compiled artifacts are included for static hosting and offline local use.
+
+Each source A/B/C maps Y to frequency, X to stereo pan, and listener distance to
+gain and low-pass cutoff. Parameter addresses are `/ThreeBody/A/frequency`,
+`/ThreeBody/A/pan`, `/ThreeBody/A/gain` and `/ThreeBody/A/cutoff`, with the same
+controls for B and C. Faust smooths changes, and the adapter batches changed
+values once per JavaScript turn. Play/Stop Sound uses the existing target
+lifecycle; changing patches releases the worklet and audio context.
+
+See [the example guide](EXAMPLES.md#three-body-gravity) for the mapping ranges.
+This is a workbench audio target; the standalone constraint engine retains no
+audio dependencies.
+
 ## MIDI File Client
 
 The Jazz Trio demo and user-loaded sequence files declare `target.type: "midi-file"` and use a separate `midiFile` block for sequence details. The target type makes the patch-level backend binding explicit, while the MIDI/MusicXML client owns MIDI parsing, MusicXML/MXL conversion, transport, note scheduling, Web MIDI output, and a small internal Web Audio synth. MusicSpace still only supplies source/listener geometry.
