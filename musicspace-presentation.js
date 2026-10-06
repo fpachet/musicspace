@@ -110,6 +110,18 @@
         node: anchoredNode,
         layout: anchoredNode
       },
+      GravitationalConstraint: {
+        type: "gravitational",
+        label: "Gravity",
+        glyph: "G",
+        color: "#4f46e5",
+        params: ["anchor", "target", "strength", "softening"],
+        links: { anchor: "anchor", target: "target" },
+        fields: { strength: "strength", softening: "softening" },
+        defaults: () => ({ strength: 1000000, softening: 10 }),
+        node: anchoredNode,
+        layout: anchoredNode
+      },
       SpringConstraint: {
         type: "spring",
         label: "Spring",
@@ -479,8 +491,9 @@
       formatPropagationStatus,
       getLastPropagationReport,
       hasDynamics: () =>
-        state.constraints.some((c) => c.kind === "SpringConstraint") ||
-        [...state.sources, ...state.movingObjects].some((p) => p.dynamics),
+        state.constraints.some(
+          (c) => c.kind === "SpringConstraint" || c.kind === "GravitationalConstraint"
+        ) || [...state.sources, ...state.movingObjects].some((p) => p.dynamics),
       getSolverMode: () => state.solverMode,
       setSolverMode: (mode) => {
         state.solverMode = mode;

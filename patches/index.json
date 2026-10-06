@@ -295,6 +295,17 @@
         "audio",
         "mapping"
       ]
+    },
+    {
+      "key": "three-body",
+      "name": "Three-Body Gravity",
+      "file": "three-body.json",
+      "description": "Three equal masses attract one another in a rotating triangle. Drag a body to perturb the orbit; Reset restores it. Select a body and choose Draw Selected to trace its path. Gravity strength and softening are editable on each G link.",
+      "tags": [
+        "dynamics",
+        "gravity",
+        "three-body"
+      ]
     }
   ]
 }

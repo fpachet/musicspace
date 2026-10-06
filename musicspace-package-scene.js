@@ -153,6 +153,8 @@
           "restLength",
           "stiffness",
           "damping",
+          "strength",
+          "softening",
           "ratio",
           "offsetX",
           "offsetY",

@@ -4,7 +4,7 @@ MusicSpace is an old idea: bringing together the power of constraint propagation
 
 This project is a browser-based MusicSpace workbench for constraint-based spatialization and musical control. Sources, listeners, movers, trajectories, and constraint nodes are represented as 2D objects on a canvas; Moving one object propagates through the active constraint graph in real time until the scene reaches a stable fixed point or reports the remaining residuals.
 
-MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, source generators, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, angle sector, and dynamic springs. Spring networks add mass, damping, and optional gravity through the existing XPBD projectors, while their moving positions continue to drive musical mappings.
+MusicSpace now includes two interactive solver modes: the default bounded propagation solver with local repair/backoff strategies, and an experimental XPBD solver for iterative best-fit geometric projection. It also includes a JSON patch library, an editable patch inspector, patch validation, documented constraint semantics, source audio bindings, source generators, trajectory and rotative-object editing, trace drawing/export, regression tests, generic parameter mappings, Web Audio target backends, Faust-ready target binding, and MIDI/MusicXML sequence spatialization. Implemented constraints include angle, balance/sum, product, radial limits, fixed distance, distance ratio, pin, solid link, minimum separation, angle sector, dynamic springs, and mutual gravity. Spring networks add mass, damping, and optional gravity through the existing XPBD projectors, while their moving positions continue to drive musical mappings.
 
 Live demo: <https://fpachet.github.io/musicspace/>
 
@@ -28,13 +28,14 @@ trajectories, linked rotations, spring dynamics, change notifications and scene
 save/restore. Your application supplies the rendering, gestures and parameter
 meanings. JavaScript ES modules, CommonJS and TypeScript declarations are included.
 
-**Status: `0.1.0-alpha.6`, [published on npm](https://www.npmjs.com/package/@fpachet/musicspace-engine).**
+**Published version: `0.1.0-alpha.6`, [published on npm](https://www.npmjs.com/package/@fpachet/musicspace-engine).**
 Install with `npm install @fpachet/musicspace-engine@alpha`.
+The repository is preparing **alpha.7** with mutual gravity; that feature requires a local build.
 For recipients, start with the [package quick-start guide](packages/musicspace-engine/QUICKSTART.md)
 and [release notes](packages/musicspace-engine/CHANGELOG.md).
 `@fpachet/musicspace-engine` uses the publisher’s personal npm scope. The workbench uses its original engine by default. An optional
 package-backed Play and Edit mode is available for testing the gradual migration.
-All 27 presets and larger scenes are covered by regression checks;
+All 28 presets and larger scenes are covered by regression checks;
 [performance measurements](benchmarks/package-performance.md) include 1,000 controls.
 
 Build and try the package from this repository:
@@ -305,6 +306,22 @@ See [the guided exercises](EXAMPLES.md) for a progression through the examples a
 - Trace export for animated source and mover motion.
 - A sharper separation between MusicSpace scene logic, generic parameter mapping, target-client UI/lifecycle, optional client patches, and independent target backends.
 - A compact codebase intended for continued experimentation with constraint-based spatialization controls.
+
+## Mutual gravity and the three-body problem
+
+The **Three-Body Gravity** preset connects three equal masses with pairwise
+attraction. They start in a rotating triangle; drag one body to perturb the orbit.
+Select a body and **Draw Selected** to trace its path. **Reset** restores the orbit.
+
+In Edit mode, choose **Gravity**, then click two bodies. Edit a **G** node to set
+attraction strength and softening, and each body's properties to set its mass.
+Softening smooths close encounters. Springs, pins and geometric constraints can
+be combined with gravitational links.
+
+Try [the package-backed demo](http://localhost:8000/musicspace.html?engine=package&patch=three-body)
+after building and serving the repository. This feature is in the development
+version **0.1.0-alpha.7**, and is not in the published alpha.6 package.
+See [the package API and headless example](packages/musicspace-engine/README.md#mutual-gravity-and-three-body-scenes-alpha7).
 
 ## Springs and coupled oscillators
 

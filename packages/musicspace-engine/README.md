@@ -7,7 +7,8 @@ The engine owns geometry and propagation. Your application owns rendering, point
 events, audio or other parameter meanings, and animation scheduling. It works with
 SVG, Canvas, DOM elements or a UI framework, and in Node without a browser.
 
-**Version: 0.1.0-alpha.6, published on npm on 5 October 2026.** The package name is
+**Development version: 0.1.0-alpha.7 (unpublished).** Mutual gravity requires this
+repository build. The current npm release is 0.1.0-alpha.6, published on 5 October 2026. The package name is
 `@fpachet/musicspace-engine`, using the verified publisher's personal npm scope.
 Start with [QUICKSTART.md](QUICKSTART.md) for installation and examples,
 or read the [release notes](CHANGELOG.md).
@@ -216,6 +217,7 @@ Radial constraints use the scene center implicitly. Angles are in radians.
 | `solid` | `carrier`, `attached`, optional `offsetX`, `offsetY` |
 | `separation` | `points: [a,b]`, `minDistance` |
 | `angleSector` | `point`, `centerAngle`, `width` |
+| `gravitational` | `anchor`, `target`, optional `strength` (G, default 1,000,000), `softening` (default 10) |
 | `spring` | `anchor`, `target`, optional `restLength`, `stiffness`, `damping` |
 
 Where an invariant is optional, it is captured from geometry at creation. Disabling
@@ -249,9 +251,42 @@ advances fixed 1/60-second steps and caps catch-up at eight steps per call. Call
 with both `step` and `advance` concurrently. Restore resets the clock and drag state.
 
 Add springs and optional `dynamics: {mass, vx, vy}` to points for mass-weighted
-motion. `configure({gravity: {x: 0, y: 150}})` adds gravity. Call `beginDrag`, `move`
+motion. `configure({gravity: {x: 0, y: 150}})` adds uniform acceleration. Call `beginDrag`, `move`
 and `endDrag` for drag/release interaction. Springs use the engine's dynamic solver
 even when geometric propagation is selected.
+
+### Mutual gravity and three-body scenes (alpha.7)
+
+```js
+space.addConstraint({
+  id: 'attraction', type: 'gravitational', anchor: 'A', target: 'B',
+  strength: 1_000_000, softening: 10
+});
+```
+
+This link attracts both endpoints using their `dynamics.mass` (default 1).
+Add A–B, B–C and C–A for a three-body system; any number of bodies can be linked.
+Pinned bodies and bodies held during a drag still attract their partners.
+Prescribed trajectories act as moving attractors. The center remains kinematic.
+Use `dynamics: {mass, vx, vy}` to set initial velocities in scene units per second.
+
+Acceleration of A is `G * massB * (B - A) / (distance² + softening²)^(3/2)`.
+`strength` is finite and nonnegative, in distance³ / (mass × second²);
+`softening` is a finite positive distance. Softening removes the singularity at
+coincidence and approximates Newtonian gravity outside that length scale.
+It does not model collisions or merge bodies. Each pair is evaluated once per
+force evaluation; avoid duplicate links unless you want their forces to add.
+
+Gravity uses velocity Verlet with substeps of at most 1/240 second. Geometric
+constraints and springs are projected between drift and the final velocity kick;
+these interactions, dragging and damping can change energy. Large strengths or
+masses with very small softening may require rescaling the scene for accuracy.
+
+Run `node packages/musicspace-engine/examples/three-body.mjs` after building for
+a complete headless example. In the workbench select **Three-Body Gravity**:
+three equal masses start in a rotating equilateral configuration. This orbit is
+unstable to perturbations; drag a body to explore other paths. Select **Draw
+Selected** to trace a body, and **Reset** to restore the initial conditions.
 
 ## Alpha limits
 

@@ -1,0 +1,70 @@
+{
+  "$schema": "../schemas/musicspace-patch.schema.json",
+  "version": 1,
+  "key": "three-body",
+  "name": "Three-Body Gravity",
+  "description": "Three equal masses attract one another in a rotating triangle. Drag a body to perturb the orbit; Reset restores it. Select a body and choose Draw Selected to trace its path. Gravity strength and softening are editable on each G link.",
+  "listener": {
+    "x": 400,
+    "y": 550
+  },
+  "gravity": {
+    "x": 0,
+    "y": 0
+  },
+  "sources": [
+    {
+      "name": "A",
+      "x": 400.0,
+      "y": 150.0,
+      "dynamics": {
+        "mass": 1,
+        "vx": 61.97147948418169,
+        "vy": 3.794658699436449e-15
+      }
+    },
+    {
+      "name": "B",
+      "x": 529.9038105676658,
+      "y": 375.0,
+      "dynamics": {
+        "mass": 1,
+        "vx": -30.985739742090836,
+        "vy": 53.66887554340751
+      }
+    },
+    {
+      "name": "C",
+      "x": 270.0961894323342,
+      "y": 375.00000000000006,
+      "dynamics": {
+        "mass": 1,
+        "vx": -30.98573974209087,
+        "vy": -53.668875543407495
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "gravitational",
+      "anchor": "A",
+      "target": "B",
+      "strength": 1000000,
+      "softening": 10
+    },
+    {
+      "type": "gravitational",
+      "anchor": "B",
+      "target": "C",
+      "strength": 1000000,
+      "softening": 10
+    },
+    {
+      "type": "gravitational",
+      "anchor": "C",
+      "target": "A",
+      "strength": 1000000,
+      "softening": 10
+    }
+  ]
+}

@@ -467,3 +467,32 @@ spatial audio clients, trace drawing, and render loop observe those positions no
 Saving includes mass, velocity, spring parameters, gravity, and node layout, allowing
 motion to continue after reload. Existing version-1 files remain valid and acquire no
 dynamic state unless their objects join a dynamic network.
+
+## Mutual gravitational attraction
+
+A `gravitational` link is a force between `anchor` and `target`, with finite
+nonnegative `strength` (default 1,000,000) and finite positive `softening`
+(default 10). Endpoint mass is `dynamics.mass` (default 1). Acceleration of A is
+`strength * massB * (B - A) / (distance² + softening²)^(3/2)`, with the symmetric
+reaction on B. The endpoints are interchangeable. Link every pair to build an
+n-body system; each link contributes independently. The existing scene-level
+`gravity` vector adds uniform acceleration to all mobile bodies.
+
+Gravity has no target position and reports zero constraint error. Recapture and
+center retargeting preserve strength and softening. Pins, the listener, dragged
+bodies and prescribed trajectories act as fixed or kinematic attractors.
+Mobile bodies receive mass and zero initial velocity when these are omitted.
+Snapshots preserve masses, velocities and force parameters.
+
+Components with gravitational links use velocity Verlet with substeps no longer
+than 1/240 second. Springs and geometric projectors act between the drift and
+second kick. Free gravitational systems approximately conserve energy; imposed
+motion, damping and geometric projections can exchange energy. Softening removes
+the point-mass singularity, but does not implement collisions or guarantee
+accuracy for arbitrary masses/strengths at this fixed timestep. Scale large
+forces down or increase softening if close encounters become poorly resolved.
+
+The **Three-Body Gravity** preset is a rotating equilateral solution using equal
+masses and all three pairwise links. Its angular speed is
+`sqrt(3 * G * mass / (3 * radius² + softening²)^(3/2))`. Perturbations can grow;
+this preset illustrates an initial solution, not a generally stable orbit.

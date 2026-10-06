@@ -170,6 +170,14 @@
         } else if (spec.type === "radialLimit") {
           validateReference(spec.source, "radialLimit.source", names, add);
           validateMinMax(spec.minDistance, spec.maxDistance, "radialLimit distance", add);
+        } else if (spec.type === "gravitational") {
+          validateReference(spec.anchor, "gravitational.anchor", names, add);
+          validateReference(spec.target, "gravitational.target", names, add);
+          if (spec.anchor === spec.target) add("error", "Gravitational endpoints must differ.");
+          if (spec.strength !== undefined && (!Number.isFinite(spec.strength) || spec.strength < 0))
+            add("error", "gravitational.strength must be finite and nonnegative.");
+          if (spec.softening !== undefined && (!Number.isFinite(spec.softening) || spec.softening <= 0))
+            add("error", "gravitational.softening must be finite and positive.");
         } else if (spec.type === "spring") {
           validateReference(spec.anchor, "spring.anchor", names, add);
           validateReference(spec.target, "spring.target", names, add);

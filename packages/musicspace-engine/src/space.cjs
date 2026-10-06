@@ -131,6 +131,8 @@ function createSpace(initial = {}) {
         "restLength",
         "stiffness",
         "damping",
+        "strength",
+        "softening",
         "ratio",
         "x",
         "y",

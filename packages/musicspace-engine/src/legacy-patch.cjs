@@ -41,6 +41,8 @@ const constraintFields = [
   "restLength",
   "stiffness",
   "damping",
+  "strength",
+  "softening",
   "ratio",
   "x",
   "y",

@@ -1,6 +1,6 @@
 {
   "name": "@fpachet/musicspace-engine",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "Geometry, constraints, trajectories and dynamics for custom interactive interfaces.",
   "license": "MIT",
   "main": "./dist/index.cjs",

@@ -946,6 +946,12 @@ renderers.RadialLimitConstraint = function (object, ctx) {
   drawObject(object.node, ctx);
 };
 
+renderers.GravitationalConstraint = function (object, ctx) {
+  drawConnector(ctx, object.node, object.anchor, object.node.color);
+  drawConnector(ctx, object.node, object.target, object.node.color);
+  drawObject(object.node, ctx);
+};
+
 renderers.SpringConstraint = function (object, ctx) {
   drawSpring(ctx, object);
   if (object.node.isManual) {
@@ -1698,6 +1704,9 @@ function describeConstraintSpec(spec) {
   if (spec.type === "radialLimit") {
     return `Radial limit: ${spec.source} in [${spec.minDistance}, ${spec.maxDistance}]`;
   }
+  if (spec.type === "gravitational") {
+    return `Gravity: ${spec.anchor} ↔ ${spec.target}, strength ${spec.strength}, softening ${spec.softening}`;
+  }
   if (spec.type === "spring") {
     return `Spring: ${spec.anchor} to ${spec.target}, rest ${spec.restLength}, stiffness ${spec.stiffness}, damping ${spec.damping}`;
   }
@@ -2446,6 +2455,7 @@ function toolPrompt(tool) {
     sum: "Sum: click two or more sources or movers; click Sum again to finish.",
     product: "Product: click two or more sources or movers; click Product again to finish.",
     radialLimit: "Limit: click one source or mover.",
+    gravitational: "Gravity: click two bodies to add mutual attraction. Set each body’s mass in its editor.",
     spring: "Spring: click two endpoints. Then drag an unpinned endpoint and release to oscillate.",
     fixedDistance: "Distance: click anchor, then target.",
     distanceRatio: "Ratio: click two sources or movers.",
@@ -2470,6 +2480,7 @@ function requiredEntityCount(tool) {
     product: 2,
     radialLimit: 1,
     fixedDistance: 2,
+    gravitational: 2,
     spring: 2,
     distanceRatio: 2,
     pin: 1,
@@ -2634,6 +2645,9 @@ function createConstraintFromTool(tool, entities) {
     );
   }
 
+  if (tool === "gravitational") {
+    return createViewObject("GravitationalConstraint", entities[0], entities[1]);
+  }
   if (tool === "spring") {
     return createViewObject("SpringConstraint", entities[0], entities[1]);
   }
@@ -3166,6 +3180,13 @@ function constraintEditorSpec(constraint) {
       valueB: { label: "Maximum distance", value: constraint.maxDistance, min: 0, step: 1 }
     };
   }
+  if (isViewKind(constraint, "GravitationalConstraint")) {
+    return {
+      summary: `Mutual attraction between ${entityLabel(constraint.anchor)} and ${entityLabel(constraint.target)}. Mass is set on each body. Softening smooths close encounters.`,
+      valueA: { label: "Gravity strength (G)", value: constraint.strength, min: 0, step: 1000 },
+      valueB: { label: "Softening length", value: constraint.softening, min: 0.001, step: 1 }
+    };
+  }
   if (isViewKind(constraint, "SpringConstraint")) {
     const movableEndpoints = constraintEntities(constraint).filter(
       (entity) =>
@@ -3308,6 +3329,14 @@ function readConstraintEditorValues(constraint) {
   const valueB = Number(constraintValueBInput.value);
   const valueC = Number(constraintValueCInput.value);
   if (
+    isViewKind(constraint, "GravitationalConstraint") &&
+    (!Number.isFinite(valueA) || valueA < 0 || !Number.isFinite(valueB) || valueB <= 0)
+  )
+    return {
+      ok: false,
+      message: "Gravity strength must be finite and nonnegative; softening must be finite and positive."
+    };
+  if (
     isViewKind(constraint, "SpringConstraint") &&
     [valueA, valueB, valueC].some((value) => !Number.isFinite(value) || value < 0)
   )
@@ -3347,6 +3376,9 @@ function applyConstraintEditorValues(constraint, values) {
   } else if (isViewKind(constraint, "RadialLimitConstraint")) {
     constraint.minDistance = Math.max(0, values.valueA);
     constraint.maxDistance = Math.max(constraint.minDistance, values.valueB);
+  } else if (isViewKind(constraint, "GravitationalConstraint")) {
+    constraint.strength = values.valueA;
+    constraint.softening = values.valueB;
   } else if (isViewKind(constraint, "SpringConstraint")) {
     constraint.restLength = values.valueA;
     constraint.stiffness = values.valueB;
@@ -3396,6 +3428,7 @@ function primaryEntityForConstraint(constraint) {
   if (
     isViewKind(constraint, "FixedDistanceConstraint") ||
     isViewKind(constraint, "SpringConstraint") ||
+    isViewKind(constraint, "GravitationalConstraint") ||
     isViewKind(constraint, "PinConstraint")
   ) {
     return constraint.target;

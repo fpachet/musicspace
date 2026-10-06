@@ -40,3 +40,21 @@ legacySpace.move(imported.context.pointIds.Control, 150, 0);
 const exported = exportLegacyPatch(legacySpace.snapshot(), imported.context);
 if (JSON.stringify(exported.custom) !== JSON.stringify(patch.custom)) throw new Error("Metadata was lost");
 console.log("TypeScript consumer passed");
+
+const gravity: Constraint = {
+  id: "gravity",
+  type: "gravitational",
+  anchor: "A",
+  target: "B",
+  strength: 1_000_000,
+  softening: 10
+};
+const orbit = createSpace({
+  points: [
+    { id: "A", x: 0, y: 0, dynamics: { mass: 2 } },
+    { id: "B", x: 200, y: 0, dynamics: { mass: 1 } }
+  ],
+  constraints: [gravity]
+});
+orbit.step();
+if (orbit.getPoint("A").x <= 0) throw new Error("Gravity did not attract");

@@ -3,6 +3,10 @@
 Version **0.1.0-alpha.6**, published on npm. The package contains the complete engine, examples,
 TypeScript declarations and MIT license. You do not need the MusicSpace repository.
 
+The repository also contains **0.1.0-alpha.7 (unreleased)**, adding mutual gravity.
+For that feature, use the development build instructions below. Installing
+`@alpha` currently gives the published alpha.6 release.
+
 ## 1. Install
 
 Use Node.js 18 or newer and npm. In a new directory:
@@ -125,3 +129,28 @@ External integration feedback has not yet been collected for this release.
 
 The [API reference](README.md) covers all constraints, dynamics, trajectories,
 notifications, snapshots and patch conversion.
+
+## Try mutual gravity from the development checkout
+
+From the full MusicSpace repository root:
+
+```sh
+npm run build --prefix packages/musicspace-engine
+node packages/musicspace-engine/examples/three-body.mjs
+npm run serve
+```
+
+Open [Three-Body Gravity](http://localhost:8000/musicspace.html?engine=package&patch=three-body).
+Drag a body to perturb the orbit. In Edit mode, use **Gravity** to connect two
+bodies, or double-click a G node to edit strength and softening.
+
+To use this build in another application, create and install a local archive:
+
+```sh
+npm pack ./packages/musicspace-engine --pack-destination /tmp
+# Run this command in your application's directory:
+npm install /tmp/fpachet-musicspace-engine-0.1.0-alpha.7.tgz
+```
+
+The [gravity API documentation](README.md#mutual-gravity-and-three-body-scenes-alpha7)
+explains masses, initial velocities, pairwise links and numerical limits.

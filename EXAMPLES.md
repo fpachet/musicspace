@@ -92,3 +92,37 @@ adjust its parameters. Short rigid links use small green inspector handles to ke
 chain readable; selecting a handle reveals its full label. JSON definitions: [coupled-pendulums.json](patches/coupled-pendulums.json),
 [elastic-pendulum.json](patches/elastic-pendulum.json), and
 [quintuple-pendulum.json](patches/quintuple-pendulum.json).
+
+## Three-body gravity
+
+Select **Three-Body Gravity**, or open the
+[demo](https://fpachet.github.io/musicspace/musicspace.html?patch=three-body).
+The three equal masses start in a rotating triangle, with a gravitational link
+between every pair. Motion starts automatically.
+
+1. Select a red body and choose **Draw Selected** to trace its path.
+2. Drag and release a body to perturb the orbit. **Reset** restores the initial
+   positions and velocities; **Stop Motion** pauses the simulation.
+3. In **Edit** mode, double-click a **G** node to change attraction strength and
+   softening. Double-click a body to change its mass. Dragging a G node only
+   repositions its label.
+4. To build your own system, choose **Gravity** and click two bodies. Repeat for
+   each pair that should attract. Add a **Pin** to hold one body in place, or
+   combine gravity with springs and geometric constraints.
+
+The initial triangular orbit is unstable to perturbations. Softening smooths
+close encounters; bodies do not collide or merge, and may leave the canvas.
+See [gravitational semantics](CONSTRAINT_SEMANTICS.md#mutual-gravitational-attraction)
+for the force law and numerical limits.
+
+For the package API, build and run the headless example from the repository root:
+
+```sh
+npm run build --prefix packages/musicspace-engine
+node packages/musicspace-engine/examples/three-body.mjs
+```
+
+Mutual gravity requires the development **alpha.7** build. The published npm
+**alpha.6** package does not yet include it. To try the package-backed workbench,
+serve the repository and open
+[the local demo](http://localhost:8000/musicspace.html?engine=package&patch=three-body).

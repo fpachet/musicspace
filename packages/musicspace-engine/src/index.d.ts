@@ -66,6 +66,15 @@ export type Constraint = ConstraintBase &
         stiffness?: number;
         damping?: number;
       }
+    | {
+        type: "gravitational";
+        anchor: string;
+        target: string;
+        /** G in scene-distance³ / (mass × second²). Default 1,000,000; nonnegative. */
+        strength?: number;
+        /** Positive softening length in scene units. Default 10. */
+        softening?: number;
+      }
     | { type: "distanceRatio"; points: [string, string]; ratio: number }
     | { type: "pin"; target: string; x: number; y: number }
     | { type: "solid"; carrier: string; attached: string; offsetX?: number; offsetY?: number }

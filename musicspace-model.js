@@ -476,6 +476,46 @@
       }
     }
 
+    class GravitationalConstraint {
+      constructor(anchor, target, strength = 1000000, softening = 10) {
+        this.anchor = anchor;
+        this.target = target;
+        this.strength = strength;
+        this.softening = softening;
+        this.node = new ConstraintNode(
+          (anchor.x + target.x) / 2,
+          (anchor.y + target.y) / 2,
+          "Gravity",
+          "#4f46e5",
+          "G"
+        );
+      }
+
+      affectedEntities() {
+        return [this.anchor, this.target];
+      }
+
+      refresh() {
+        this.updateNode();
+      }
+
+      updateNode() {
+        if (!this.node.isManual) {
+          this.node.x = (this.anchor.x + this.target.x) / 2;
+          this.node.y = (this.anchor.y + this.target.y) / 2;
+        }
+      }
+
+      // A force has no positional target to violate.
+      measureError() {
+        return { label: "Gravity", error: 0, tolerance: CONSTRAINT_EPSILON, unit: "px" };
+      }
+      enforce() {
+        this.updateNode();
+        return { satisfied: true };
+      }
+    }
+
     class DistanceRatioConstraint {
       constructor(listener, a, b, ratio = distanceBetween(a, listener) / distanceBetween(b, listener)) {
         this.listener = listener;
@@ -825,6 +865,13 @@
           spec.minDistance,
           spec.maxDistance
         );
+      } else if (spec.type === "gravitational") {
+        constraint = new GravitationalConstraint(
+          objectByName.get(spec.anchor),
+          objectByName.get(spec.target),
+          spec.strength,
+          spec.softening
+        );
       } else if (spec.type === "spring") {
         constraint = new SpringConstraint(
           objectByName.get(spec.anchor),
@@ -903,7 +950,11 @@
         return !constraint.source;
       }
 
-      if (constraint instanceof FixedDistanceConstraint || constraint instanceof SpringConstraint) {
+      if (
+        constraint instanceof FixedDistanceConstraint ||
+        constraint instanceof SpringConstraint ||
+        constraint instanceof GravitationalConstraint
+      ) {
         return !constraint.anchor || !constraint.target;
       }
 
@@ -947,7 +998,11 @@
         return constraint.listener === entity || constraint.source === entity;
       }
 
-      if (constraint instanceof FixedDistanceConstraint || constraint instanceof SpringConstraint) {
+      if (
+        constraint instanceof FixedDistanceConstraint ||
+        constraint instanceof SpringConstraint ||
+        constraint instanceof GravitationalConstraint
+      ) {
         return constraint.anchor === entity || constraint.target === entity;
       }
 
@@ -1019,6 +1074,16 @@
         };
       }
 
+      if (constraint instanceof GravitationalConstraint) {
+        return {
+          type: "gravitational",
+          anchor: entityLabel(constraint.anchor),
+          target: entityLabel(constraint.target),
+          strength: constraint.strength,
+          softening: constraint.softening,
+          node
+        };
+      }
       if (constraint instanceof SpringConstraint) {
         return {
           type: "spring",
@@ -1419,6 +1484,7 @@
       RadialLimitConstraint,
       FixedDistanceConstraint,
       SpringConstraint,
+      GravitationalConstraint,
       DistanceRatioConstraint,
       PinConstraint,
       SolidAttachmentConstraint,

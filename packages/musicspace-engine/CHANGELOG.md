@@ -1,5 +1,14 @@
 # Release notes
 
+## 0.1.0-alpha.7 — Unreleased
+
+- Add pairwise `gravitational` forces with body masses, editable strength and positive softening.
+- Use velocity Verlet for mutual gravity; preserve spring-only integration.
+- Add a Three-Body Gravity preset, editor tool, JSON schema, adapter support and TypeScript declarations.
+- Check orbital energy and momentum, close encounters, force composition, editing and save/load.
+- Validation: 423 tests pass (167 core, 185 package, 71 workbench browser), including all 28 predefined scenes.
+- The published alpha.6 archive remains unchanged.
+
 ## 0.1.0-alpha.6 — 5 October 2026
 
 - Adopt `@fpachet/musicspace-engine` under the verified npm publisher's personal

@@ -560,6 +560,22 @@
               "type": "object",
               "required": ["type", "anchor", "target"],
               "properties": {
+                "type": { "const": "gravitational" },
+                "anchor": { "$ref": "#/$defs/entityName" },
+                "target": { "$ref": "#/$defs/entityName" },
+                "strength": { "type": "number", "minimum": 0, "default": 1000000 },
+                "softening": { "type": "number", "exclusiveMinimum": 0, "default": 10 }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/constraintBase" },
+            {
+              "type": "object",
+              "required": ["type", "anchor", "target"],
+              "properties": {
                 "type": { "const": "spring" },
                 "anchor": { "$ref": "#/$defs/entityName" },
                 "target": { "$ref": "#/$defs/entityName" },

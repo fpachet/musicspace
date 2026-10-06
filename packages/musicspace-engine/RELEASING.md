@@ -3,6 +3,7 @@
 ## Release identity
 
 - Package: **@fpachet/musicspace-engine**
+- Development candidate: **0.1.0-alpha.7**, unreleased; adds mutual gravity.
 - Published version: **0.1.0-alpha.6**, 5 October 2026.
 - npm publisher: **fpachet**, verified with `npm whoami` on 5 October 2026.
 - Registry: `https://registry.npmjs.org/`, public access, `alpha` distribution tag.
@@ -18,13 +19,13 @@ preparation; repository documentation now records the completed release.
 
 The earlier local alpha.5 archive used `@musicspace/engine`. Consumers upgrading
 must change imports to `@fpachet/musicspace-engine` (including `/legacy-patch`).
-The engine API and implementation are unchanged.
+The engine API and implementation were unchanged between alpha.5 and alpha.6.
 
 ## Build and verify the next candidate
 
-Choose a new version before changing a released package; update the version and
-archive filenames below accordingly. Do not overwrite the published alpha.6 archive.
-These commands document the procedure used for alpha.6.
+The current candidate is alpha.7. The commands below build and verify that
+candidate; they do not publish it. Keep the published alpha.6 archive unchanged.
+For later releases, update the package version and archive filenames together.
 
 From a checkout of the full MusicSpace repository:
 
@@ -36,8 +37,8 @@ npm run format:check
 npm test --prefix packages/musicspace-engine
 npm run smoke
 npm pack ./packages/musicspace-engine --pack-destination packages/musicspace-engine
-MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz node --test packages/musicspace-engine/test/install.test.cjs
-npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz --dry-run --access public --tag alpha --registry=https://registry.npmjs.org/
+MUSICSPACE_TEST_ARCHIVE=packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.7.tgz node --test packages/musicspace-engine/test/install.test.cjs
+npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.7.tgz --dry-run --access public --tag alpha --registry=https://registry.npmjs.org/
 ```
 
 The install test consumes the supplied archive offline in a temporary project
@@ -65,7 +66,7 @@ checksum of the final archive and publish those same tested bytes.
 4. From the repository root, publish the tested archive explicitly:
 
 ```sh
-npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.6.tgz --access public --tag alpha --registry=https://registry.npmjs.org/
+npm publish ./packages/musicspace-engine/fpachet-musicspace-engine-0.1.0-alpha.7.tgz --access public --tag alpha --registry=https://registry.npmjs.org/
 ```
 
 This command makes the package public. The `alpha` tag marks the prerelease for

@@ -25,6 +25,7 @@
       RadialLimitConstraint,
       FixedDistanceConstraint,
       SpringConstraint,
+      GravitationalConstraint,
       DistanceRatioConstraint,
       PinConstraint,
       SolidAttachmentConstraint,
@@ -146,14 +147,18 @@
     function isDynamicComponent(component) {
       return Boolean(
         component &&
-        (component.constraints.some((c) => c instanceof SpringConstraint) ||
+        (component.constraints.some(
+          (c) => c instanceof SpringConstraint || c instanceof GravitationalConstraint
+        ) ||
           component.entities.some((entity) => entity.dynamics))
       );
     }
 
     function dynamicComponents() {
       const seeds = [
-        ...state.constraints.filter((c) => c instanceof SpringConstraint).map((c) => c.anchor),
+        ...state.constraints
+          .filter((c) => c instanceof SpringConstraint || c instanceof GravitationalConstraint)
+          .map((c) => c.anchor),
         ...state.sources.filter((entity) => entity.dynamics),
         ...state.movingObjects.filter((entity) => entity.dynamics)
       ];
@@ -185,13 +190,14 @@
 
     function hasDynamics() {
       return (
-        state.constraints.some((c) => c instanceof SpringConstraint) ||
-        [...state.sources, ...state.movingObjects].some((entity) => entity.dynamics)
+        state.constraints.some(
+          (c) => c instanceof SpringConstraint || c instanceof GravitationalConstraint
+        ) || [...state.sources, ...state.movingObjects].some((entity) => entity.dynamics)
       );
     }
 
     // Time is in seconds; positions are canvas pixels. Four substeps per 60 Hz tick
-    // reduce implicit-integration energy loss while sharing the geometric projectors.
+    // resolve dynamics while sharing the geometric projectors.
     function stepDynamics(dt = 1 / 60) {
       if (!Number.isFinite(dt) || dt <= 0 || dt > 0.25)
         throw new RangeError("Dynamics dt must be in (0, 0.25] seconds.");
@@ -206,8 +212,11 @@
         const { entities, indexByEntity } = component;
         const mobility = createXpbdMobility(component, null, true);
         const springs = component.constraints.filter((c) => c instanceof SpringConstraint);
+        const gravitational = component.constraints.filter((c) => c instanceof GravitationalConstraint);
         const geometric = orderedXpbdConstraints(
-          component.constraints.filter((c) => !(c instanceof SpringConstraint))
+          component.constraints.filter(
+            (c) => !(c instanceof SpringConstraint) && !(c instanceof GravitationalConstraint)
+          )
         );
         for (let step = 0; step < substeps; step += 1) {
           const positions = entities.map((entity) => ({ x: entity.x, y: entity.y }));
@@ -216,6 +225,10 @@
               projectXpbdHardConstraint(constraint, indexByEntity, positions, mobility);
           }
           const previous = positions.map((position) => ({ ...position }));
+          // Kick-drift-kick (velocity Verlet) avoids secular orbital energy loss.
+          const acceleration = gravitational.length
+            ? gravitationalAcceleration(gravitational, indexByEntity, positions, entities)
+            : null;
           for (let i = 0; i < entities.length; i += 1) {
             const body = entities[i].dynamics;
             if (!mobility[i]) {
@@ -225,11 +238,12 @@
               }
               continue;
             }
-            body.vx += state.gravity.x * h;
-            body.vy += state.gravity.y * h;
+            body.vx += (acceleration ? acceleration[i].x * 0.5 : state.gravity.x) * h;
+            body.vy += (acceleration ? acceleration[i].y * 0.5 : state.gravity.y) * h;
             positions[i].x += body.vx * h;
             positions[i].y += body.vy * h;
           }
+          const predicted = acceleration ? positions.map((position) => ({ ...position })) : null;
           // Multipliers persist across iterations, and reset for every substep.
           const lambdas = new Map();
           for (let iteration = 0; iteration < 24; iteration += 1) {
@@ -244,12 +258,22 @@
               projectXpbdConstraint(constraint, indexByEntity, positions, mobility);
           }
           projectionCount += 24 * springs.length + 32 * geometric.length;
+          const nextAcceleration = gravitational.length
+            ? gravitationalAcceleration(gravitational, indexByEntity, positions, entities)
+            : null;
           for (let i = 0; i < entities.length; i += 1) {
             const entity = entities[i];
             const next = positions[i];
             if (mobility[i]) {
-              entity.dynamics.vx = (next.x - previous[i].x) / h;
-              entity.dynamics.vy = (next.y - previous[i].y) / h;
+              if (nextAcceleration) {
+                // Only add projection corrections to the drift velocity; subtracting
+                // nearby absolute positions loses precision at very small timesteps.
+                entity.dynamics.vx += (next.x - predicted[i].x) / h + nextAcceleration[i].x * h * 0.5;
+                entity.dynamics.vy += (next.y - predicted[i].y) / h + nextAcceleration[i].y * h * 0.5;
+              } else {
+                entity.dynamics.vx = (next.x - previous[i].x) / h;
+                entity.dynamics.vy = (next.y - previous[i].y) / h;
+              }
             }
             if (next.x !== entity.x || next.y !== entity.y) {
               commitXpbdEntityPosition(entity, next);
@@ -270,6 +294,25 @@
       });
       setConstraintStatus(formatPropagationStatus(state.lastPropagationReport));
       return true;
+    }
+
+    function gravitationalAcceleration(links, indexes, positions, entities) {
+      const acceleration = entities.map(() => ({ ...state.gravity }));
+      for (const link of links) {
+        const ai = indexes.get(link.anchor),
+          bi = indexes.get(link.target);
+        const dx = positions[bi].x - positions[ai].x;
+        const dy = positions[bi].y - positions[ai].y;
+        const radius = Math.hypot(dx, dy, link.softening);
+        const factor = link.strength / radius / radius / radius;
+        const am = entities[ai].dynamics?.mass ?? 1;
+        const bm = entities[bi].dynamics?.mass ?? 1;
+        acceleration[ai].x += factor * bm * dx;
+        acceleration[ai].y += factor * bm * dy;
+        acceleration[bi].x -= factor * am * dx;
+        acceleration[bi].y -= factor * am * dy;
+      }
+      return acceleration;
     }
 
     function projectXpbdSpring(spring, indexes, positions, previous, mobility, lambdas, h) {

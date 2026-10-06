@@ -582,3 +582,67 @@ for (const pointer of ["mouse", "touch"]) {
     }
   });
 }
+
+for (const engine of ["standard", "package"]) {
+  test(`${engine} gravity tool, editor, validation, undo and three-body animation`, async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await open(page, engine);
+    await page.locator('[data-tool="gravitational"]').click();
+    const box = await page.locator("#canvas").boundingBox();
+    for (const y of [140, 300]) {
+      await page.mouse.click(box.x + box.width / 2, box.y + (y * box.height) / 600);
+    }
+    expect(
+      await page.evaluate(
+        () => window.serializePatch().constraints.filter((c) => c.type === "gravitational").length
+      )
+    ).toBe(1);
+    await page.evaluate(() =>
+      window.openConstraintEditor(state.constraints.find((c) => c.node.label === "Gravity"))
+    );
+    await page.locator("#constraint-value-a").fill("2000000");
+    await page.locator("#constraint-value-b").fill("20");
+    await page.locator("#constraint-apply").click();
+    expect(
+      await page.evaluate(() => window.serializePatch().constraints.find((c) => c.type === "gravitational"))
+    ).toMatchObject({ strength: 2000000, softening: 20 });
+    await page.locator("#constraint-value-b").fill("0");
+    await page.locator("#constraint-apply").click();
+    await expect(page.locator("#constraint-status")).toContainText("positive");
+    expect(
+      await page.evaluate(
+        () => window.serializePatch().constraints.find((c) => c.type === "gravitational").softening
+      )
+    ).toBe(20);
+    await page.evaluate(() => {
+      window.closeConstraintEditor();
+      selectedEntity = scene.getObjectByName("Mass");
+      window.deleteSelectedEntity();
+    });
+    expect(await page.evaluate(() => state.constraints.length)).toBe(1);
+    await page.evaluate(() => {
+      window.undoLastEdit();
+      window.stopAnimation();
+    });
+    expect(
+      await page.evaluate(() => window.serializePatch().constraints.some((c) => c.type === "gravitational"))
+    ).toBe(true);
+    await page.locator("#patch-select").selectOption("three-body");
+    const result = await page.evaluate(() => {
+      window.stopAnimation();
+      const before = window.serializePatch();
+      for (let i = 0; i < 120; i++) scene.step();
+      const after = window.serializePatch();
+      const loaded = window.loadPatch(after);
+      window.stopAnimation();
+      return { before, after, loaded, restored: window.serializePatch() };
+    });
+    expect(result.loaded).toBe(true);
+    expect(result.after.sources[0].x).not.toBe(result.before.sources[0].x);
+    expect(result.after.constraints).toHaveLength(3);
+    expect(result.restored.sources).toEqual(result.after.sources);
+    await page.screenshot({ path: test.info().outputPath(`${engine}-gravity.png`), fullPage: true });
+    expect(errors).toEqual([]);
+  });
+}
