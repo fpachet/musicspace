@@ -607,6 +607,8 @@ for (const engine of ["standard", "package"]) {
     expect(
       await page.evaluate(() => window.serializePatch().constraints.find((c) => c.type === "gravitational"))
     ).toMatchObject({ strength: 2000000, softening: 20 });
+    // Applying gravity restarts dynamics; pause before checking editor validation.
+    await page.evaluate(() => window.stopAnimation());
     await page.locator("#constraint-value-b").fill("0");
     await page.locator("#constraint-apply").click();
     await expect(page.locator("#constraint-status")).toContainText("positive");
