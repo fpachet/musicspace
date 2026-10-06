@@ -1,4 +1,4 @@
-/* global scene, state, selectedEntity:writable, undoStack */
+/* global scene, state, selectedEntity:writable, undoStack, canvasViewport, canvasCamera */
 const { expect, test } = require("@playwright/test");
 async function open(page, engine = "package", patch = "simple-spring") {
   await page.goto(`/musicspace.html?engine=${engine}&patch=${patch}`);
@@ -644,5 +644,59 @@ for (const engine of ["standard", "package"]) {
     expect(result.restored.sources).toEqual(result.after.sources);
     await page.screenshot({ path: test.info().outputPath(`${engine}-gravity.png`), fullPage: true });
     expect(errors).toEqual([]);
+  });
+}
+
+for (const engine of ["standard", "package"]) {
+  test(`${engine} canvas navigation preserves world positions and recovers escaped sources`, async ({
+    page
+  }) => {
+    await open(page, engine);
+    await page.evaluate(() => {
+      scene.moveEntity(state.sources[0], 1400, -300, {
+        skipPropagation: true,
+        bounds: { left: -2000, top: -2000, right: 2000, bottom: 2000 }
+      });
+      window.drawAll();
+    });
+    const before = await page.evaluate(() => state.sources.map(({ x, y }) => ({ x, y })));
+    await page.locator("#canvas-fit").click();
+    const position = await page.evaluate(() => {
+      const view = canvasViewport();
+      const source = state.sources[0];
+      return {
+        x: view.rect.left + view.offsetX + source.x * view.scaleX,
+        y: view.rect.top + view.offsetY + source.y * view.scaleY
+      };
+    });
+    const box = await page.locator("#canvas").boundingBox();
+    expect(position.x).toBeGreaterThan(box.x);
+    expect(position.x).toBeLessThan(box.x + box.width);
+    expect(position.y).toBeGreaterThan(box.y);
+    expect(position.y).toBeLessThan(box.y + box.height);
+    await page.mouse.click(position.x, position.y);
+    expect(await page.evaluate(() => selectedEntity === state.sources[0])).toBe(true);
+    await page.locator("#canvas-zoom-out").click();
+    await page.locator("#canvas-pan").click();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 40);
+    await page.mouse.up();
+    expect(await page.evaluate(() => state.sources.map(({ x, y }) => ({ x, y })))).toEqual(before);
+    await page.locator("#canvas-pan").click();
+    await page.locator("#canvas-reset-view").click();
+    expect(await page.evaluate(() => ({ ...canvasCamera }))).toEqual({ zoom: 1, panX: 0, panY: 0 });
+    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.25);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.8 - 60, box.y + box.height * 0.25 - 40);
+    await page.mouse.up();
+    const panned = await page.evaluate(() => ({ ...canvasCamera }));
+    expect(panned.zoom).toBe(1);
+    expect(panned.panX).toBeCloseTo(-60, 2);
+    expect(panned.panY).toBeCloseTo(-40, 2);
+    expect(await page.evaluate(() => state.sources.map(({ x, y }) => ({ x, y })))).toEqual(before);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, -100);
+    await expect.poll(() => page.evaluate(() => canvasCamera.zoom)).toBeGreaterThan(1);
   });
 }

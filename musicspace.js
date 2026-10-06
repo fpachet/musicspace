@@ -376,6 +376,54 @@ let builtInPatches = [];
 
 let isCanvasFullscreen = false;
 
+const canvasCamera = { zoom: 1, panX: 0, panY: 0 };
+let canvasPanMode = false;
+let canvasPanDrag = null;
+
+function refreshCanvasCamera() {
+  // Traces are screen-backed; restart them when the camera changes.
+  clearTrace();
+  drawAll();
+}
+
+function zoomCanvas(factor, clientX, clientY) {
+  if (dragged || shuttlePointPicking) return;
+  const view = canvasViewport();
+  const px = clientX == null ? view.width / 2 : clientX - view.rect.left;
+  const py = clientY == null ? view.height / 2 : clientY - view.rect.top;
+  const ratio = clamp(canvasCamera.zoom * factor, 0.1, 8) / canvasCamera.zoom;
+  canvasCamera.zoom *= ratio;
+  canvasCamera.panX = px - view.width / 2 - (px - view.offsetX - (WIDTH * view.scaleX) / 2) * ratio;
+  canvasCamera.panY = py - view.height / 2 - (py - view.offsetY - (HEIGHT * view.scaleY) / 2) * ratio;
+  refreshCanvasCamera();
+}
+
+function fitCanvasObjects() {
+  if (dragged || shuttlePointPicking) return;
+  const objects = [
+    state.listener,
+    ...state.sources,
+    ...state.movingObjects,
+    ...state.constraints.map((constraint) => constraint.node)
+  ].filter((object) => Number.isFinite(object.x) && Number.isFinite(object.y));
+  if (!objects.length) return;
+  const left = Math.min(...objects.map((object) => object.x - (object.radius || 20))) - 40;
+  const right = Math.max(...objects.map((object) => object.x + (object.radius || 20))) + 40;
+  const top = Math.min(...objects.map((object) => object.y - (object.radius || 20))) - 40;
+  const bottom = Math.max(...objects.map((object) => object.y + (object.radius || 20))) + 40;
+  const view = canvasViewport();
+  const baseX = view.scaleX / canvasCamera.zoom;
+  const baseY = view.scaleY / canvasCamera.zoom;
+  canvasCamera.zoom = Math.min(
+    8,
+    view.width / ((right - left) * baseX),
+    view.height / ((bottom - top) * baseY)
+  );
+  canvasCamera.panX = (WIDTH / 2 - (left + right) / 2) * baseX * canvasCamera.zoom;
+  canvasCamera.panY = (HEIGHT / 2 - (top + bottom) / 2) * baseY * canvasCamera.zoom;
+  refreshCanvasCamera();
+}
+
 // Keep patch coordinates unchanged while extending the visible world in fullscreen.
 // Rendering and pointer input share this transform so the extra area is interactive.
 function canvasViewport() {
@@ -383,10 +431,10 @@ function canvasViewport() {
   const width = Math.max(1, rect.width || WIDTH);
   const height = Math.max(1, rect.height || HEIGHT);
   const scale = Math.min(width / WIDTH, height / HEIGHT);
-  const scaleX = isCanvasFullscreen ? scale : width / WIDTH;
-  const scaleY = isCanvasFullscreen ? scale : height / HEIGHT;
-  const offsetX = (width - WIDTH * scaleX) / 2;
-  const offsetY = (height - HEIGHT * scaleY) / 2;
+  const scaleX = (isCanvasFullscreen ? scale : width / WIDTH) * canvasCamera.zoom;
+  const scaleY = (isCanvasFullscreen ? scale : height / HEIGHT) * canvasCamera.zoom;
+  const offsetX = (width - WIDTH * scaleX) / 2 + canvasCamera.panX;
+  const offsetY = (height - HEIGHT * scaleY) / 2 + canvasCamera.panY;
   return {
     rect,
     width,
@@ -4837,7 +4885,10 @@ function handleEntityDoubleClick(entity) {
 function moveEntity(entity, x, y, options) {
   scene.moveEntity(entity, x, y, {
     ...options,
-    bounds: isCanvasFullscreen ? canvasViewport() : null
+    bounds:
+      isCanvasFullscreen || canvasCamera.zoom !== 1 || canvasCamera.panX !== 0 || canvasCamera.panY !== 0
+        ? canvasViewport()
+        : null
   });
   drawTracesForChangedEntities();
   drawAll();
@@ -5210,11 +5261,33 @@ function parsePatchJsonEditor() {
 
 function updateHoverState(entity) {
   hoveredEntity = entity;
+  if (canvasPanMode) {
+    canvas.style.cursor = "grab";
+    return;
+  }
   canvas.style.cursor = activeTool === TOOL_SELECT ? (hoveredEntity ? "grab" : "default") : "crosshair";
 }
 
+function beginCanvasPan(event) {
+  canvasPanDrag = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    panX: canvasCamera.panX,
+    panY: canvasCamera.panY
+  };
+  canvas.setPointerCapture(event.pointerId);
+  canvas.style.cursor = "grabbing";
+  event.preventDefault();
+}
+
 function beginDrag(event) {
-  if (dragged || event.isPrimary === false) return;
+  if (dragged || canvasPanDrag || event.isPrimary === false) return;
+  if (!shuttlePointPicking && (canvasPanMode || event.button === 1 || (event.button === 0 && event.altKey))) {
+    beginCanvasPan(event);
+    return;
+  }
+  if (event.button !== 0) return;
   const { x, y } = getPointerPosition(event);
   if (shuttlePointPicking) {
     if (!shuttlePointPicking.press) {
@@ -5260,6 +5333,8 @@ function beginDrag(event) {
   if (!entity) {
     lastCanvasClick = null;
     selectedEntity = null;
+    focusCanvasWithoutScrolling();
+    beginCanvasPan(event);
     drawAll();
     return;
   }
@@ -5293,6 +5368,14 @@ function beginDrag(event) {
 }
 
 function continueDrag(event) {
+  if (canvasPanDrag) {
+    if (event.pointerId !== canvasPanDrag.pointerId) return;
+    canvasCamera.panX = canvasPanDrag.panX + event.clientX - canvasPanDrag.x;
+    canvasCamera.panY = canvasPanDrag.panY + event.clientY - canvasPanDrag.y;
+    refreshCanvasCamera();
+    event.preventDefault();
+    return;
+  }
   if (shuttlePointPicking) return;
   if (!dragged || event.pointerId !== dragged.pointerId) {
     const { x, y } = getPointerPosition(event);
@@ -5335,6 +5418,14 @@ function continueDrag(event) {
 }
 
 function endDrag(event) {
+  if (canvasPanDrag) {
+    if (event.pointerId !== canvasPanDrag.pointerId) return;
+    canvasPanDrag = null;
+    lastCanvasClick = null;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    updateHoverState(null);
+    return;
+  }
   if (shuttlePointPicking) {
     endShuttlePointPick(event);
     return;
@@ -5399,6 +5490,27 @@ function endDrag(event) {
   }
 }
 
+document.getElementById("canvas-zoom-in").addEventListener("click", () => zoomCanvas(1.25));
+document.getElementById("canvas-zoom-out").addEventListener("click", () => zoomCanvas(0.8));
+document.getElementById("canvas-fit").addEventListener("click", fitCanvasObjects);
+document.getElementById("canvas-reset-view").addEventListener("click", () => {
+  if (dragged || shuttlePointPicking) return;
+  Object.assign(canvasCamera, { zoom: 1, panX: 0, panY: 0 });
+  refreshCanvasCamera();
+});
+document.getElementById("canvas-pan").addEventListener("click", (event) => {
+  canvasPanMode = !canvasPanMode;
+  event.currentTarget.setAttribute("aria-pressed", String(canvasPanMode));
+  updateHoverState(null);
+});
+canvas.addEventListener(
+  "wheel",
+  (event) => {
+    event.preventDefault();
+    zoomCanvas(Math.exp(-clamp(event.deltaY, -100, 100) * 0.002), event.clientX, event.clientY);
+  },
+  { passive: false }
+);
 canvas.addEventListener("pointerdown", beginDrag);
 
 canvas.addEventListener("pointermove", continueDrag);
@@ -5421,6 +5533,7 @@ globalThis.addEventListener?.("resize", () => {
 });
 
 canvas.addEventListener("dblclick", (event) => {
+  if (canvasPanMode || event.altKey) return;
   if (shuttlePointPicking) return;
   const { x, y } = getPointerPosition(event);
   const entity = findDoubleClickEntityAt(x, y);

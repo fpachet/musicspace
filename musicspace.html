@@ -1507,6 +1507,9 @@
     #shuttle-pick-controls[hidden] { display: none; }
     #shuttle-pick-cancel { min-height: 44px; }
 
+    .canvas-navigation { position: absolute; left: 8px; top: 8px; z-index: 5; display: flex; gap: 4px; }
+    .canvas-navigation button { padding: 5px 8px; background: rgba(255,255,255,.94); }
+    .canvas-navigation button[aria-pressed="true"] { background: #dbeafe; }
     #mobile-tools-toggle, #canvas-fullscreen { display: none; }
     #canvas-fullscreen {
       position: absolute;
@@ -1779,6 +1782,13 @@
           <div id="shuttle-pick-controls" hidden>
             <span id="shuttle-pick-prompt" role="status" aria-live="polite"></span>
             <button id="shuttle-pick-cancel" type="button">Cancel</button>
+          </div>
+          <div class="canvas-navigation" role="group" aria-label="Canvas navigation">
+            <button id="canvas-zoom-out" type="button" aria-label="Zoom out">−</button>
+            <button id="canvas-zoom-in" type="button" aria-label="Zoom in">+</button>
+            <button id="canvas-pan" type="button" aria-pressed="false" title="Drag to pan; Alt-drag or middle-button drag also pans">Pan</button>
+            <button id="canvas-fit" type="button" title="Bring all objects into view">Fit all</button>
+            <button id="canvas-reset-view" type="button">Reset view</button>
           </div>
           <button id="canvas-fullscreen" type="button" aria-label="Expand canvas" aria-pressed="false">Expand</button>
           <div id="canvas-legend" class="canvas-overlay canvas-legend" aria-label="Canvas legend">
